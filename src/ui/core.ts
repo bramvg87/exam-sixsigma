@@ -70,12 +70,13 @@ export const settings = {
   digits: store.get<number>('set.digits', 4),
   dec: store.get<string>('set.dec', ','),
   xlnames: store.get<string>('set.xlnames', 'en'),
+  explain: store.get<boolean>('set.explain', true),
 };
 const listeners = new Set<() => void>();
 export function onSettings(fn: () => void) {
   listeners.add(fn);
 }
-export function setSetting(k: 'digits' | 'dec' | 'xlnames', v: any) {
+export function setSetting(k: 'digits' | 'dec' | 'xlnames' | 'explain', v: any) {
   (settings as any)[k] = v;
   store.set('set.' + k, v);
   listeners.forEach((f) => {

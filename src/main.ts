@@ -14,6 +14,10 @@ const main = h('main', { class: 'main', id: 'main' });
 const nav = h('nav', { class: 'sidebar' });
 const searchInput = h('input', { type: 'search', class: 'search', placeholder: 'Zoeken (Ctrl+K)...', 'aria-label': 'Zoeken' }) as HTMLInputElement;
 const searchResults = h('div', { class: 'search-results', hidden: true });
+const explainBtn = h('button', { class: 'btn btn-sm', type: 'button', title: 'Uitleg bij formules en resultaten tonen of verbergen' }, '') as HTMLButtonElement;
+const syncExplain = () => { explainBtn.textContent = settings.explain ? 'Uitleg: aan' : 'Uitleg: uit'; explainBtn.classList.toggle('on', settings.explain); };
+syncExplain();
+explainBtn.addEventListener('click', () => { setSetting('explain', !settings.explain); syncExplain(); });
 const themeBtn = h('button', { class: 'btn btn-sm', type: 'button', title: 'Licht / donker' }, 'Thema');
 const digitsSel = h('select', { title: 'Significante cijfers' }, h('option', { value: '4' }, '4 cijfers'), h('option', { value: '6' }, '6 cijfers')) as HTMLSelectElement;
 const decSel = h('select', { title: 'Decimaalteken uitvoer' }, h('option', { value: ',' }, 'komma ,'), h('option', { value: '.' }, 'punt .')) as HTMLSelectElement;
@@ -31,7 +35,7 @@ const header = h(
   h('button', { class: 'btn btn-sm menu-btn', type: 'button', onclick: () => document.body.classList.toggle('nav-open') }, 'Menu'),
   h('a', { class: 'brand', href: '#/start' }, 'Six Sigma BB toolkit'),
   h('div', { class: 'search-box' }, searchInput, searchResults),
-  h('div', { class: 'settings' }, digitsSel, decSel, xlSel, themeBtn),
+  h('div', { class: 'settings' }, explainBtn, digitsSel, decSel, xlSel, themeBtn),
 );
 const footer = h(
   'footer',

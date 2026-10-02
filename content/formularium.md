@@ -242,6 +242,49 @@ met **prior** $P(\theta)$ (voorkennis), **likelihood** $P(\text{data}\mid\theta)
 - **p-waarde** = kans op een waarde die minstens evenveel afwijkt als de waarneming, *gegeven dat $H_0$ waar is*. Beslisregel: **verwerp $H_0$ als p-waarde $< \alpha$** (equivalent met teststatistiek vs. kritieke waarde).
 - $\alpha$ vooraf vastleggen (ontwerpparameter), nooit na het zien van de teststatistiek.
 
+### A2. Hypothesetoetsen begrijpen (uitleg)
+<!-- tool: hypothese -->
+*Gebaseerd op de tutorial "The t-test, explained" (jar-filling voorbeeld); alle getallen herrekend.*
+
+**Het kader: onschuldig tot het tegendeel bewezen.** Een toets is een beslisregel onder onzekerheid, geen bewijs. $H_0$ is het saaie standaardverhaal ("het proces is in orde"), $H_A$ is wat je vermoedt. Je verwerpt $H_0$ enkel als de data te ongewoon zijn om nog in $H_0$ te geloven; anders blijf je bij $H_0$, zoals een rechtbank "niet schuldig" uitspreekt en niet "onschuldig bewezen".
+
+**Twee risico's, vooraf gekozen.** $\alpha$ = kans op vals alarm (een gezond proces stilleggen; meestal 5%). $\beta$ = kans op een gemist probleem (meestal 10 - 20%); **power** $=1-\beta$ = kans om een echt effect te zien. Denk aan een rookmelder: $\alpha$ = hoe vaak hij afgaat zonder brand, $\beta$ = hoe vaak hij zwijgt bij echte brand. Beide verkleinen tegelijk kan enkel met meer informatie (grotere $n$, betere meting).
+
+**De vier keuzes en de steekproefgrootte.** $\alpha$ en $\beta$ (risico's), $\delta$ (kleinste effect dat er zakelijk toe doet: een beslissing, geen statistiek) en $\sigma$ (natuurlijke ruis, uit historische SPC-data, nooit verzonnen). Samen bepalen ze $n$:
+$$n\approx\left(\frac{(z_{1-\alpha/2}+z_{1-\beta})\,\sigma}{\delta}\right)^2\qquad\text{bv. } \alpha=5\%,\ \beta=20\%,\ \sigma=\delta=2\ \text{g}:\ n=\left(\frac{(1{,}96+0{,}84)\cdot2}{2}\right)^2=7{,}85\Rightarrow n=8$$
+
+**Welke formule? Dezelfde opbouw voor elke toets.** Elke toetsgrootheid is een **signaal/ruis-verhouding**:
+$$\text{toetsgrootheid}=\frac{\text{schatting}-\text{waarde onder }H_0}{\text{standaardfout van de schatting}}$$
+De teller is het signaal (hoe ver je waarneming van $H_0$ ligt), de noemer de ruis (hoeveel de schatting puur door toeval van steekproef tot steekproef schommelt). De keuze van de formule hangt af van **wat** je toetst (gemiddelde, spreiding, fractie, verschil) en **wat je weet** ($\sigma$ gekend of niet); het overzicht staat in "Toetsrecepten" hieronder. Voor spreiding is het geen verschil maar een verhouding ($s^2/\sigma_0^2$ of $s_1^2/s_2^2$), vandaar $\chi^2$ en $F$.
+
+**Waarom t en niet z?** Ken je $\sigma$, dan is $\frac{\bar x-\mu_0}{\sigma/\sqrt n}$ standaardnormaal (Z-toets). Meestal ken je $\sigma$ niet en schat je hem met $s$: een tweede bron van onzekerheid. Daarom de **t-verdeling**, met dikkere staarten en $n-1$ vrijheidsgraden (één vrijheidsgraad gaat naar het schatten van $\bar x$). Kleine $n$ = dikke staarten = grotere kritieke waarde; voor grote $n$ wordt $t(n-1)$ gewoon $N(0,1)$. Kernverschil: $s$ is de *schatting* uit de steekproef, $\sigma$ de *ware* (onbekende) procesparameter.
+
+**De kritieke waarde.** De grens van het verwerpingsgebied: de waarde die onder $H_0$ met kans $\alpha$ overschreden wordt (eenzijdig) of met kans $\alpha/2$ in elke staart (tweezijdig). Ligt de toetsgrootheid voorbij de kritieke waarde, dan is ze "te zeldzaam als $H_0$ waar was". Voorbeeld: $t(9)$, tweezijdig, $\alpha=5\%$: $t_{krit}=\pm2{,}262$ (`=T.INV.2T(0,05;9)`), groter dan $z=1{,}96$ door de dikkere staarten.
+
+**De p-waarde.** De kans om, *als $H_0$ waar is*, een toetsgrootheid te krijgen die minstens zo extreem is als de waargenomen (de oppervlakte in de staart(en) voorbij je waarde). Kleine p = je data zijn onder $H_0$ ongewoon. De p-waarde is **niet** de kans dat $H_0$ waar is.
+
+**Drie gelijkwaardige beslisregels** (zelfde $\alpha$, zelfde zijdigheid, dus altijd dezelfde conclusie):
+1. p-waarde $<\alpha$;
+2. toetsgrootheid voorbij de kritieke waarde;
+3. de hypothesewaarde ligt buiten het $(1-\alpha)$-betrouwbaarheidsinterval (eenzijdige toets $\leftrightarrow$ eenzijdige grens).
+
+**Eenzijdig of tweezijdig?** Volgt uit het vermoeden in $H_A$, niet uit de data. "Is verschoven" of "verschilt" = tweezijdig ($\alpha/2$ per staart); "is kleiner geworden", "is nauwkeuriger", "defectfractie is gestegen" = eenzijdig (heel $\alpha$ in één staart).
+
+**Uitgewerkt voorbeeld (tweezijdige t-toets).** Een vullijn moet 250 g per pot leveren; na een klepaanpassing weeg je 10 potten: $\bar x=248{,}2$, $s=2{,}15$. $H_0:\mu=250$, $H_A:\mu\ne250$ (te weinig en te veel zijn allebei slecht).
+$$t=\frac{248{,}2-250}{2{,}15/\sqrt{10}}=\frac{-1{,}8}{0{,}680}=-2{,}65,\qquad df=9,\qquad t_{krit}=\pm2{,}262,\qquad p=0{,}027$$
+$\lvert t\rvert=2{,}65>2{,}262$ en $p=2{,}7\%<5\%$: verwerp $H_0$. Lezing: het waargenomen verschil is 2,65 keer de typische toevalsschommeling. *Wat je niet bewezen hebt:* dat de lijn "kapot" is, of dat $\mu$ exact 248,2 is; er blijft 2,7% kans dat dit toeval was. Excel: `=T.DIST.2T(2,65;9)`.
+
+**De proportie-variant: $\pi$, $P$ en $E(P)$.** $\pi$ = ware fractie defecten van het proces (onbekend). $P=d/n$ = waargenomen fractie in je steekproef (schommelt). $E(P)=\pi$: gemiddeld over veel steekproeven valt $P$ op $\pi$. Verwacht aantal defecten $n\pi$, standaardfout $\sqrt{\pi(1-\pi)/n}$.
+$$H_0:\pi=0{,}02,\ H_A:\pi>0{,}02,\ n=200,\ d=8\ (P=0{,}04):\quad z=\frac{0{,}04-0{,}02}{\sqrt{0{,}02\cdot0{,}98/200}}=2{,}02,\quad p=0{,}022$$
+*Let op:* $n\pi_0=4<5$, dus de normale benadering is twijfelachtig. De exacte binomiale p-waarde `=1-BINOM.DIST(7;200;0,02;WAAR)` $=0{,}049$: nog net $<5\%$, dezelfde conclusie maar veel krapper. Gebruik bij weinig verwachte defecten de exacte toets.
+
+**Valkuilen.**
+- "Niet significant" betekent "onvoldoende bewijs", niet "$H_0$ is waar". Controleer de power (was $n$ groot genoeg?).
+- Statistisch significant is niet hetzelfde als praktisch belangrijk: 0,01 g verschil op 250 g kan significant zijn bij $n=100\,000$ en toch irrelevant.
+- $\alpha$ en de zijdigheid kies je **voor** je de data bekijkt.
+
+*In één zin:* een toets vraagt of het verschil tussen wat je ziet en wat $H_0$ beweert groter is dan de toevalsschommeling die je onder $H_0$ zou verwachten.
+
 ### B. Toetsprocedure (recept, 7 stappen)
 <!-- tool: hypothese -->
 1. Formuleer $H_0$ en $H_A$ (één- of tweezijdig).
@@ -540,6 +583,24 @@ Verwerp $H_0$ ($\mu_1=\dots=\mu_a$) als $F>F_{1-\alpha,\,a-1,\,a(n-1)}$. Rekenvo
 > - Als de factor wél een effect heeft, wordt $MS_{Tr}$ opgeblazen door de echte verschillen tussen de gemiddelden -> $F\gg 1$.
 >
 > De toets vraagt dus: *"is de spreiding tússen de groepen groter dan wat je door puur toeval zou verwachten?"* ANOVA veralgemeent zo de tweesteekproeven-t-toets naar méér dan twee groepen, en is wiskundig een speciaal geval van regressie (met dummy-variabelen voor de factorniveaus) - vandaar dat exact dezelfde SS-ontbinding $SS_T=SS_{Tr}+SS_E$ geldt als bij regressie ($SS_T=SS_R+SS_E$).
+
+**Waarom niet gewoon t-toetsen per paar?** Met $a=3$ groepen zijn er 3 paren; elke t-toets op 5% heeft 5% kans op vals alarm, dus de kans op minstens één vals alarm wordt $1-0{,}95^3=14{,}3\%$. ANOVA toetst alle gemiddelden in één keer op niveau $\alpha$. Pas na een significante F zoek je met een post-hoc toets (LSD, Tukey, Bonferroni $\alpha/m$) welke paren verschillen.
+
+**Vrijheidsgraden lezen.** $a-1$ voor de factor: $a$ groepsgemiddelden, waarvan er één "vastligt" door het grootgemiddelde. $N-a$ voor de fout: $N$ waarnemingen min de $a$ geschatte groepsgemiddelden. $MS=SS/df$ maakt van een som een gemiddelde kwadratische afwijking, dus een variantieschatting; daardoor zijn teller en noemer van F vergelijkbaar.
+
+**De ANOVA-tabel lezen (voorbeeld, 3 groepen van 4).** Groepsgemiddelden 12,10 / 13,05 / 12,30, grootgemiddelde 12,48.
+
+| Bron | SS | df | MS | F | p |
+|---|---|---|---|---|---|
+| Tussen | 2,007 | 2 | 1,003 | 12,72 | 0,0024 |
+| Binnen | 0,710 | 9 | 0,0789 | | |
+| Totaal | 2,717 | 11 | | | |
+
+$MS_E=0{,}0789$ is de schatting van $\sigma^2$ (ruis); $MS_{Tr}=1{,}003$ is 12,7 keer zo groot, wat onder $H_0$ hoogst ongewoon is: $F_{krit}=F_{0{,}05;2;9}=4{,}26$ (`=F.INV.RT(0,05;2;9)`), $p=0{,}0024$ (`=F.DIST.RT(12,72;2;9)`). Verwerp $H_0$: minstens één gemiddelde verschilt (hier vooral groep 2). $R^2=SS_{Tr}/SS_T=0{,}74$: 74% van de variatie komt van de factor. De toets is altijd rechtszijdig, want enkel een grote F is bewijs tegen $H_0$.
+
+**Aannames.** Onafhankelijke waarnemingen (randomiseer de volgorde), normale residuen, gelijke varianties per groep (vuistregel: grootste/kleinste $s$ niet meer dan ongeveer 2). Bij gelijke groepsgroottes is ANOVA vrij robuust.
+
+**Tweeweg-ANOVA in één alinea.** Twee factoren A en B tegelijk: $SS_T=SS_A+SS_B+SS_{AB}+SS_E$, elke F $=MS_{bron}/MS_E$. **Interactie** $AB$: het effect van A hangt af van het niveau van B (niet-evenwijdige lijnen in het interactieplot). Lees eerst de interactie; is die significant, interpreteer dan de celgemiddelden en niet de hoofdeffecten apart. **Zonder herhaling** (1 waarneming per cel) zit de interactie in de foutterm en moet je veronderstellen dat er geen interactie is; met herhaling komt $SS_E$ uit de spreiding binnen de cellen (zuivere ruis).
 
 ### F. DOE - principes
 - Doel: bepalen welke factoren $x$ de respons $y$ het sterkst beïnvloeden, en bij welke instellingen $y$ gewenst / variabiliteit minimaal is.

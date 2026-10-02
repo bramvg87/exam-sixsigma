@@ -9,6 +9,7 @@ import * as H from '../calc/hypo.ts';
 import { mean, sdS, varS } from '../stats/desc.ts';
 import { live, need, moduleHead, posInt, pos, prob, SIDES, relTex, relTxt, sideNl } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
+import { exMean, exChi, exF, exProp, exPropCi, exTwo, exPaired, exSampleSize } from './explain.ts';
 import type { Side } from '../calc/hypo.ts';
 import G from '../../testdata/golden_values.json';
 
@@ -50,7 +51,10 @@ function oneSampleInput(f: Form, key: string, onChange: () => void, defaults: { 
 function statPlot(pdf: (x: number) => number, x0: number, x1: number, side: Side, crit: number[], stat: number, lowerTailOnly0 = false) {
   const shade: [number, number][] = side === 'left' ? [[x0 - 1e9, crit[0]]] : side === 'right' ? [[crit[0], x1 + 1e9]] : [[x0 - 1e9, crit[0]], [crit[1], x1 + 1e9]];
   void lowerTailOnly0;
-  return chartBox(densityPlot({ pdf, x0, x1, shade, vlines: [{ x: stat, label: 'toetsgrootheid ' + fmt(stat) }] }));
+  return chartBox(
+    densityPlot({ pdf, x0, x1, shade, vlines: [{ x: stat, label: 'toetsgrootheid ' + fmt(stat), cls: 'mean' }, ...crit.map((c) => ({ x: c, label: 'kritiek ' + fmt(c), cls: 'spec' }))] }),
+    h('div', { class: 'muted' }, 'Blauw gearceerd = verwerpingsgebied (oppervlakte α onder H₀); rode lijn = kritieke waarde; groene stippellijn = jouw toetsgrootheid. Valt groen in het blauwe gebied, dan verwerp je H₀.'),
+  );
 }
 
 // ---------- 1. Z test mean ----------
@@ -83,6 +87,7 @@ function zTab(el: HTMLElement) {
       decision: decide(r.reject, a),
       warnings: d.note ? [d.note] : [],
       excel: [`kritiek: ${critXl}`, `p: ${pXl}`, `z: =(${xl(d.xbar)}-${xl(m0)})/(${xl(sg)}/SQRT(${d.n}))`],
+      explain: exMean('z', { xbar: d.xbar, s: sg, n: d.n, m0, a, side: sd, stat: r.stat, crit: r.crit, p: r.p, reject: r.reject, ci: r.ci, se: sg / Math.sqrt(d.n) }),
       answer: `Toetsgrootheid z = ${nl(r.stat)} met p-waarde ${nl(r.p)}. ${r.reject ? `Omdat p < alpha = ${nl(a)} verwerpen we H0: het gemiddelde is significant ${sd === 'left' ? 'kleiner dan' : sd === 'right' ? 'groter dan' : 'verschillend van'} ${nl(m0)}.` : `Omdat p >= alpha = ${nl(a)} kunnen we H0 niet verwerpen: er is onvoldoende bewijs dat het gemiddelde ${sd === 'left' ? 'kleiner is dan' : sd === 'right' ? 'groter is dan' : 'verschilt van'} ${nl(m0)}.`} Het ${pctNl(1 - a)}-betrouwbaarheidsinterval ${ciTxt(r.ci)} ${r.reject ? 'bevat' : 'bevat wel'} ${r.reject ? 'de waarde ' + nl(m0) + ' niet' : 'de waarde ' + nl(m0)}, wat dezelfde conclusie geeft.`,
       extra: statPlot((x) => D.normPdf(x), -4.5, 4.5, sd, r.crit, r.stat),
     });
@@ -126,6 +131,7 @@ function tTab(el: HTMLElement) {
       decision: decide(r.reject, a),
       warnings: [d.note ?? '', d.n < 30 ? 'Voorwaarde: X (ongeveer) normaal verdeeld; bij kleine n belangrijk (t-toets is wel robuust bij grote n).' : ''].filter(Boolean),
       excel: [`t: =(AVERAGE(bereik)-${xl(m0)})/(STDEV.S(bereik)/SQRT(COUNT(bereik)))`, `kritiek: ${critXl}`, `p: ${pXl}`],
+      explain: exMean('t', { xbar: d.xbar, s: d.s, n: d.n, m0, a, side: sd, stat: r.stat, crit: r.crit, p: r.p, reject: r.reject, ci: r.ci, se: d.s / Math.sqrt(d.n) }),
       answer: `De toetsgrootheid is t = ${nl(r.stat)} (df = ${df}), de p-waarde is ${nl(r.p)} (${pctNl(r.p)}). ${r.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: het gemiddelde is significant ${sd === 'left' ? 'kleiner dan' : sd === 'right' ? 'groter dan' : 'verschillend van'} ${nl(m0)}.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet.`} Het ${sideNl(sd) === 'tweezijdig' ? '' : 'eenzijdige '}${pctNl(1 - a)}-betrouwbaarheidsinterval is ${ciTxt(r.ci)}; ${nl(m0)} ligt daar ${inCI ? 'binnen' : 'buiten'}, wat de conclusie bevestigt.`,
       extra: statPlot((x) => D.tPdf(x, df), -lim, lim, sd, r.crit, r.stat),
     });
@@ -165,6 +171,7 @@ function chiTab(el: HTMLElement) {
       decision: decide(r.reject, a),
       warnings: ['Voorwaarde: X normaal verdeeld. De \u03c7\u00b2-toets voor \u03c3 is NIET robuust tegen afwijkingen van normaliteit.', d.note ?? ''].filter(Boolean),
       excel: [...critXl.map((c) => 'kritiek: ' + c), `p: ${pXl}`, `\u03c7\u00b2: =(COUNT(bereik)-1)*VAR.S(bereik)/${xl(sg0)}^2`],
+      explain: exChi({ s: d.s, n: d.n, s0: sg0, a, side: sd, stat: r.stat, crit: r.crit, p: r.p, reject: r.reject, ciS }),
       answer: `Met s = ${nl(d.s)} is chi2 = ${nl(r.stat)} (df = ${df}) en p = ${nl(r.p)}. ${r.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: de standaardafwijking is significant ${sd === 'right' ? 'groter dan' : sd === 'left' ? 'kleiner dan' : 'verschillend van'} ${nl(sg0)}.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet: er is onvoldoende bewijs dat sigma ${sd === 'right' ? 'groter is dan' : sd === 'left' ? 'kleiner is dan' : 'verschilt van'} ${nl(sg0)}.`} Het ${pctNl(1 - a)}-betrouwbaarheidsinterval voor sigma is ${ciTxt(ciS)}.`,
       extra: statPlot((x) => D.chi2Pdf(x, df), 0, Math.max(D.chi2InvRt(0.001, df), r.stat * 1.1), sd, r.crit, r.stat),
     });
@@ -279,6 +286,7 @@ function fTab(el: HTMLElement) {
       warnings: ['Welke variantie staat in de teller? Hierboven expliciet vermeld. Omdraaien: keer teller en noemer \u00e9n de vrijheidsgraden om; F\u03b1(a;b) = 1/F\u2081\u208b\u03b1(b;a).', 'Voorwaarde: beide populaties normaal en onafhankelijke steekproeven. De F-toets is niet robuust.'],
       extra: [h('div', null, h('h4', null, 'Alle betrouwbaarheidsgrenzen, beide oriëntaties'), ciTable)],
       excel: [...excelMain, `p (F-toets): ${pXl}`],
+      explain: exF({ names, side: sd, a, d1, d2, F: t.stat, crit: t.crit, p: t.p, reject: t.reject, Fa, L: sd === 'left' ? ci21L[0] : undefined }),
       answer: ans,
     });
   });
@@ -317,6 +325,7 @@ function propTab(el: HTMLElement) {
       decision: decide(r.rejectExact, a),
       warnings: [r.npi0 < 5 || r.nq0 < 5 ? `n\u03c0\u2080 = ${fmt(r.npi0)} < 5: normale benadering onbetrouwbaar, gebruik de exacte binomiale p-waarde.` : `n\u03c0\u2080 = ${fmt(r.npi0)} \u2265 5: normale benadering aanvaardbaar.`],
       excel: [`p normaal: =${sd === 'left' ? '' : '1-'}NORM.S.DIST(${xl(sd === 'two' ? Math.abs(r.z) : r.z)};WAAR)${sd === 'two' ? ' (x2)' : ''}`, `p exact: ${exXl}`],
+      explain: exProp({ dd, n: N, p0, a, side: sd, z: r.z, crit: r.crit, pN: r.pValue, pE: r.pExact, reject: r.rejectExact, cc: cc.get() }),
       answer: `Waargenomen fractie p = ${dd}/${N} = ${pctNl(p)}. De exacte binomiale p-waarde is ${nl(r.pExact)} (normale benadering ${nl(r.pValue)}). ${r.rejectExact ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: de fractie is significant ${sd === 'right' ? 'groter dan' : sd === 'left' ? 'kleiner dan' : 'verschillend van'} ${pctNl(p0)}.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet.`}`,
     });
   });
@@ -372,6 +381,7 @@ function propCiTab(el: HTMLElement) {
         dd < 5 ? `Slechts ${dd} defect(en): de normale benadering (Wald) is hier NIET aanvaardbaar (vuistregel: minstens ~5 defecten).` : 'Minstens 5 defecten: de normale benadering is aanvaardbaar, maar exact blijft beter.',
       ],
       excel: [`ondergrens: =BETA.INV(${xl(aa)};${dd};${nn - dd + 1})`, `bovengrens: =BETA.INV(${xl(1 - aa)};${dd + 1};${nn - dd})`],
+      explain: exPropCi({ dd, n: nn }),
       answer: `Met ${dd} defecten op ${nn} is de puntschatting ${pctNl(dd / nn)}. Het exacte ${k === 'two' ? '' : 'eenzijdige '}${pctNl(c)}-betrouwbaarheidsinterval (Clopper-Pearson, via de beta-verdeling) is ${f2(cp)}. ${dd < 5 ? 'Bij zo weinig defecten is de normale benadering onbruikbaar, daarom de exacte methode.' : ''}`,
     });
   });
@@ -441,6 +451,7 @@ function twoTab(el: HTMLElement) {
         'Let op (cursus): de F-toets is niet robuust tegen niet-normaliteit, dus als voortoets met voorzichtigheid gebruiken.',
       ],
       excel: [`pooled p: =T.TEST(bereik1;bereik2;${tt};2)`, `Welch p: =T.TEST(bereik1;bereik2;${tt};3)`, `t pooled kritiek: =T.INV(${xl(sd === 'two' ? 1 - a / 2 : 1 - a)};${P.df})`],
+      explain: exTwo({ pooled: P, welch: W, fp: Ft.p, a, side: sd }),
       answer: `Met de pooled t-toets (gelijke varianties verondersteld, df = ${P.df}) is t = ${nl(P.t)} en p = ${nl(P.p)}. ${P.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: de gemiddelden verschillen significant.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet: geen significant verschil tussen de gemiddelden.`} De Welch-toets (zonder aanname van gelijke varianties) geeft p = ${nl(W.p)}${W.reject === P.reject ? ', dezelfde conclusie' : ', een andere conclusie: vermeld dit'}.`,
     });
   });
@@ -474,6 +485,7 @@ function pairedTab(el: HTMLElement) {
       decision: decide(r.reject, a),
       extra: table(['paar', 'x\u2081', 'x\u2082', 'v = x\u2081 - x\u2082'], m.map((x, i) => [String(i + 1), fmt(x[0]), fmt(x[1]), fmt(r.diffs[i])])),
       excel: [`p: =T.TEST(bereik1;bereik2;${tt};1)`, `of: verschillenkolom v, dan t = AVERAGE(v)/(STDEV.S(v)/SQRT(COUNT(v)))`],
+      explain: exPaired({ n: r.n, vbar: r.vbar, sv: r.sv, stat: r.stat, p: r.p, a, side: sd }),
       answer: `Voor de ${r.n} paren is het gemiddelde verschil ${nl(r.vbar)} met s_v = ${nl(r.sv)}, dus t = ${nl(r.stat)} (df = ${r.n - 1}) en p = ${nl(r.p)}. ${r.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: er is een significant verschil.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet.`} Een gepaarde toets is hier correct omdat de metingen per paar afhankelijk zijn.`,
     });
   });
@@ -504,17 +516,17 @@ function nTab(el: HTMLElement) {
     const a = prob(alpha.get(), '\u03b1');
     if (w === 'meanE') {
       const r = H.nMeanMargin(pos(sigma.get(), '\u03c3'), pos(E.get(), 'E'), a);
-      return resultPanel({ question: `Hoe groot moet n zijn opdat het ${pctNl(1 - a)}-BI voor \\(\\mu\\) een halve breedte \\(E\\) heeft?`, formula: [`n = \\left(\\frac{z_{1-\\alpha/2}\\,\\sigma}{E}\\right)^2`], substituted: [`n = \\left(\\frac{${tx(r.z)}\\cdot ${tx(sigma.get())}}{${tx(E.get())}}\\right)^2 = ${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (naar boven afgerond)', String(r.n)]], excel: [`=ROUNDUP((NORM.S.INV(${xl(1 - a / 2)})*${xl(sigma.get())}/${xl(E.get())})^2;0)`], answer: `Er zijn minstens n = ${r.n} waarnemingen nodig (${nl(r.nExact)} naar boven afgerond). De breedte halveren vraagt 4 keer zoveel waarnemingen.` });
+      return resultPanel({ explain: exSampleSize, question: `Hoe groot moet n zijn opdat het ${pctNl(1 - a)}-BI voor \\(\\mu\\) een halve breedte \\(E\\) heeft?`, formula: [`n = \\left(\\frac{z_{1-\\alpha/2}\\,\\sigma}{E}\\right)^2`], substituted: [`n = \\left(\\frac{${tx(r.z)}\\cdot ${tx(sigma.get())}}{${tx(E.get())}}\\right)^2 = ${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (naar boven afgerond)', String(r.n)]], excel: [`=ROUNDUP((NORM.S.INV(${xl(1 - a / 2)})*${xl(sigma.get())}/${xl(E.get())})^2;0)`], answer: `Er zijn minstens n = ${r.n} waarnemingen nodig (${nl(r.nExact)} naar boven afgerond). De breedte halveren vraagt 4 keer zoveel waarnemingen.` });
     }
     if (w === 'meanD') {
       const b = prob(beta.get(), '\u03b2');
       const r = H.nMeanShift(pos(sigma.get(), '\u03c3'), pos(delta.get(), '\u03b4'), a, b, two.get());
       const za = two.get() ? 'z_{1-\\alpha/2}' : 'z_{1-\\alpha}';
-      return resultPanel({ question: `Steekproefgrootte om een verschuiving \\(\\delta=${tx(delta.get())}\\) te detecteren met \\(\\alpha=${tx(a)}\\) en \\(\\beta=${tx(b)}\\) (power ${pctNl(1 - b)})`, formula: [`n=\\left(\\frac{(${za}+z_{1-\\beta})\\,\\sigma}{\\delta}\\right)^2`], substituted: [`n=\\left(\\frac{(${tx(r.za)}+${tx(r.zb)})\\cdot ${tx(sigma.get())}}{${tx(delta.get())}}\\right)^2=${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (afgerond)', String(r.n)]], excel: [`=ROUNDUP(((NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})+NORM.S.INV(${xl(1 - b)}))*${xl(sigma.get())}/${xl(delta.get())})^2;0)`], answer: `Om een verschuiving van ${nl(delta.get())} te detecteren met alpha = ${pctNl(a)} en beta = ${pctNl(b)} zijn n = ${r.n} waarnemingen nodig. Beta verkleinen bij vaste alpha kan enkel met een grotere steekproef.` });
+      return resultPanel({ explain: exSampleSize, question: `Steekproefgrootte om een verschuiving \\(\\delta=${tx(delta.get())}\\) te detecteren met \\(\\alpha=${tx(a)}\\) en \\(\\beta=${tx(b)}\\) (power ${pctNl(1 - b)})`, formula: [`n=\\left(\\frac{(${za}+z_{1-\\beta})\\,\\sigma}{\\delta}\\right)^2`], substituted: [`n=\\left(\\frac{(${tx(r.za)}+${tx(r.zb)})\\cdot ${tx(sigma.get())}}{${tx(delta.get())}}\\right)^2=${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (afgerond)', String(r.n)]], excel: [`=ROUNDUP(((NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})+NORM.S.INV(${xl(1 - b)}))*${xl(sigma.get())}/${xl(delta.get())})^2;0)`], answer: `Om een verschuiving van ${nl(delta.get())} te detecteren met alpha = ${pctNl(a)} en beta = ${pctNl(b)} zijn n = ${r.n} waarnemingen nodig. Beta verkleinen bij vaste alpha kan enkel met een grotere steekproef.` });
     }
     if (w === 'propE') {
       const r = H.nPropMargin(prob(p.get(), 'p', false), pos(E.get(), 'E'), a);
-      return resultPanel({ question: `Steekproefgrootte voor een fractie met foutenmarge \\(E=${tx(E.get())}\\)`, formula: [`n=\\frac{z_{1-\\alpha/2}^2\\,p(1-p)}{E^2}`], substituted: [`n=\\frac{${tx(r.z)}^2\\cdot ${tx(p.get())}(1-${tx(p.get())})}{${tx(E.get())}^2}=${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (afgerond)', String(r.n)]], warnings: ['Worst case p = 0,5 geeft de grootste n. Bij kleine fracties is de normale benadering zwak: controleer achteraf met het exacte interval.'], excel: [`=ROUNDUP(NORM.S.INV(${xl(1 - a / 2)})^2*${xl(p.get())}*(1-${xl(p.get())})/${xl(E.get())}^2;0)`], answer: `Er zijn n = ${r.n} waarnemingen nodig voor een foutenmarge van ${nl(E.get())} bij ${pctNl(1 - a)} betrouwbaarheid.` });
+      return resultPanel({ explain: exSampleSize, question: `Steekproefgrootte voor een fractie met foutenmarge \\(E=${tx(E.get())}\\)`, formula: [`n=\\frac{z_{1-\\alpha/2}^2\\,p(1-p)}{E^2}`], substituted: [`n=\\frac{${tx(r.z)}^2\\cdot ${tx(p.get())}(1-${tx(p.get())})}{${tx(E.get())}^2}=${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (afgerond)', String(r.n)]], warnings: ['Worst case p = 0,5 geeft de grootste n. Bij kleine fracties is de normale benadering zwak: controleer achteraf met het exacte interval.'], excel: [`=ROUNDUP(NORM.S.INV(${xl(1 - a / 2)})^2*${xl(p.get())}*(1-${xl(p.get())})/${xl(E.get())}^2;0)`], answer: `Er zijn n = ${r.n} waarnemingen nodig voor een foutenmarge van ${nl(E.get())} bij ${pctNl(1 - a)} betrouwbaarheid.` });
     }
     if (w === 'propD') {
       const b = prob(beta.get(), '\u03b2');
@@ -522,11 +534,11 @@ function nTab(el: HTMLElement) {
       const p1 = prob(pi1.get(), '\u03c0\u2081');
       need(p0 !== p1, '\u03c0\u2080 en \u03c0\u2081 moeten verschillen.');
       const r = H.nPropShift(p0, p1, a, b, two.get());
-      return resultPanel({ question: `Steekproefgrootte om \\(\\pi_1=${tx(p1)}\\) te onderscheiden van \\(\\pi_0=${tx(p0)}\\)`, formula: [`n=\\left(\\frac{z_{1-\\alpha}\\sqrt{\\pi_0(1-\\pi_0)}+z_{1-\\beta}\\sqrt{\\pi_1(1-\\pi_1)}}{\\pi_1-\\pi_0}\\right)^2`], substituted: [`n=${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (afgerond)', String(r.n)]], excel: [`=ROUNDUP(((NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})*SQRT(${xl(p0)}*(1-${xl(p0)}))+NORM.S.INV(${xl(1 - b)})*SQRT(${xl(p1)}*(1-${xl(p1)})))/(${xl(p1)}-${xl(p0)}))^2;0)`], answer: `Er zijn ongeveer n = ${r.n} stuks nodig (normale benadering).` });
+      return resultPanel({ explain: exSampleSize, question: `Steekproefgrootte om \\(\\pi_1=${tx(p1)}\\) te onderscheiden van \\(\\pi_0=${tx(p0)}\\)`, formula: [`n=\\left(\\frac{z_{1-\\alpha}\\sqrt{\\pi_0(1-\\pi_0)}+z_{1-\\beta}\\sqrt{\\pi_1(1-\\pi_1)}}{\\pi_1-\\pi_0}\\right)^2`], substituted: [`n=${tx(r.nExact)}`], result: [['n (exact)', fmt(r.nExact)], ['n (afgerond)', String(r.n)]], excel: [`=ROUNDUP(((NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})*SQRT(${xl(p0)}*(1-${xl(p0)}))+NORM.S.INV(${xl(1 - b)})*SQRT(${xl(p1)}*(1-${xl(p1)})))/(${xl(p1)}-${xl(p0)}))^2;0)`], answer: `Er zijn ongeveer n = ${r.n} stuks nodig (normale benadering).` });
     }
     const nn = posInt(n.get(), 'n');
     const r = H.betaMean(pos(sigma.get(), '\u03c3'), pos(delta.get(), '\u03b4'), nn, a, two.get());
-    return resultPanel({ question: `Power en \\(\\beta\\) van een Z-toets bij \\(n=${nn}\\) voor een verschuiving \\(\\delta=${tx(delta.get())}\\)`, formula: [two.get() ? `\\beta=\\Phi\\left(z_{1-\\alpha/2}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)-\\Phi\\left(-z_{1-\\alpha/2}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)` : `\\beta=\\Phi\\left(z_{1-\\alpha}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)`], substituted: [`\\beta=${tx(r.beta)}`], result: [['\u03b2', `${fmt(r.beta)} (${pct(r.beta)})`], ['power 1-\u03b2', `${fmt(r.power)} (${pct(r.power)})`]], excel: [`=NORM.S.DIST(NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})-${xl(delta.get())}*SQRT(${nn})/${xl(sigma.get())};WAAR)`], answer: `Bij n = ${nn} is de kans op een fout van de tweede soort beta = ${pctNl(r.beta)}, de power is ${pctNl(r.power)}.` });
+    return resultPanel({ explain: exSampleSize, question: `Power en \\(\\beta\\) van een Z-toets bij \\(n=${nn}\\) voor een verschuiving \\(\\delta=${tx(delta.get())}\\)`, formula: [two.get() ? `\\beta=\\Phi\\left(z_{1-\\alpha/2}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)-\\Phi\\left(-z_{1-\\alpha/2}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)` : `\\beta=\\Phi\\left(z_{1-\\alpha}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)`], substituted: [`\\beta=${tx(r.beta)}`], result: [['\u03b2', `${fmt(r.beta)} (${pct(r.beta)})`], ['power 1-\u03b2', `${fmt(r.power)} (${pct(r.power)})`]], excel: [`=NORM.S.DIST(NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})-${xl(delta.get())}*SQRT(${nn})/${xl(sigma.get())};WAAR)`], answer: `Bij n = ${nn} is de kans op een fout van de tweede soort beta = ${pctNl(r.beta)}, de power is ${pctNl(r.power)}.` });
   });
   run();
 }

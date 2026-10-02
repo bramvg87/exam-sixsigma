@@ -10,6 +10,7 @@ import { fInvRt } from '../stats/dist.ts';
 import { sdS } from '../stats/desc.ts';
 import { live, need, moduleHead, prob } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
+import { exOneWay, exTwoWay } from './explain.ts';
 import G from '../../testdata/golden_values.json';
 
 /** Run a calc function; turn its plain Errors into Dutch InputErrors. */
@@ -114,6 +115,7 @@ function onewayTab(el: HTMLElement) {
       warnings,
       extra: [anovaTable(r.rows, a, () => r.df[1]), grpTbl, plot],
       excel: [`p: =F.DIST.RT(${xl(r.F)};${r.df[0]};${r.df[1]})`, `F kritiek: =F.INV.RT(${xl(a)};${r.df[0]};${r.df[1]})`, 'SS_W per groep: =DEVSQ(bereik groep); SS_T: =DEVSQ(alle data)', 'Of: Gegevens > Gegevensanalyse > Anova: één factor'],
+      explain: exOneWay({ k, N, F: r.F, Fc, p: r.p, a, msb: B.MS, msw: W.MS, df1: r.df[0], df2: r.df[1], r2: B.SS / (B.SS + W.SS) }),
       answer:
         `Eenweg-ANOVA met ${k} groepen (N = ${N}): F = ${nl(r.F)} met df = (${r.df[0]}; ${r.df[1]}) en p-waarde ${nl(r.p)} (F kritiek = ${nl(Fc)}). ` +
         (r.p < a
@@ -211,6 +213,7 @@ function twowayTab(el: HTMLElement) {
         warnings: ['Zonder herhaling is de interactie A x B niet te scheiden van de fout: we veronderstellen dat er geen interactie is. Wil je de interactie toetsen, meet dan elke combinatie minstens 2 keer.'],
         extra: [anovaTable(r.rows, a, () => E.df), table(['', ...bn, 'rijgemiddelde'], Mx.map((ro, i) => [an[i], ...ro.map((v) => fmt(v)), fmt(r.rm[i])]).concat([['kolomgemiddelde', ...r.cm.map((v) => fmt(v)), fmt(r.gm)]])), interactionPlot(Mx, an, bn, 'A (rijen)', 'B (kolommen)', 'respons')],
         excel: [`p_A: =F.DIST.RT(${xl(A.F!)};${A.df};${E.df})`, `p_B: =F.DIST.RT(${xl(B.F!)};${B.df};${E.df})`, `F krit A: =F.INV.RT(${xl(a)};${A.df};${E.df})`, 'Of: Gegevens > Gegevensanalyse > Anova: twee factoren zonder herhaling'],
+        explain: exTwoWay({ rep: false, pA: A.p!, pB: B.p!, a }),
         answer: `Tweeweg-ANOVA zonder herhaling (${Mx.length} x ${Mx[0].length}): factor A (rijen) heeft F = ${nl(A.F!)} met p = ${nl(A.p!)} en is dus ${pDec(A.p!, a)}; factor B (kolommen) heeft F = ${nl(B.F!)} met p = ${nl(B.p!)} en is ${pDec(B.p!, a)} (alpha = ${nl(a)}). Omdat er per cel slechts één waarneming is, wordt verondersteld dat er geen interactie is; de interactie zit in de foutterm.`,
       });
     }
@@ -253,6 +256,7 @@ function twowayTab(el: HTMLElement) {
       warnings,
       extra: [anovaTable(r.rows, a, () => E.df), cellTbl, interactionPlot(r.cellM, cs.aLevels, cs.bLevels, aLab, bLab, 'celgemiddelde')],
       excel: [`p_A: =F.DIST.RT(${xl(A.F!)};${A.df};${E.df})`, `p_B: =F.DIST.RT(${xl(B.F!)};${B.df};${E.df})`, `p_AB: =F.DIST.RT(${xl(AB.F!)};${AB.df};${E.df})`, `F krit AB: =F.INV.RT(${xl(a)};${AB.df};${E.df})`, `Of: Gegevensanalyse > Anova: twee factoren met herhaling (blokformaat, rijen per steekproef = ${cs.r})`],
+      explain: exTwoWay({ rep: true, pA: A.p!, pB: B.p!, pAB: AB.p!, a }),
       answer:
         `Tweeweg-ANOVA met herhaling (${cs.aLevels.length} x ${cs.bLevels.length}, r = ${cs.r}, alpha = ${nl(a)}): ${aLab} F = ${nl(A.F!)} (p = ${nl(A.p!)}, ${pDec(A.p!, a)}), ${bLab} F = ${nl(B.F!)} (p = ${nl(B.p!)}, ${pDec(B.p!, a)}), interactie F = ${nl(AB.F!)} (p = ${nl(AB.p!)}, ${pDec(AB.p!, a)}). ` +
         (intSig ? `Door de significante interactie hangt het effect van ${aLab} af van het niveau van ${bLab}; de beste instelling volgt uit de celgemiddelden en niet uit de hoofdeffecten afzonderlijk.` : `Zonder significante interactie kunnen de hoofdeffecten afzonderlijk worden geïnterpreteerd.`),

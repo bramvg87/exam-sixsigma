@@ -1,5 +1,5 @@
 // Result panel: question/hypotheses, formula, substituted formula, result, decision, Excel, exam answer.
-import { h, texEl, copyBtn, noDash, xlName } from '../ui/core.ts';
+import { h, texEl, copyBtn, noDash, xlName, settings } from '../ui/core.ts';
 
 export interface ResultSpec {
   title?: string;
@@ -12,6 +12,8 @@ export interface ResultSpec {
   answer?: string;
   extra?: HTMLElement | HTMLElement[] | null;
   warnings?: string[];
+  /** Study explanations per block (plain text with optional \( \) inline TeX); several strings = several paragraphs. */
+  explain?: { question?: string | string[]; formula?: string | string[]; substituted?: string | string[]; result?: string | string[] };
 }
 
 function inlineMath(s: string): HTMLElement {
@@ -26,19 +28,28 @@ function inlineMath(s: string): HTMLElement {
 }
 const arr = <T>(x: T | T[] | undefined): T[] => (x === undefined ? [] : Array.isArray(x) ? x : [x]);
 
+function explainBox(x: string | string[] | undefined): HTMLElement | null {
+  const xs = arr(x).filter(Boolean);
+  if (!xs.length || !settings.explain) return null;
+  return h('div', { class: 'explain' }, h('span', { class: 'explain-tag' }, 'Uitleg'), xs.map((s) => h('p', null, inlineMath(noDash(s)))));
+}
+
 export function resultPanel(r: ResultSpec): HTMLElement {
   const blocks: HTMLElement[] = [];
+  const exs = r.explain ?? {};
   const blk = (cls: string, label: string, body: HTMLElement[], copy?: () => string) =>
     h('div', { class: 'rblock ' + cls }, h('div', { class: 'rhead' }, h('span', null, label), copy ? copyBtn(copy) : null), h('div', { class: 'rbody' }, body));
 
   const q = arr(r.question);
-  blocks.push(blk('rq', 'Vraag / hypothesen', q.map((s) => h('div', null, inlineMath(s))), () => q.join('\n').replace(/\\\(|\\\)/g, '')));
+  blocks.push(blk('rq', 'Vraag / hypothesen', [...q.map((s) => h('div', null, inlineMath(s))), explainBox(exs.question)].filter(Boolean) as HTMLElement[], () => q.join('\n').replace(/\\\(|\\\)/g, '')));
   const f = arr(r.formula);
-  if (f.length) blocks.push(blk('rf', 'Formule', f.map((s) => texEl(s)), () => f.join('\n')));
+  if (f.length) blocks.push(blk('rf', 'Formule', [...f.map((s) => texEl(s)), explainBox(exs.formula)].filter(Boolean) as HTMLElement[], () => f.join('\n')));
   const sb = arr(r.substituted);
-  if (sb.length) blocks.push(blk('rs', 'Ingevuld', sb.map((s) => texEl(s)), () => sb.join('\n')));
-  const res = r.result.map((l) => (Array.isArray(l) ? h('div', { class: 'kv' }, h('span', { class: 'k' }, inlineMath(l[0])), h('span', { class: 'v' }, l[1])) : h('div', null, inlineMath(l))));
+  if (sb.length) blocks.push(blk('rs', 'Ingevuld', [...sb.map((s) => texEl(s)), explainBox(exs.substituted)].filter(Boolean) as HTMLElement[], () => sb.join('\n')));
+  const res: HTMLElement[] = r.result.map((l) => (Array.isArray(l) ? h('div', { class: 'kv' }, h('span', { class: 'k' }, inlineMath(l[0])), h('span', { class: 'v' }, l[1])) : h('div', null, inlineMath(l))));
   if (r.decision) res.push(h('div', { class: 'decision ' + r.decision.kind }, r.decision.text));
+  const er = explainBox(exs.result);
+  if (er) res.push(er);
   blocks.push(
     blk('rr', 'Resultaat', res, () =>
       r.result.map((l) => (Array.isArray(l) ? `${l[0]}: ${l[1]}` : l).replace(/\\\(|\\\)/g, '')).concat(r.decision ? [r.decision.text] : []).join('\n'),

@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The t-test, explained · An interactive tutorial</title>
+<style>
+  :root {
+    --paper: #faf7f2;
+    --card: #ffffff;
+    --ink: #1f1d1a;
+    --ink-soft: #5a544c;
+    --ink-mute: #8a847a;
+    --rule: #d8d3c8;
+    --rule-soft: #e8e3d8;
+    --amber: #c97b1f;
+    --amber-fill: #f4c77a;
+    --amber-bg: #fef3e0;
+    --amber-dark: #8a5615;
+    --teal: #0e7c75;
+    --teal-fill: #2ea69e;
+    --teal-bg: #e0f2f0;
+    --rose: #a04a3c;
+    --rose-bg: #fde8e2;
+    --sage: #4a7a52;
+    --sage-bg: #e8f0e8;
+    --reject-bg: #fdecea;
+    --reject-fg: #9b2c1d;
+    --keep-bg: #ecf3ec;
+    --keep-fg: #2d5a36;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 32px 16px;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .masthead {
+    padding: 32px 0 48px 0;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 48px;
+  }
+  .kicker {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--amber);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 44px;
+    font-weight: normal;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .lead {
+    font-family: Georgia, serif;
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0 0 32px 0;
+    max-width: 600px;
+    line-height: 1.55;
+  }
+  .toc {
+    background: var(--card);
+    padding: 24px 28px;
+    border-left: 3px solid var(--ink);
+    border-radius: 2px;
+  }
+  .toc-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-bottom: 12px;
+  }
+  .toc ol {
+    margin: 0;
+    padding-left: 28px;
+    counter-reset: section;
+    list-style: none;
+  }
+  .toc li {
+    padding: 5px 0;
+    counter-increment: section;
+    position: relative;
+  }
+  .toc li::before {
+    content: counter(section, decimal-leading-zero);
+    position: absolute;
+    left: -28px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--amber);
+    top: 7px;
+  }
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .toc a:hover { border-bottom-color: var(--ink); }
+
+  .section {
+    margin-bottom: 64px;
+    scroll-margin-top: 24px;
+  }
+  .section-num {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-family: Georgia, serif;
+    font-size: 30px;
+    font-weight: normal;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+  }
+  .section-lede {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 17px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 20px;
+  }
+  p { margin: 0 0 16px 0; }
+  p.tight { margin-bottom: 8px; }
+  b, strong { font-weight: 600; }
+  em { font-style: italic; }
+  .term {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.92em;
+  }
+  .greek { font-family: Georgia, serif; font-style: italic; }
+  .note {
+    background: var(--paper);
+    border-left: 3px solid var(--ink-mute);
+    padding: 14px 18px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .formula {
+    background: var(--paper);
+    padding: 16px 20px;
+    border-radius: 3px;
+    text-align: center;
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 17px;
+    margin: 20px 0;
+    color: var(--ink);
+  }
+  .formula .small {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: normal;
+    font-family: -apple-system, sans-serif;
+    margin-top: 6px;
+  }
+
+  /* Widgets */
+  .widget {
+    background: var(--card);
+    border-radius: 3px;
+    box-shadow: 0 1px 0 var(--rule), 0 4px 16px rgba(60, 40, 10, 0.05);
+    padding: 28px 32px;
+    margin: 28px 0;
+  }
+  .widget-title {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .widget-sub {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-bottom: 20px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Error matrix */
+  .matrix-frame {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+  .matrix-corner { }
+  .matrix-col-label, .matrix-row-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    padding: 10px;
+    text-align: center;
+  }
+  .matrix-row-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: center;
+    padding: 16px 10px;
+  }
+  .matrix-cell {
+    padding: 22px 18px;
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .matrix-cell.correct {
+    background: var(--sage-bg);
+    border-color: var(--sage);
+  }
+  .matrix-cell.type1 {
+    background: var(--amber-bg);
+    border-color: var(--amber);
+  }
+  .matrix-cell.type2 {
+    background: var(--rose-bg);
+    border-color: var(--rose);
+  }
+  .matrix-cell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .cell-title {
+    font-family: Georgia, serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .cell-label {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 6px 0;
+  }
+  .cell-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+  .matrix-explainer {
+    background: var(--paper);
+    padding: 16px;
+    border-radius: 2px;
+    font-size: 14px;
+    min-height: 60px;
+    border-left: 3px solid var(--ink-mute);
+    transition: border-color 0.2s;
+  }
+
+  /* Data table widget */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  .data-table th {
+    text-align: left;
+    font-size: 11px;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  .data-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .data-table input {
+    width: 80px;
+    padding: 6px 8px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    font-family: ui-monospace, monospace;
+    font-size: 14px;
+    text-align: right;
+    background: var(--paper);
+  }
+  .data-table input:focus {
+    outline: none;
+    border-color: var(--teal);
+    background: white;
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin-top: 20px;
+  }
+  .stat-cell {
+    padding: 14px 12px;
+    text-align: center;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-label {
+    font-size: 11px;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: ui-monospace, monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .stat-value.teal { color: var(--teal); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.decision-rej { color: var(--reject-fg); }
+  .stat-value.decision-keep { color: var(--keep-fg); }
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    padding: 6px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    margin-top: 12px;
+  }
+  .reset-btn:hover { background: var(--paper); border-color: var(--ink-soft); }
+
+  /* Sample size calculator */
+  .calc-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 80px;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .calc-row label {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .calc-row label .lbl-greek {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--ink);
+    margin-right: 6px;
+    font-size: 16px;
+  }
+  .pill-group {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--ink-soft); }
+  .pill.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .calc-row input[type=range] {
+    width: 100%;
+    accent-color: var(--teal);
+  }
+  .calc-value {
+    font-family: ui-monospace, monospace;
+    font-size: 14px;
+    color: var(--teal);
+    text-align: right;
+    font-weight: 600;
+  }
+  .calc-result {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--paper);
+    border-radius: 3px;
+    text-align: center;
+  }
+  .calc-result .formula-display {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+  .calc-result .n-output {
+    font-family: ui-monospace, monospace;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .calc-result .n-output .small {
+    font-size: 14px;
+    color: var(--ink-mute);
+    font-weight: normal;
+  }
+
+  /* Z vs t chart */
+  .zt-svg-wrap { background: var(--paper); padding: 16px; border-radius: 3px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+  /* P vs alpha widget (carried over) */
+  .pa-controls { margin-bottom: 14px; }
+  .pa-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .pa-slider-row label {
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    min-width: 96px;
+  }
+  .pa-slider-row input[type=range] { flex: 1; accent-color: var(--teal); }
+  .pa-tval {
+    font-family: ui-monospace, monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--teal);
+    min-width: 60px;
+    text-align: right;
+  }
+  .pa-presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-left: 110px;
+  }
+  .pa-presets button {
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-family: inherit;
+  }
+  .pa-presets button:hover { background: var(--paper); border-color: var(--ink-soft); }
+  .pa-legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin: 4px 0 16px 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  .legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    border-radius: 1px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .pa-readout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin-top: 12px;
+  }
+  .pa-readout-item {
+    padding: 14px;
+    text-align: center;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .pa-readout-item:last-child { border-right: none; }
+  .pa-explain {
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: var(--paper);
+    border-left: 3px solid var(--ink);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Proportions widget */
+  .prop-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .prop-control { }
+  .prop-control label {
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .prop-control .value {
+    font-family: ui-monospace, monospace;
+    font-size: 16px;
+    color: var(--teal);
+    font-weight: 600;
+    margin-left: 10px;
+  }
+  .prop-control input[type=range] { width: 100%; accent-color: var(--teal); }
+  .prop-readout {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin: 16px 0;
+  }
+  .prop-readout-item {
+    padding: 12px 10px;
+    text-align: center;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .prop-readout-item:last-child { border-right: none; }
+  .prop-formula {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--ink-mute);
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  .prop-value {
+    font-family: ui-monospace, monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--teal);
+  }
+
+  /* Cheat sheet */
+  .cheat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+  }
+  .cheat-card {
+    background: var(--card);
+    padding: 20px 22px;
+    border-radius: 3px;
+    border-top: 3px solid var(--amber);
+  }
+  .cheat-card.teal { border-top-color: var(--teal); }
+  .cheat-card.ink { border-top-color: var(--ink); }
+  .cheat-card.rose { border-top-color: var(--rose); }
+  .cheat-card h3 {
+    font-family: Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+  }
+  .cheat-card p { font-size: 13px; line-height: 1.55; margin: 0 0 8px 0; color: var(--ink-soft); }
+  .cheat-card p:last-child { margin-bottom: 0; }
+  .cheat-card .key {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* Footer */
+  footer {
+    margin: 64px 0 32px 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--ink-mute);
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    h1 { font-size: 32px; }
+    h2 { font-size: 24px; }
+    .widget { padding: 20px 18px; }
+    .matrix-frame { grid-template-columns: 24px 1fr 1fr; }
+    .calc-row { grid-template-columns: 1fr; gap: 8px; }
+    .pa-presets { margin-left: 0; }
+    .pa-readout { grid-template-columns: 1fr; }
+    .pa-readout-item { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+    .prop-controls { grid-template-columns: 1fr; }
+    .prop-readout { grid-template-columns: 1fr; }
+    .prop-readout-item { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Lean Six Sigma · Statistics primer</div>
+  <h1>The t-test, explained</h1>
+  <p class="lead">A working tutorial that takes you from "what is H₀?" to running a real test and reading the result, using a single jar-filling example throughout. The interactive widgets let you change inputs and watch the conclusions follow.</p>
+  <nav class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#s1">The frame: innocent until proven guilty</a></li>
+      <li><a href="#s2">The example: a jar-filling line</a></li>
+      <li><a href="#s3">The four numbers you choose: α, β, δ, σ</a></li>
+      <li><a href="#s4">Why a t-test, and what t actually means</a></li>
+      <li><a href="#s5">Running the test end-to-end</a></li>
+      <li><a href="#s6">The proportion cousin: π, P, and E(P)</a></li>
+      <li><a href="#s7">What to remember</a></li>
+    </ol>
+  </nav>
+</header>
+
+<!-- ========== SECTION 1 ========== -->
+<section id="s1" class="section">
+  <div class="section-num">SECTION 01</div>
+  <h2>The frame: innocent until proven guilty</h2>
+  <p class="section-lede">Hypothesis testing is a decision rule under uncertainty, not a proof. Every test you run reduces to "is my data unusual enough that I can't keep believing the boring story?"</p>
+
+  <p>Every test has two competing stories. The <span class="term">null hypothesis</span> (written <span class="mono">H₀</span>) is the boring default you assume is true until the data forces you to abandon it. The <span class="term">alternative hypothesis</span> (<span class="mono">H₁</span>) is what you actually suspect.</p>
+
+  <p>You only reject H₀ if the data would be too unusual to have happened by chance under H₀. Otherwise you stick with H₀, the way a court returns "not guilty" rather than "proven innocent."</p>
+
+  <p>Because you're making a yes/no call from a noisy sample, you can make two kinds of mistake. The risks you accept for each one are called <span class="greek">α</span> (alpha) and <span class="greek">β</span> (beta).</p>
+
+  <div class="widget">
+    <div class="widget-title">The four outcomes of any hypothesis test</div>
+    <div class="widget-sub">Hover or tap a cell to see what it means</div>
+    <div class="matrix-frame">
+      <div class="matrix-corner"></div>
+      <div class="matrix-col-label">Reality: H₀ was true</div>
+      <div class="matrix-col-label">Reality: H₀ was not true</div>
+      <div class="matrix-row-label">Decision: Accept H₀</div>
+      <div class="matrix-cell correct" data-cell="tn">
+        <div>
+          <div class="cell-title">Correct call</div>
+          <div class="cell-label">(true negative)</div>
+        </div>
+        <div class="cell-desc">Line is on target, you accepted H₀. No action needed.</div>
+      </div>
+      <div class="matrix-cell type2" data-cell="t2">
+        <div>
+          <div class="cell-title">Type II error</div>
+          <div class="cell-label">miss · risk = <span class="greek">β</span></div>
+        </div>
+        <div class="cell-desc">Line was actually drifting, you missed it. The problem keeps producing bad jars.</div>
+      </div>
+      <div class="matrix-row-label">Decision: Reject H₀</div>
+      <div class="matrix-cell type1" data-cell="t1">
+        <div>
+          <div class="cell-title">Type I error</div>
+          <div class="cell-label">false alarm · risk = <span class="greek">α</span></div>
+        </div>
+        <div class="cell-desc">Line was fine, you flagged it. You stopped a healthy line and wasted time investigating.</div>
+      </div>
+      <div class="matrix-cell correct" data-cell="tp">
+        <div>
+          <div class="cell-title">Correct call</div>
+          <div class="cell-label">(true positive · power = 1 − <span class="greek">β</span>)</div>
+        </div>
+        <div class="cell-desc">Line was off, you caught it. You can now investigate and fix the root cause.</div>
+      </div>
+    </div>
+    <div class="matrix-explainer" id="matrixExplain">
+      <b>The two risks.</b> <span class="greek">α</span> is your tolerance for false alarms (typically 5%). <span class="greek">β</span> is your tolerance for misses (typically 20%). Both are choices you make before running the test. Together they let you make calibrated calls from imperfect data.
+    </div>
+  </div>
+
+  <div class="note">
+    Think of the smoke alarm in your kitchen. <span class="greek">α</span> is how often it shrieks when nothing's burning. <span class="greek">β</span> is how often it stays silent when there really is a fire. You want both low, but they trade off, and the only way to reduce both at once is to listen to more "signal" (a bigger sample, or a better sensor).
+  </div>
+</section>
+
+<!-- ========== SECTION 2 ========== -->
+<section id="s2" class="section">
+  <div class="section-num">SECTION 02</div>
+  <h2>The example: a jar-filling line</h2>
+  <p class="section-lede">One scenario carried through the whole tutorial. Change the data and watch every other number follow.</p>
+
+  <p>A jar-filling line is meant to deliver <b>250 g net</b> per jar. Maintenance adjusted a valve last week and you want to verify the line is still on target. You pull 10 jars at random and weigh them.</p>
+
+  <div class="formula">
+    H₀: μ = 250 g (the line is on target) &nbsp;·&nbsp; H₁: μ ≠ 250 g (it has drifted)
+  </div>
+
+  <p>Two-sided because you care about underfill (legal, customer complaint) and overfill (giveaway cost) equally. Here are your ten measurements:</p>
+
+  <div class="widget">
+    <div class="widget-title">Edit any value, the test rebuilds itself</div>
+    <div class="widget-sub">All ten weights start at the defaults. Try setting them all to 250 to see what happens to t and p.</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Jar #</th>
+          <th>Weight (g)</th>
+          <th>Jar #</th>
+          <th>Weight (g)</th>
+        </tr>
+      </thead>
+      <tbody id="jarTableBody"></tbody>
+    </table>
+    <button class="reset-btn" id="resetJars">Reset to defaults</button>
+    <div class="stats-row">
+      <div class="stat-cell">
+        <div class="stat-label">n</div>
+        <div class="stat-value mono" id="statN">10</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">mean x̄</div>
+        <div class="stat-value mono teal" id="statMean">248.2</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">sd s</div>
+        <div class="stat-value mono teal" id="statSD">2.15</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">t-stat</div>
+        <div class="stat-value mono amber" id="statT">−2.65</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">p-value</div>
+        <div class="stat-value mono amber" id="statP">0.026</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">decision</div>
+        <div class="stat-value mono decision-rej" id="statDecision" style="font-size:13px;">Reject H₀</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Two quantities matter here, and one of them is sneaky:</p>
+  <p><span class="term">x̄</span> is the <b>sample mean</b>, the average of your 10 jars. It's an estimate of the true population mean μ that you'll never directly know.</p>
+  <p><span class="term">s</span> is the <b>sample standard deviation</b>, your estimate of how much the process naturally wobbles. Crucially, <b>s is not σ</b>. σ (sigma) is the true population standard deviation, an unknown property of the process itself. <b>s is what you compute from your sample to estimate σ.</b> The whole reason the t-test exists is this gap between the true σ you'd love to know and the messy s you actually have.</p>
+</section>
+
+<!-- ========== SECTION 3 ========== -->
+<section id="s3" class="section">
+  <div class="section-num">SECTION 03</div>
+  <h2>The four numbers you choose: α, β, δ, σ</h2>
+  <p class="section-lede">Three are judgment calls, one comes from your historical data, and a fifth (n, the sample size) falls out of the formula that ties them together.</p>
+
+  <p><span class="term"><span class="greek">α</span> (alpha)</span> is the false-alarm rate you'll accept. Convention: 0.05. You're saying "if H₀ is really true, I'll mistakenly flag the line at most 5% of the time."</p>
+
+  <p><span class="term"><span class="greek">β</span> (beta)</span> is the miss rate you'll accept. Convention: 0.20, which makes the test's <b>power</b> equal to 0.80. You're saying "if H₀ is really false by an amount I care about, I want at least an 80% chance of catching it."</p>
+
+  <p><span class="term"><span class="greek">δ</span> (delta)</span> is the smallest effect you'd actually care about. This is a business call, not a statistical one. For our jar line, you might pick 2 g: a drift smaller than that is below the noise of normal operation and not worth chasing.</p>
+
+  <p><span class="term"><span class="greek">σ</span> (sigma)</span> is the natural noise of the process, taken from historical SPC data or a small pilot. For our line, σ ≈ 2 g based on past control charts.</p>
+
+  <p>Once you fix those four, the required sample size is determined by:</p>
+  <div class="formula">
+    n ≈ ( (z<sub>α/2</sub> + z<sub>β</sub>) · σ / δ )²
+    <div class="small">z<sub>α/2</sub> and z<sub>β</sub> are standard-normal critical values for your chosen α and β.</div>
+  </div>
+
+  <div class="widget">
+    <div class="widget-title">Sample size calculator</div>
+    <div class="widget-sub">Move the levers, watch n change. The same formula links all five.</div>
+
+    <div class="calc-row">
+      <label><span class="lbl-greek">α</span> false-alarm rate</label>
+      <div class="pill-group" id="alphaPills">
+        <button class="pill" data-val="0.10">0.10</button>
+        <button class="pill active" data-val="0.05">0.05</button>
+        <button class="pill" data-val="0.01">0.01</button>
+      </div>
+      <div class="calc-value" id="alphaVal">0.05</div>
+    </div>
+
+    <div class="calc-row">
+      <label><span class="lbl-greek">β</span> miss rate</label>
+      <div class="pill-group" id="betaPills">
+        <button class="pill" data-val="0.30">0.30</button>
+        <button class="pill active" data-val="0.20">0.20</button>
+        <button class="pill" data-val="0.10">0.10</button>
+        <button class="pill" data-val="0.05">0.05</button>
+      </div>
+      <div class="calc-value" id="betaVal">0.20</div>
+    </div>
+
+    <div class="calc-row">
+      <label><span class="lbl-greek">δ</span> effect size (g)</label>
+      <input type="range" min="0.5" max="5" step="0.1" value="2" id="deltaSlider">
+      <div class="calc-value" id="deltaVal">2.0 g</div>
+    </div>
+
+    <div class="calc-row">
+      <label><span class="lbl-greek">σ</span> process noise (g)</label>
+      <input type="range" min="0.5" max="5" step="0.1" value="2" id="sigmaSlider">
+      <div class="calc-value" id="sigmaVal">2.0 g</div>
+    </div>
+
+    <div class="calc-result">
+      <div class="formula-display">
+        n = ( (<span id="resZa">1.96</span> + <span id="resZb">0.84</span>) · <span id="resSigma">2.0</span> / <span id="resDelta">2.0</span> )²
+      </div>
+      <div class="n-output">
+        <span id="nValue">8</span> <span class="small">jars (always round up)</span>
+      </div>
+    </div>
+  </div>
+
+  <p><b>Five levers, one equation.</b> Once you've fixed any four of {α, β, δ, σ, n}, the fifth is determined. Three useful framings:</p>
+  <p class="tight"><b>"How big a sample do I need?"</b> Fix α, β, δ, σ, solve for n.</p>
+  <p class="tight"><b>"I only have n = 10, what shift can I reliably detect?"</b> Fix α, β, σ, n, solve for δ.</p>
+  <p><b>"The study said no significant difference, was it big enough?"</b> Fix α, δ, σ, n, solve for β. If power was 30%, "no significant difference" doesn't mean "no difference," it means the test was too small to see one.</p>
+</section>
+
+<!-- ========== SECTION 4 ========== -->
+<section id="s4" class="section">
+  <div class="section-num">SECTION 04</div>
+  <h2>Why a t-test, and what t actually means</h2>
+  <p class="section-lede">The t-distribution exists because you don't know σ and have to estimate it from your sample. That extra uncertainty earns you fatter tails.</p>
+
+  <p>If you knew the true population σ, you could use a <b>z-test</b> with the standard normal distribution. You don't, so you use s as your estimate of σ. That's a second source of uncertainty on top of the sample mean, and the math accounts for it by switching from the normal distribution to the <b>t-distribution</b>, which has fatter tails (more weight in the extremes).</p>
+
+  <p>The t-distribution has one parameter, the <b>degrees of freedom</b>, equal to <span class="mono">n − 1</span>. Small n means very fat tails (a lot of uncertainty from estimating σ with a tiny sample). As n grows, the t-distribution converges back to the normal distribution and the difference disappears.</p>
+
+  <div class="widget">
+    <div class="widget-title">Standard normal (z) versus t with df = 9</div>
+    <div class="widget-sub">Same area under each curve; t puts more of it in the tails to account for estimating σ.</div>
+    <div class="zt-svg-wrap">
+      <svg id="ztChart" viewBox="0 0 700 280" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <p><b>What t actually means.</b> The t-statistic is a signal-to-noise ratio:</p>
+  <div class="formula">
+    t = (x̄ − μ₀) / (s / √n)
+    <div class="small">Signal divided by noise: how far is your observation from H₀, in units of typical sampling wobble?</div>
+  </div>
+  <p>The <b>numerator</b> is the signal: the gap between what you observed (x̄) and what H₀ claims (μ₀). The <b>denominator</b> is the noise: the <b>standard error</b>, which is the typical amount that sample means wobble around the true mean just from random sampling. So <span class="mono">t = −2.71</span> reads as <em>"the observed gap is 2.71 times bigger than the typical random wobble."</em> Big enough that random sampling alone struggles to explain it.</p>
+</section>
+
+<!-- ========== SECTION 5 ========== -->
+<section id="s5" class="section">
+  <div class="section-num">SECTION 05</div>
+  <h2>Running the test end-to-end</h2>
+  <p class="section-lede">All the pieces in place. Plug in the numbers, get a t, get a p, make a decision.</p>
+
+  <p>From section 2, your data gave x̄ = 248.2, s = 2.15, n = 10. The test statistic is:</p>
+  <div class="formula">
+    t = (248.2 − 250) / (2.15 / √10) = −1.8 / 0.680 ≈ <b>−2.65</b>
+  </div>
+
+  <p>With df = 9, looking up the two-sided probability of seeing |t| ≥ 2.65 by chance gives <b>p ≈ 0.026</b>. Compare to α = 0.05: p &lt; α, so <b>reject H₀</b>.</p>
+
+  <div class="widget">
+    <div class="widget-title">How p relates to α</div>
+    <div class="widget-sub">Slide |t| to see how the p-value tails (teal) move relative to the α rejection zone (amber). When p &lt; α, the teal tails sit inside the amber zone.</div>
+    <div class="pa-controls">
+      <div class="pa-slider-row">
+        <label>observed |t|</label>
+        <input type="range" id="paSlider" min="0" max="4" step="0.01" value="2.65">
+        <span class="pa-tval" id="paTval">2.65</span>
+      </div>
+      <div class="pa-presets">
+        <button data-t="1.0">|t| = 1.0</button>
+        <button data-t="2.0">|t| = 2.0</button>
+        <button data-t="2.262">|t| = 2.262 (critical)</button>
+        <button data-t="2.65">|t| = 2.65 (your data)</button>
+        <button data-t="3.5">|t| = 3.5</button>
+      </div>
+    </div>
+    <svg id="paChart" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="pa-legend">
+      <span><span class="legend-swatch" style="background:#f4c77a;opacity:0.55"></span>α rejection zone (beyond ±2.262)</span>
+      <span><span class="legend-swatch" style="background:#2ea69e;opacity:0.65"></span>p-value tails (beyond ±|t|)</span>
+    </div>
+    <div class="pa-readout">
+      <div class="pa-readout-item">
+        <div class="stat-label">α (chosen)</div>
+        <div class="stat-value mono amber">0.050</div>
+      </div>
+      <div class="pa-readout-item">
+        <div class="stat-label">p (computed)</div>
+        <div class="stat-value mono teal" id="paPval">0.026</div>
+      </div>
+      <div class="pa-readout-item">
+        <div class="stat-label">decision</div>
+        <div class="stat-value mono decision-rej" id="paDecision" style="font-size:14px;">Reject H₀</div>
+      </div>
+    </div>
+    <div class="pa-explain" id="paExplain"></div>
+  </div>
+
+  <p><b>How to interpret it.</b> There is statistically significant evidence at α = 0.05 that the average fill weight is no longer 250 g; the sample points to a small underfill near 248 g. The probability of seeing a deviation this large purely by chance, if the line were really on target, is only about 2.6%, low enough to act on. Investigate the recent valve adjustment.</p>
+
+  <p><b>What you did not prove.</b> You did not prove the line is "broken." You did not prove the true mean is exactly 248.2. You did not exclude the possibility that you got unlucky (that 2.6% chance is real). A hypothesis test is a decision rule under uncertainty, not a proof.</p>
+</section>
+
+<!-- ========== SECTION 6 ========== -->
+<section id="s6" class="section">
+  <div class="section-num">SECTION 06</div>
+  <h2>The proportion cousin: π, P, and E(P)</h2>
+  <p class="section-lede">Same framework, applied to defect rates instead of fill weights. Different test statistic, identical logic.</p>
+
+  <p>So far we've tested a <b>mean</b> (the average fill weight). But Six Sigma is often about <b>proportions</b>: what fraction of jars have a bad seal, what percentage of welds fail inspection, what share of shipments arrive damaged. Three symbols matter:</p>
+
+  <p><span class="term"><span class="greek">π</span> (pi)</span> is the <b>true</b> proportion of defects in the whole population, an unknown property of the process. If your line genuinely produces 2% bad seals, then π = 0.02. You can almost never measure π directly because you can't inspect every jar ever made.</p>
+
+  <p><span class="term">P</span> (sometimes written p̂, "p-hat") is the <b>sample</b> proportion you actually observed. Inspect 200 jars, find 6 bad ones, and P = 6 / 200 = 0.03. P changes every time you take a new sample. It's noisy.</p>
+
+  <p><span class="term">E(P)</span> is the <b>expected value</b> of P, meaning the long-run average of P if you repeated the sampling endlessly. For an unbiased process, <b>E(P) = π</b>. This is the bridge between what you measure and what is true: your noisy sample proportion P bounces around, but on average it lands exactly on π. Calling E(P) <em>"the expected percentage of errors"</em> is a fine way to remember it, because that's exactly what it is.</p>
+
+  <div class="formula">
+    expected number of defects = n · π &nbsp;·&nbsp; standard error of P = √(π(1−π) / n)
+  </div>
+
+  <div class="widget">
+    <div class="widget-title">Proportions explorer</div>
+    <div class="widget-sub">Set the true defect rate π and the sample size n. See how the observed P would vary from sample to sample.</div>
+
+    <div class="prop-controls">
+      <div class="prop-control">
+        <label><span class="greek">π</span> true defect rate <span class="value" id="piVal">2.0%</span></label>
+        <input type="range" id="piSlider" min="0.5" max="20" step="0.5" value="2">
+      </div>
+      <div class="prop-control">
+        <label>n sample size <span class="value" id="nVal">100</span></label>
+        <input type="range" id="nSlider" min="20" max="500" step="10" value="100">
+      </div>
+    </div>
+
+    <div class="prop-readout">
+      <div class="prop-readout-item">
+        <div class="prop-formula">E(P) = π</div>
+        <div class="prop-value" id="ePval">0.020</div>
+      </div>
+      <div class="prop-readout-item">
+        <div class="prop-formula">E(defects) = n · π</div>
+        <div class="prop-value" id="eDefects">2.0</div>
+      </div>
+      <div class="prop-readout-item">
+        <div class="prop-formula">SE(P) = √(π(1−π)/n)</div>
+        <div class="prop-value" id="seP">0.014</div>
+      </div>
+    </div>
+
+    <svg id="propChart" viewBox="0 0 700 220" preserveAspectRatio="xMidYMid meet"></svg>
+    <div style="text-align: center; font-family: Georgia, serif; font-style: italic; font-size: 13px; color: var(--ink-soft); margin-top: 8px;">
+      Distribution of likely defect counts in a single sample. The taller the bar, the more likely that count.
+    </div>
+  </div>
+
+  <p><b>The hypothesis test for proportions.</b> Same machinery as before. Say the line is supposed to run at 2% defects (π₀ = 0.02). You inspect 200 jars and find 8 bad ones (P = 0.04). Is the rate really higher, or could 8/200 happen by chance even when the true rate is still 2%?</p>
+  <div class="formula">
+    H₀: π = 0.02 &nbsp;·&nbsp; H₁: π &gt; 0.02
+    <br>
+    test statistic: z = (P − π₀) / √(π₀(1−π₀)/n)
+  </div>
+  <p>Plugging in: z = (0.04 − 0.02) / √(0.02 · 0.98 / 200) = 0.02 / 0.0099 ≈ 2.02. For a one-sided test, p ≈ 0.022, so reject H₀ at α = 0.05. The defect rate has genuinely crept up.</p>
+
+  <p>Everything you learned about α, β, sample size, and decision rules transfers. Only the test statistic changes (z based on a proportion's standard error, instead of t based on a mean's standard error).</p>
+</section>
+
+<!-- ========== SECTION 7 ========== -->
+<section id="s7" class="section">
+  <div class="section-num">SECTION 07</div>
+  <h2>What to remember</h2>
+  <p class="section-lede">The big ideas, the formulas worth keeping, and the traps to watch for.</p>
+
+  <div class="cheat-grid">
+    <div class="cheat-card ink">
+      <h3>The framework</h3>
+      <p><span class="key">H₀</span> is the boring default. <span class="key">H₁</span> is what you suspect.</p>
+      <p>Compute a test statistic. If the data would be too rare under H₀, reject H₀. Otherwise stick with it.</p>
+      <p>"Not significant" means "not enough evidence to reject H₀", <em>not</em> "H₀ is true."</p>
+    </div>
+    <div class="cheat-card">
+      <h3>The two risks</h3>
+      <p><span class="key">α</span> = false-alarm rate (Type I). Conventionally 0.05.</p>
+      <p><span class="key">β</span> = miss rate (Type II). Conventionally 0.20. Power = 1 − β.</p>
+      <p>Both are choices, fixed before you see the data.</p>
+    </div>
+    <div class="cheat-card teal">
+      <h3>The t-test, in one breath</h3>
+      <p><span class="key">t = (x̄ − μ₀) / (s / √n)</span></p>
+      <p>Use t (not z) because σ is unknown and estimated as s. Compare against t-distribution with df = n − 1.</p>
+      <p>t reads as <em>signal / noise</em>: observed gap divided by typical sampling wobble.</p>
+    </div>
+    <div class="cheat-card rose">
+      <h3>Sample size design</h3>
+      <p><span class="key">n ≈ ((z<sub>α/2</sub> + z<sub>β</sub>) · σ / δ)²</span></p>
+      <p>Five levers (α, β, δ, σ, n), one equation. Fix any four, the fifth follows.</p>
+      <p>σ comes from historical data, never invented.</p>
+    </div>
+    <div class="cheat-card">
+      <h3>Decision rule</h3>
+      <p>Reject H₀ if <span class="key">p &lt; α</span>.</p>
+      <p>Equivalent: reject if |t| &gt; t<sub>critical</sub>.</p>
+      <p>p is the area in the t-distribution's tails beyond your observed |t|. It tells you how unusual your data would be under H₀.</p>
+    </div>
+    <div class="cheat-card teal">
+      <h3>Proportions</h3>
+      <p><span class="key">π</span> = true population defect rate.</p>
+      <p><span class="key">P</span> = sample proportion observed.</p>
+      <p><span class="key">E(P) = π</span>: the expected percentage of errors equals the true rate. The bridge from sample to population.</p>
+    </div>
+    <div class="cheat-card rose">
+      <h3>Traps to avoid</h3>
+      <p><em>Failing to reject ≠ proving H₀.</em> Always check the power.</p>
+      <p><em>p is not the probability that H₀ is true.</em> It's the probability of data this extreme assuming H₀ is true.</p>
+      <p><em>Statistical significance ≠ practical importance.</em> A 0.01 g shift on a 250 g jar can be highly significant with n = 100000, and still operationally irrelevant.</p>
+    </div>
+    <div class="cheat-card ink">
+      <h3>In one sentence</h3>
+      <p>A hypothesis test asks <em>"is the gap between what I see and what H₀ claims bigger than the random wobble I'd expect under H₀?"</em> The t-test is just the version that uses s instead of σ to measure the wobble.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  An interactive primer · Built to be read top to bottom, then kept as a reference.
+</footer>
+
+</div>
+
+<script>
+(function () {
+/* ============================================================
+   SHARED MATH
+   ============================================================ */
+function tPDF_df9(t) {
+  return 0.3880 * Math.pow(1 + t * t / 9, -5);
+}
+function zPDF(t) {
+  return Math.exp(-0.5 * t * t) / Math.sqrt(2 * Math.PI);
+}
+function tailArea_df9(tStart) {
+  if (tStart >= 8) return 0;
+  const tEnd = 8, n = 2000;
+  const dt = (tEnd - tStart) / n;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const t1 = tStart + i * dt;
+    sum += 0.5 * (tPDF_df9(t1) + tPDF_df9(t1 + dt)) * dt;
+  }
+  return sum;
+}
+function twoTailedP_df9(t) { return 2 * tailArea_df9(Math.abs(t)); }
+
+function tPDF_general(t, df) {
+  // log-gamma based, stable enough for df = 1 to 200
+  const num = lgamma((df + 1) / 2) - lgamma(df / 2) - 0.5 * Math.log(df * Math.PI);
+  const logPdf = num - ((df + 1) / 2) * Math.log(1 + t * t / df);
+  return Math.exp(logPdf);
+}
+function lgamma(x) {
+  // Stirling-Lanczos approximation
+  const g = 7;
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+             771.32342877765313, -176.61502916214059, 12.507343278686905,
+             -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+  x -= 1;
+  let a = c[0];
+  const t = x + g + 0.5;
+  for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+function tailArea(tStart, df) {
+  if (tStart >= 10) return 0;
+  const tEnd = 10, n = 2000;
+  const dt = (tEnd - tStart) / n;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const t1 = tStart + i * dt;
+    sum += 0.5 * (tPDF_general(t1, df) + tPDF_general(t1 + dt, df)) * dt;
+  }
+  return sum;
+}
+function twoTailedP(t, df) { return 2 * tailArea(Math.abs(t), df); }
+
+function binomialPMF(n, k, p) {
+  if (k < 0 || k > n) return 0;
+  if (p === 0) return k === 0 ? 1 : 0;
+  if (p === 1) return k === n ? 1 : 0;
+  let logPmf = 0;
+  for (let i = 1; i <= k; i++) logPmf += Math.log(n - k + i) - Math.log(i);
+  logPmf += k * Math.log(p) + (n - k) * Math.log(1 - p);
+  return Math.exp(logPmf);
+}
+
+/* ============================================================
+   SECTION 1: ERROR MATRIX
+   ============================================================ */
+const matrixMessages = {
+  tn: { color: 'var(--sage)', html: '<b>Correct (true negative).</b> Reality: H₀ is true. Decision: accept H₀. The line really is on target, and you correctly decided not to act. Probability = 1 − α.' },
+  t1: { color: 'var(--amber)', html: '<b>Type I error · risk = α.</b> Reality: H₀ is true. Decision: reject H₀. You raised a false alarm and stopped a healthy line. The α you set (commonly 0.05) is how often you accept this happening.' },
+  t2: { color: 'var(--rose)', html: '<b>Type II error · risk = β.</b> Reality: H₀ is false. Decision: accept H₀. There was a real problem and you missed it. The β you set (commonly 0.20) is how often you accept this happening. Power = 1 − β.' },
+  tp: { color: 'var(--sage)', html: '<b>Correct (true positive · power).</b> Reality: H₀ is false. Decision: reject H₀. There was a real shift and you caught it. Probability = 1 − β = power. Bigger samples give more power.' }
+};
+const defaultExplain = '<b>The two risks.</b> α is your tolerance for false alarms (typically 5%). β is your tolerance for misses (typically 20%). Both are choices you make before running the test. Together they let you make calibrated calls from imperfect data.';
+const matrixEl = document.getElementById('matrixExplain');
+document.querySelectorAll('.matrix-cell').forEach(cell => {
+  cell.addEventListener('mouseenter', () => {
+    const msg = matrixMessages[cell.dataset.cell];
+    matrixEl.innerHTML = msg.html;
+    matrixEl.style.borderLeftColor = msg.color;
+  });
+  cell.addEventListener('mouseleave', () => {
+    matrixEl.innerHTML = defaultExplain;
+    matrixEl.style.borderLeftColor = '';
+  });
+  cell.addEventListener('click', () => {
+    const msg = matrixMessages[cell.dataset.cell];
+    matrixEl.innerHTML = msg.html;
+    matrixEl.style.borderLeftColor = msg.color;
+  });
+});
+
+/* ============================================================
+   SECTION 2: EDITABLE JAR TABLE
+   ============================================================ */
+const defaultJars = [246.0, 247.0, 245.0, 251.0, 247.5, 250.5, 248.0, 250.5, 246.5, 250.0];
+const MU0 = 250;
+const ALPHA = 0.05;
+
+const tbody = document.getElementById('jarTableBody');
+for (let i = 0; i < 5; i++) {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${i + 1}</td>
+    <td><input type="number" step="0.1" data-idx="${i}" value="${defaultJars[i]}"></td>
+    <td>${i + 6}</td>
+    <td><input type="number" step="0.1" data-idx="${i + 5}" value="${defaultJars[i + 5]}"></td>
+  `;
+  tbody.appendChild(row);
+}
+
+function getJarValues() {
+  const inputs = document.querySelectorAll('#jarTableBody input');
+  return Array.from(inputs).map(inp => parseFloat(inp.value) || 0);
+}
+function recomputeJarStats() {
+  const vals = getJarValues();
+  const n = vals.length;
+  const mean = vals.reduce((a, b) => a + b, 0) / n;
+  const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  const sd = Math.sqrt(variance);
+  const se = sd / Math.sqrt(n);
+  const t = se > 0 ? (mean - MU0) / se : 0;
+  const p = twoTailedP_df9(t);
+  const reject = p < ALPHA;
+
+  document.getElementById('statN').textContent = n;
+  document.getElementById('statMean').textContent = mean.toFixed(2);
+  document.getElementById('statSD').textContent = sd.toFixed(2);
+  document.getElementById('statT').textContent = (t >= 0 ? '+' : '−') + Math.abs(t).toFixed(2);
+  document.getElementById('statP').textContent = p < 0.001 ? '<0.001' : p.toFixed(3);
+  const dec = document.getElementById('statDecision');
+  dec.textContent = reject ? 'Reject H₀' : 'Fail to reject';
+  dec.className = 'stat-value mono ' + (reject ? 'decision-rej' : 'decision-keep');
+}
+document.querySelectorAll('#jarTableBody input').forEach(inp => {
+  inp.addEventListener('input', recomputeJarStats);
+});
+document.getElementById('resetJars').addEventListener('click', () => {
+  document.querySelectorAll('#jarTableBody input').forEach(inp => {
+    inp.value = defaultJars[parseInt(inp.dataset.idx)];
+  });
+  recomputeJarStats();
+});
+recomputeJarStats();
+
+/* ============================================================
+   SECTION 3: SAMPLE SIZE CALCULATOR
+   ============================================================ */
+const Z_HALF_ALPHA = { '0.10': 1.645, '0.05': 1.960, '0.01': 2.576 };
+const Z_BETA = { '0.30': 0.524, '0.20': 0.842, '0.10': 1.282, '0.05': 1.645 };
+
+const calcState = { alpha: '0.05', beta: '0.20', delta: 2.0, sigma: 2.0 };
+
+function setupPills(containerId, stateKey, onChange) {
+  document.querySelectorAll(`#${containerId} .pill`).forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(`#${containerId} .pill`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      calcState[stateKey] = btn.dataset.val;
+      onChange();
+    });
+  });
+}
+function updateCalc() {
+  const za = Z_HALF_ALPHA[calcState.alpha];
+  const zb = Z_BETA[calcState.beta];
+  const n = Math.ceil(Math.pow((za + zb) * calcState.sigma / calcState.delta, 2));
+
+  document.getElementById('alphaVal').textContent = calcState.alpha;
+  document.getElementById('betaVal').textContent = calcState.beta;
+  document.getElementById('deltaVal').textContent = parseFloat(calcState.delta).toFixed(1) + ' g';
+  document.getElementById('sigmaVal').textContent = parseFloat(calcState.sigma).toFixed(1) + ' g';
+  document.getElementById('resZa').textContent = za.toFixed(2);
+  document.getElementById('resZb').textContent = zb.toFixed(2);
+  document.getElementById('resSigma').textContent = parseFloat(calcState.sigma).toFixed(1);
+  document.getElementById('resDelta').textContent = parseFloat(calcState.delta).toFixed(1);
+  document.getElementById('nValue').textContent = n;
+}
+setupPills('alphaPills', 'alpha', updateCalc);
+setupPills('betaPills', 'beta', updateCalc);
+document.getElementById('deltaSlider').addEventListener('input', e => {
+  calcState.delta = parseFloat(e.target.value);
+  updateCalc();
+});
+document.getElementById('sigmaSlider').addEventListener('input', e => {
+  calcState.sigma = parseFloat(e.target.value);
+  updateCalc();
+});
+updateCalc();
+
+/* ============================================================
+   SECTION 4: Z vs T COMPARISON
+   ============================================================ */
+function drawZTChart() {
+  const W = 700, H = 280;
+  const padL = 50, padR = 30, padT = 20, padB = 60;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const xMax = 4, yMax = 0.42;
+  const xS = t => padL + (t + xMax) / (2 * xMax) * plotW;
+  const yS = v => (H - padB) - v / yMax * plotH;
+  const baseline = yS(0);
+
+  function path(pdfFn) {
+    const N = 200;
+    let d = '';
+    for (let i = 0; i <= N; i++) {
+      const t = -xMax + 2 * xMax * i / N;
+      d += (i === 0 ? 'M ' : ' L ') + xS(t).toFixed(2) + ',' + yS(pdfFn(t)).toFixed(2);
+    }
+    return d;
+  }
+
+  let ticks = '';
+  for (let i = -4; i <= 4; i++) {
+    const x = xS(i);
+    ticks += `<line x1="${x}" y1="${baseline}" x2="${x}" y2="${baseline + 4}" stroke="#5a544c" stroke-width="1"/>`;
+    ticks += `<text x="${x}" y="${baseline + 18}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#5a544c">${i}</text>`;
+  }
+
+  const tailFillZ = (() => {
+    const N = 50, t1 = 2, t2 = 4;
+    let d = `M ${xS(t1)},${baseline} `;
+    for (let i = 0; i <= N; i++) {
+      const t = t1 + (t2 - t1) * i / N;
+      d += `L ${xS(t).toFixed(2)},${yS(zPDF(t)).toFixed(2)} `;
+    }
+    d += `L ${xS(t2)},${baseline} Z`;
+    return d;
+  })();
+  const tailFillT = (() => {
+    const N = 50, t1 = 2, t2 = 4;
+    let d = `M ${xS(t1)},${baseline} `;
+    for (let i = 0; i <= N; i++) {
+      const t = t1 + (t2 - t1) * i / N;
+      d += `L ${xS(t).toFixed(2)},${yS(tPDF_df9(t)).toFixed(2)} `;
+    }
+    d += `L ${xS(t2)},${baseline} Z`;
+    return d;
+  })();
+
+  document.getElementById('ztChart').innerHTML = `
+    <path d="${tailFillT}" fill="#2ea69e" opacity="0.25"/>
+    <path d="${tailFillZ}" fill="#c97b1f" opacity="0.25"/>
+    <path d="${path(zPDF)}" fill="none" stroke="#c97b1f" stroke-width="2" stroke-dasharray="5 4"/>
+    <path d="${path(tPDF_df9)}" fill="none" stroke="#0e7c75" stroke-width="2"/>
+    <line x1="${padL}" y1="${baseline}" x2="${W - padR}" y2="${baseline}" stroke="#1f1d1a" stroke-width="1.2"/>
+    ${ticks}
+    <text x="${W - padR - 8}" y="${yS(zPDF(0.4)) - 8}" text-anchor="end" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#c97b1f">z (normal)</text>
+    <text x="${W - padR - 8}" y="${yS(tPDF_df9(0.4)) + 20}" text-anchor="end" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#0e7c75">t (df = 9)</text>
+    <text x="${(padL + W - padR) / 2}" y="${H - 12}" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#5a544c">t value</text>
+    <text x="${xS(3.2)}" y="${yS(0.06)}" font-size="11" fill="#5a544c" font-style="italic" font-family="Georgia, serif">heavier tails →</text>
+  `;
+}
+drawZTChart();
+
+/* ============================================================
+   SECTION 5: P vs ALPHA WIDGET
+   ============================================================ */
+const paW = 800, paH = 400;
+const paPadL = 50, paPadR = 40, paPadT = 20, paPadB = 70;
+const paPlotW = paW - paPadL - paPadR, paPlotH = paH - paPadT - paPadB;
+const paYMax = 0.42, paXMax = 4;
+const T_CRIT = 2.262, PA_ALPHA = 0.05;
+
+const paXS = t => paPadL + (t + paXMax) / (2 * paXMax) * paPlotW;
+const paYS = v => (paH - paPadB) - v / paYMax * paPlotH;
+const paBase = paYS(0);
+
+function paCurvePath() {
+  const N = 240;
+  let d = '';
+  for (let i = 0; i <= N; i++) {
+    const t = -paXMax + 2 * paXMax * i / N;
+    d += (i === 0 ? 'M ' : ' L ') + paXS(t).toFixed(2) + ',' + paYS(tPDF_df9(t)).toFixed(2);
+  }
+  return d;
+}
+function paFillPath(t1, t2) {
+  const N = 80;
+  let d = `M ${paXS(t1).toFixed(2)},${paBase.toFixed(2)} `;
+  for (let i = 0; i <= N; i++) {
+    const t = t1 + (t2 - t1) * i / N;
+    d += `L ${paXS(t).toFixed(2)},${paYS(tPDF_df9(t)).toFixed(2)} `;
+  }
+  d += `L ${paXS(t2).toFixed(2)},${paBase.toFixed(2)} Z`;
+  return d;
+}
+function renderPA(tObs) {
+  const absT = Math.abs(tObs);
+  const p = twoTailedP_df9(absT);
+  const reject = p < PA_ALPHA;
+
+  let ticks = '';
+  for (let i = -4; i <= 4; i++) {
+    const x = paXS(i);
+    ticks += `<line x1="${x}" y1="${paBase}" x2="${x}" y2="${paBase + 5}" stroke="#5a544c" stroke-width="1"/>`;
+    ticks += `<text x="${x}" y="${paBase + 20}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#5a544c">${i}</text>`;
+  }
+  const alphaPath = paFillPath(-4, -T_CRIT) + ' ' + paFillPath(T_CRIT, 4);
+  const pPath = absT < 4 ? paFillPath(-4, -absT) + ' ' + paFillPath(absT, 4) : '';
+  const critLines = `
+    <line x1="${paXS(-T_CRIT)}" y1="${paBase}" x2="${paXS(-T_CRIT)}" y2="${paYS(tPDF_df9(-T_CRIT))}" stroke="#c97b1f" stroke-width="1.2" stroke-dasharray="4 3"/>
+    <line x1="${paXS(T_CRIT)}" y1="${paBase}" x2="${paXS(T_CRIT)}" y2="${paYS(tPDF_df9(T_CRIT))}" stroke="#c97b1f" stroke-width="1.2" stroke-dasharray="4 3"/>
+    <text x="${paXS(-T_CRIT)}" y="${paBase + 42}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c97b1f">−2.262</text>
+    <text x="${paXS(T_CRIT)}" y="${paBase + 42}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c97b1f">+2.262</text>
+  `;
+  let obsLines = '';
+  if (absT > 0.04) {
+    obsLines = `
+      <line x1="${paXS(-absT)}" y1="${paBase}" x2="${paXS(-absT)}" y2="${paYS(tPDF_df9(-absT))}" stroke="#0e7c75" stroke-width="2"/>
+      <line x1="${paXS(absT)}" y1="${paBase}" x2="${paXS(absT)}" y2="${paYS(tPDF_df9(absT))}" stroke="#0e7c75" stroke-width="2"/>
+      <text x="${paXS(-absT)}" y="${paBase + 58}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" font-weight="600" fill="#0e7c75">−${absT.toFixed(2)}</text>
+      <text x="${paXS(absT)}" y="${paBase + 58}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" font-weight="600" fill="#0e7c75">+${absT.toFixed(2)}</text>
+    `;
+  }
+  const half = p / 2;
+  let lbls = `
+    <text x="${paXS(3.5)}" y="${paYS(0.04)}" font-family="ui-monospace, monospace" font-size="11" fill="#8a5615" text-anchor="middle">α/2 = .025</text>
+    <text x="${paXS(-3.5)}" y="${paYS(0.04)}" font-family="ui-monospace, monospace" font-size="11" fill="#8a5615" text-anchor="middle">α/2 = .025</text>
+  `;
+  if (absT > 0.5 && absT < 3.85) {
+    const lx = Math.max(absT + 0.55, 3.2);
+    lbls += `
+      <text x="${paXS(lx)}" y="${paYS(0.10)}" font-family="ui-monospace, monospace" font-size="11" fill="#0e7c75" text-anchor="middle">p/2 = ${half.toFixed(3)}</text>
+      <text x="${paXS(-lx)}" y="${paYS(0.10)}" font-family="ui-monospace, monospace" font-size="11" fill="#0e7c75" text-anchor="middle">p/2 = ${half.toFixed(3)}</text>
+    `;
+  }
+  const axisLine = `<line x1="${paPadL}" y1="${paBase}" x2="${paW - paPadR}" y2="${paBase}" stroke="#1f1d1a" stroke-width="1.2"/>`;
+  const xLbl = `<text x="${(paPadL + paW - paPadR) / 2}" y="${paH - 12}" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#5a544c">t value</text>`;
+
+  document.getElementById('paChart').innerHTML = `
+    <path d="${alphaPath}" fill="#f4c77a" opacity="0.55"/>
+    <path d="${pPath}" fill="#2ea69e" opacity="0.65"/>
+    <path d="${paCurvePath()}" fill="none" stroke="#1f1d1a" stroke-width="1.8"/>
+    ${axisLine}
+    ${ticks}
+    ${critLines}
+    ${obsLines}
+    ${lbls}
+    ${xLbl}
+  `;
+
+  document.getElementById('paTval').textContent = absT.toFixed(2);
+  document.getElementById('paPval').textContent = p.toFixed(3);
+  const dec = document.getElementById('paDecision');
+  dec.textContent = reject ? 'Reject H₀' : 'Fail to reject H₀';
+  dec.className = 'stat-value mono ' + (reject ? 'decision-rej' : 'decision-keep');
+  dec.style.fontSize = '14px';
+
+  const exp = document.getElementById('paExplain');
+  if (reject) {
+    exp.innerHTML = `<b>p = ${p.toFixed(3)} &lt; α = 0.050.</b> The teal tails sit inside the amber rejection zone. Data this extreme would happen only ${(p*100).toFixed(1)}% of the time under H₀, below your ${(PA_ALPHA*100).toFixed(0)}% tolerance for false alarms. <b>Reject H₀.</b>`;
+  } else {
+    exp.innerHTML = `<b>p = ${p.toFixed(3)} ≥ α = 0.050.</b> The teal tails extend past the amber rejection zone into the middle. Data this extreme would happen ${(p*100).toFixed(1)}% of the time under H₀, above your ${(PA_ALPHA*100).toFixed(0)}% tolerance. <b>Fail to reject H₀.</b> (Not the same as proving H₀ true.)`;
+  }
+}
+document.getElementById('paSlider').addEventListener('input', e => renderPA(parseFloat(e.target.value)));
+document.querySelectorAll('.pa-presets button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = parseFloat(btn.dataset.t);
+    document.getElementById('paSlider').value = t;
+    renderPA(t);
+  });
+});
+renderPA(2.65);
+
+/* ============================================================
+   SECTION 6: PROPORTIONS WIDGET
+   ============================================================ */
+function renderProp() {
+  const piPct = parseFloat(document.getElementById('piSlider').value);
+  const n = parseInt(document.getElementById('nSlider').value);
+  const pi = piPct / 100;
+  const eDefects = n * pi;
+  const seP = Math.sqrt(pi * (1 - pi) / n);
+
+  document.getElementById('piVal').textContent = piPct.toFixed(1) + '%';
+  document.getElementById('nVal').textContent = n;
+  document.getElementById('ePval').textContent = pi.toFixed(3);
+  document.getElementById('eDefects').textContent = eDefects.toFixed(1);
+  document.getElementById('seP').textContent = seP.toFixed(3);
+
+  // Binomial PMF chart
+  const W = 700, H = 220;
+  const padL = 40, padR = 20, padT = 20, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  // Determine range of k to show: around mean ± ~4 SDs
+  const sdCount = Math.sqrt(n * pi * (1 - pi));
+  let kMin = Math.max(0, Math.floor(eDefects - 4 * sdCount - 1));
+  let kMax = Math.min(n, Math.ceil(eDefects + 4 * sdCount + 1));
+  if (kMax - kMin < 4) { kMin = Math.max(0, kMin - 2); kMax = Math.min(n, kMax + 2); }
+  const range = kMax - kMin + 1;
+
+  // Compute PMF
+  const pmf = [];
+  let maxP = 0;
+  for (let k = kMin; k <= kMax; k++) {
+    const pp = binomialPMF(n, k, pi);
+    pmf.push({ k, p: pp });
+    if (pp > maxP) maxP = pp;
+  }
+
+  const barW = plotW / range * 0.85;
+  const xS = k => padL + (k - kMin + 0.5) / range * plotW;
+  const yS = p => (H - padB) - p / maxP * plotH;
+  const baseline = H - padB;
+
+  let bars = '';
+  pmf.forEach(({ k, p }) => {
+    const x = xS(k) - barW / 2;
+    const y = yS(p);
+    const isExpected = Math.abs(k - eDefects) < 0.5;
+    const fill = isExpected ? '#0e7c75' : '#2ea69e';
+    const op = isExpected ? 0.95 : 0.55;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${(baseline - y).toFixed(1)}" fill="${fill}" opacity="${op}"/>`;
+  });
+
+  // x-axis ticks: show every 1 if range < 20, else every 5 or so
+  let tickStep = 1;
+  if (range > 40) tickStep = 10;
+  else if (range > 20) tickStep = 5;
+  else if (range > 10) tickStep = 2;
+  let ticks = '';
+  for (let k = kMin; k <= kMax; k++) {
+    if ((k - kMin) % tickStep === 0) {
+      const x = xS(k);
+      ticks += `<line x1="${x}" y1="${baseline}" x2="${x}" y2="${baseline + 4}" stroke="#5a544c" stroke-width="1"/>`;
+      ticks += `<text x="${x}" y="${baseline + 18}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#5a544c">${k}</text>`;
+    }
+  }
+
+  // Expected value marker
+  const expX = xS(eDefects);
+  const expMarker = `
+    <line x1="${expX}" y1="${padT}" x2="${expX}" y2="${baseline}" stroke="#c97b1f" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="${expX}" y="${padT - 4}" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c97b1f">E = ${eDefects.toFixed(1)}</text>
+  `;
+
+  const axisLine = `<line x1="${padL}" y1="${baseline}" x2="${W - padR}" y2="${baseline}" stroke="#1f1d1a" stroke-width="1.2"/>`;
+  const xLbl = `<text x="${(padL + W - padR) / 2}" y="${H - 8}" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#5a544c">number of defects in sample</text>`;
+
+  document.getElementById('propChart').innerHTML = bars + axisLine + ticks + expMarker + xLbl;
+}
+document.getElementById('piSlider').addEventListener('input', renderProp);
+document.getElementById('nSlider').addEventListener('input', renderProp);
+renderProp();
+
+})();
+</script>
+</body>
+</html>
