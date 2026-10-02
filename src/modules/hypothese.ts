@@ -284,9 +284,17 @@ function fTab(el: HTMLElement) {
       result: [mainRes, ['F = s\u2081\u00b2/s\u2082\u00b2', fmt(t.stat)], ['kritieke waarde(n) F', t.crit.map((v) => fmt(v)).join(' ; ')], ['p-waarde F-toets', pTxt(t.p)], ['s\u2081\u00b2 ; s\u2082\u00b2', `${fmt(s1sq)} ; ${fmt(s2sq)}`]],
       decision: { text: dec, kind: t.reject ? 'reject' : 'accept' },
       warnings: ['Welke variantie staat in de teller? Hierboven expliciet vermeld. Omdraaien: keer teller en noemer \u00e9n de vrijheidsgraden om; F\u03b1(a;b) = 1/F\u2081\u208b\u03b1(b;a).', 'Voorwaarde: beide populaties normaal en onafhankelijke steekproeven. De F-toets is niet robuust.'],
-      extra: [h('div', null, h('h4', null, 'Alle betrouwbaarheidsgrenzen, beide oriëntaties'), ciTable)],
+      extra: [
+        h(
+          'div',
+          null,
+          h('h4', null, 'Alle betrouwbaarheidsgrenzen, beide oriëntaties'),
+          ciTable,
+          h('p', { class: 'muted' }, 'Zo lees je de tabel: elke rij is dezelfde informatie, alleen omgekeerd (ondergrens van de ene verhouding = 1 / bovengrens van de andere). Eenzijdige vraag "is 1 nauwkeuriger?" -> kijk naar de ondergrens van σ₂²/σ₁² (> 1 = ja). Tweezijdige vraag "verschillen ze?" -> kijk of 1 in het tweezijdige interval ligt. Voor standaardafwijkingen neem je de vierkantswortel van de grenzen.'),
+        ),
+      ],
       excel: [...excelMain, `p (F-toets): ${pXl}`],
-      explain: exF({ names, side: sd, a, d1, d2, F: t.stat, crit: t.crit, p: t.p, reject: t.reject, Fa, L: sd === 'left' ? ci21L[0] : undefined }),
+      explain: exF({ names, side: sd, a, d1, d2, s1sq, s2sq, F: t.stat, crit: t.crit, p: t.p, reject: t.reject, ci21L, ci21T, ci12U, ci12T }),
       answer: ans,
     });
   });

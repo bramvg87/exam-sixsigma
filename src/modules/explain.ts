@@ -2,6 +2,7 @@
 // what the critical value and p-value mean, how to read the decision. Dutch, numbers via nl().
 import { nl, pctNl } from '../ui/core.ts';
 import type { Side } from '../calc/hypo.ts';
+import { fInv } from '../stats/dist.ts';
 
 type Ex = { question?: string[]; formula?: string[]; substituted?: string[]; result?: string[] };
 
@@ -74,30 +75,56 @@ export function exChi(d: { s: number; n: number; s0: number; a: number; side: Si
 }
 
 // ---------- F ----------
-export function exF(d: { names: string[]; side: Side; a: number; d1: number; d2: number; F: number; crit: number[]; p: number; reject: boolean; Fa: number; L?: number }): Ex {
+export function exF(d: {
+  names: string[]; side: Side; a: number; d1: number; d2: number; s1sq: number; s2sq: number;
+  F: number; crit: number[]; p: number; reject: boolean;
+  ci21L: [number, number]; ci21T: [number, number]; ci12U: [number, number]; ci12T: [number, number];
+}): Ex {
   const [n1, n2] = d.names;
-  return {
-    question: [
-      frame,
-      `"${n1} werkt nauwkeuriger" betekent statistisch: kleinere variantie, \\(\\sigma_1^2 < \\sigma_2^2\\). Dat is gelijk aan \\(\\sigma_2^2/\\sigma_1^2 > 1\\): een uitspraak over een VERHOUDING van varianties, daarom de F-verdeling.`,
-      d.side === 'two' ? 'Tweezijdig: je wil enkel weten of de varianties verschillen.' : 'Eenzijdig: het vermoeden heeft een richting, dus een eenzijdige grens (ondergrens) volstaat. Bij een eenzijdige toets hoort een eenzijdig betrouwbaarheidsinterval.',
-    ],
-    formula: [
-      'Waarom F? Een verhouding van twee onafhankelijke (gedeeld door hun vrijheidsgraden) chi-kwadraatgrootheden is F-verdeeld. Elke \\(s^2/\\sigma^2\\) is zo een grootheid, dus \\(\\frac{s_1^2/\\sigma_1^2}{s_2^2/\\sigma_2^2}\\sim F(n_1-1;\\,n_2-1)\\): vrijheidsgraden teller = steekproef in de teller.',
-      'Herschrijven met \\(\\rho=\\sigma_2^2/\\sigma_1^2\\): \\(\\frac{s_1^2}{s_2^2}\\rho\\sim F\\). Met kans \\(1-\\alpha\\) is die grootheid \\(\\ge F_\\alpha\\), dus \\(\\rho\\ge \\frac{s_2^2}{s_1^2}F_\\alpha\\): dat is de ondergrens L. Excel F.INV geeft de LINKERstaart, dus F.INV(\\(\\alpha\\);...) is een getal kleiner dan 1.',
-      'Draai je de verhouding om, dan wisselen ook de vrijheidsgraden: \\(F_\\alpha(a;b)=1/F_{1-\\alpha}(b;a)\\). Schrijf op het examen altijd welke variantie in de teller staat.',
-    ],
-    substituted: [
-      `F.INV(${nl(d.a)};${d.d1};${d.d2}) = ${nl(d.Fa)}: slechts ${pctNl(d.a)} van de F(${d.d1};${d.d2})-verdeling ligt links van deze waarde.`,
-      d.L !== undefined ? `L = ${nl(d.L)}: met ${pctNl(1 - d.a)} betrouwbaarheid is \u03c3\u2082\u00b2 minstens ${nl(d.L)} keer \u03c3\u2081\u00b2.` : '',
-    ].filter(Boolean),
-    result: [
-      d.L !== undefined ? `Beslissing via het interval: ligt de ondergrens L boven 1, dan ligt het volledige interval boven 1 en is \\(\\sigma_2^2 > \\sigma_1^2\\) aangetoond. Ligt L onder 1, dan zit "gelijke varianties" (\\(\\rho=1\\)) nog in het interval.` : 'Beslissing via het interval: bevat het tweezijdige interval de waarde 1, dan is er geen significant verschil in variantie.',
-      critText('F', d.crit, d.side, d.a, `F(${d.d1};${d.d2})`),
-      pText(d.p, d.side, d.a),
-      'Voorwaarden: beide populaties normaal en onafhankelijke steekproeven; de F-toets is gevoelig voor niet-normaliteit.',
-    ],
-  };
+  const r21 = d.s2sq / d.s1sq;
+  const conf = pctNl(1 - d.a);
+  const Fa = fInv(d.a, d.d1, d.d2); // = F.INV(alpha; d1; d2), left tail
+  const L = d.ci21L[0];
+  const twoHas1 = d.ci21T[0] <= 1 && d.ci21T[1] >= 1;
+  const pOne = d.side === 'two' ? d.p / 2 : d.p;
+  const pTwo = Math.min(1, d.side === 'two' ? d.p : 2 * d.p);
+  const question = [
+    frame,
+    `Wat betekent "${n1} werkt nauwkeuriger"? Nauwkeuriger = minder spreiding = kleinere variantie: \\(\\sigma_1^2 < \\sigma_2^2\\). Twee spreidingen vergelijk je met een VERHOUDING, niet met een verschil: \\(\\rho=\\sigma_2^2/\\sigma_1^2\\). \\(\\rho=1\\) betekent even nauwkeurig, \\(\\rho>1\\) betekent dat ${n2} meer spreidt (dus ${n1} nauwkeuriger is).`,
+    d.side === 'left'
+      ? `Eenzijdig, omdat het vermoeden een richting heeft (${n1} nauwkeuriger). Je hoeft dus enkel aan te tonen dat \\(\\rho\\) boven 1 ligt: daarvoor volstaat een ONDERGRENS voor \\(\\rho\\) (eenzijdig ${conf}-BI). Die keuze maak je vooraf, op basis van de vraag, niet na het zien van de data.`
+      : d.side === 'right'
+        ? `Eenzijdig in de andere richting: het vermoeden is dat ${n2} nauwkeuriger is (\\(\\sigma_1 > \\sigma_2\\)); dan zoek je een ondergrens voor \\(\\sigma_1^2/\\sigma_2^2\\).`
+        : 'Tweezijdig: je wil enkel weten of de varianties verschillen, zonder richting. Dan heb je een tweezijdig interval nodig (\\(\\alpha/2\\) in elke staart) en kijk je of 1 erin ligt.',
+  ];
+  const formula = [
+    'Stap 1 - Elke steekproefvariantie schommelt rond de ware variantie. Voor normale data geldt \\((n-1)s^2/\\sigma^2 \\sim \\chi^2(n-1)\\): de verhouding \\(s^2/\\sigma^2\\) is gemiddeld 1, maar kan door toeval flink afwijken, zeker bij kleine n.',
+    `Stap 2 - Deel die twee verhoudingen door elkaar: \\(\\frac{s_1^2/\\sigma_1^2}{s_2^2/\\sigma_2^2} \\sim F(n_1-1;\\,n_2-1) = F(${d.d1};${d.d2})\\). Dit is de "pivot": een grootheid met een gekende verdeling waarin de onbekende \\(\\rho\\) zit. Vrijheidsgraden: de eerste hoort bij de steekproef in de TELLER (hier ${n1}), de tweede bij de noemer.`,
+    'Stap 3 - Herschrijf: \\(\\frac{s_1^2/\\sigma_1^2}{s_2^2/\\sigma_2^2} = \\frac{s_1^2}{s_2^2}\\cdot\\frac{\\sigma_2^2}{\\sigma_1^2} = \\frac{s_1^2}{s_2^2}\\,\\rho\\).',
+    'Stap 4 - Met kans \\(1-\\alpha\\) ligt een F-verdeelde grootheid BOVEN haar \\(\\alpha\\)-kwantiel \\(F_\\alpha\\) (de linkerstaartgrens). Dus \\(\\frac{s_1^2}{s_2^2}\\rho \\ge F_\\alpha\\), en omgezet naar \\(\\rho\\): \\(\\rho \\ge \\frac{s_2^2}{s_1^2}F_\\alpha = L\\).',
+    'Intu\u00eftie: \\(s_2^2/s_1^2\\) is je puntschatting van \\(\\rho\\). Je vermenigvuldigt die met \\(F_\\alpha\\), een getal KLEINER dan 1, om een veiligheidsmarge in te bouwen voor toeval: "zelfs als het toeval tegen zat, is \\(\\rho\\) minstens L".',
+    'Excel-valkuil: F.INV(\\(\\alpha\\);df1;df2) geeft de LINKERstaart (de waarde waaronder \\(\\alpha\\) van de verdeling ligt), dus een getal < 1. F.INV.RT(\\(\\alpha\\);...) geeft de rechterstaart (> 1). Omkeerregel: \\(F_\\alpha(a;b)=1/F_{1-\\alpha}(b;a)\\), dus F.INV(0,05;9;14) = 1/F.INV.RT(0,05;14;9).',
+    'Tweezijdig gebruik je beide staarten: \\(\\frac{s_2^2}{s_1^2}F_{\\alpha/2} \\le \\rho \\le \\frac{s_2^2}{s_1^2}F_{1-\\alpha/2}\\) (VERMENIGVULDIGEN met beide kwantielen, niet delen).',
+  ];
+  const substituted = [
+    `Puntschatting: \\(s_2^2/s_1^2 = ${nl(d.s2sq)}/${nl(d.s1sq)} = ${nl(r21)}\\): in de steekproef heeft ${n2} ${nl(r21)} keer zoveel variantie als ${n1}. Met maar ${d.d1 + 1} en ${d.d2 + 1} metingen kan zo een verhouding ook bij gelijke varianties door toeval ver van 1 vallen. Hoe ver? Dat zegt de F-verdeling.`,
+    `\\(F_{${nl(d.a)}}(${d.d1};${d.d2}) = ${nl(Fa)}\\): als de varianties echt gelijk zijn, valt \\(s_1^2/s_2^2\\) slechts in ${pctNl(d.a)} van de gevallen onder ${nl(Fa)}.`,
+    `\\(L = ${nl(r21)} \\times ${nl(Fa)} = ${nl(L)}\\): rekening houdend met toeval is \\(\\sigma_2^2\\) met ${conf} betrouwbaarheid minstens ${nl(L)} keer \\(\\sigma_1^2\\). In standaardafwijkingen: \\(\\sigma_2/\\sigma_1 \\ge \\sqrt{${nl(L)}} = ${nl(Math.sqrt(L))}\\).`,
+  ];
+  const result = [
+    `Beslissing via het interval: ${L > 1 ? `L = ${nl(L)} > 1, dus het hele interval \\([${nl(L)};\\ \\infty)\\) ligt boven 1: gelijke varianties (\\(\\rho=1\\)) zijn niet meer plausibel, ${n1} is significant nauwkeuriger.` : `L = ${nl(L)} \\le 1, dus \\(\\rho = 1\\) (gelijke varianties) ligt nog in het interval: niet aangetoond dat ${n1} nauwkeuriger is.`}`,
+    `Zelfde beslissing via de F-toets: \\(F = s_1^2/s_2^2 = ${nl(d.F)}\\) en \\(L = F_\\alpha/F\\). Dus \\(L>1 \\iff F < F_\\alpha = ${nl(Fa)}\\): de toetsgrootheid ligt ${d.F < Fa ? 'in' : 'niet in'} het verwerpingsgebied (linkerstaart). De eenzijdige p-waarde = F.DIST(${nl(d.F)};${d.d1};${d.d2};WAAR) = ${nl(pOne)}.`,
+    `Beide ori\u00ebntaties zeggen hetzelfde: ondergrens ${nl(L)} voor \\(\\sigma_2^2/\\sigma_1^2\\) is precies 1/bovengrens voor \\(\\sigma_1^2/\\sigma_2^2\\) (${nl(d.ci12U[1])} = 1/${nl(L)}). Op het examen: kies \u00e9\u00e9n ori\u00ebntatie en schrijf erbij welke variantie in de teller staat.`,
+    `Eenzijdig versus tweezijdig: het tweezijdige ${conf}-interval voor \\(\\sigma_2^2/\\sigma_1^2\\) is [${nl(d.ci21T[0])} ; ${nl(d.ci21T[1])}] en bevat 1 ${twoHas1 ? 'WEL' : 'niet'} (tweezijdige p = ${nl(pTwo)}). ${twoHas1 && L > 1 ? 'Hier is het verschil dus enkel significant omdat de vraag eenzijdig is: een eenzijdige toets zet heel \\(\\alpha\\) in \u00e9\u00e9n staart en is daardoor gevoeliger in die richting. Daarom moet de richting vooraf uit de vraagstelling komen.' : 'Hier geven eenzijdig en tweezijdig dezelfde conclusie.'}`,
+    'Voorwaarden: beide populaties normaal verdeeld en onafhankelijke steekproeven. De F-toets is gevoelig voor niet-normaliteit (uitschieters blazen een variantie op), dus kijk ook naar de data.',
+  ];
+  if (d.side === 'right') {
+    result[0] = `Hier is het vermoeden omgekeerd (${n2} nauwkeuriger): gebruik de ondergrens voor \\(\\sigma_1^2/\\sigma_2^2\\) uit de tabel; ligt die boven 1, dan is ${n2} significant nauwkeuriger. De uitleg hierboven geldt gespiegeld (verwissel 1 en 2 en de vrijheidsgraden).`;
+  }
+  if (d.side === 'two') {
+    result[0] = `Tweezijdig: het ${conf}-interval voor \\(\\sigma_2^2/\\sigma_1^2\\) is [${nl(d.ci21T[0])} ; ${nl(d.ci21T[1])}]. ${twoHas1 ? 'Het bevat 1: geen significant verschil in spreiding.' : 'Het bevat 1 niet: de spreidingen verschillen significant.'}`;
+  }
+  return { question, formula, substituted: d.side === 'left' ? substituted : [substituted[0]], result: [...result, critText('F', d.crit, d.side, d.a, `F(${d.d1};${d.d2})`), pText(d.p, d.side, d.a)] };
 }
 
 // ---------- proportion ----------
