@@ -42,6 +42,30 @@ const t = await p.textContent('.module[data-module="hypothese"] .pane:not([hidde
 for (const e of ['-2,985', '0,003807', '9,981']) if (!t.includes(e)) fails.push(`paste t-test: missing ${e}`);
 const head = await p.inputValue('.module[data-module="hypothese"] .pane:not([hidden]) .grid-head');
 if (head !== 'meting') fails.push('paste: header row not used as header: ' + head);
+
+// course GRR method on the ANOVA-tool example (block layout)
+await p.goto(file + '#/msa/anova');
+await p.waitForTimeout(200);
+await p.click('.module[data-module="msa"] .pane:not([hidden]) button:has-text("Voorbeeld ANOVA-tool")');
+await p.click('.module[data-module="msa"] .pane:not([hidden]) .seg-btn:has-text("cursusmethode")');
+await p.waitForTimeout(300);
+const g = await p.textContent('.module[data-module="msa"] .pane:not([hidden]) .result');
+for (const e of ['48,21', 'ndc']) if (!g.includes(e)) fails.push(`GRR course: missing ${e}`);
+// two-way with replication, plant example in block layout
+await p.goto(file + '#/anova/twoway');
+await p.waitForTimeout(200);
+await p.click('.module[data-module="anova"] .pane:not([hidden]) .seg-btn:has-text("Met herhaling")');
+await p.click('.module[data-module="anova"] .pane:not([hidden]) button:has-text("plantengroei")');
+await p.waitForTimeout(300);
+const pl = await p.textContent('.module[data-module="anova"] .pane:not([hidden]) .result');
+for (const e of ['23,05']) if (!pl.includes(e)) fails.push(`plant: missing ${e}`);
+// exam page: Q1e correct, Q7 figure and original solutions present
+await p.goto(file + '#/examen');
+await p.waitForTimeout(200);
+const ex = await p.textContent('.module[data-module="examen"]');
+if (!ex.includes('e correct')) fails.push('exam: Q1e not marked correct');
+if ((await p.$$('.module[data-module="examen"] img.examfig')).length < 1) fails.push('exam: Q7 figure missing');
+if (!ex.includes('Originele uitwerking')) fails.push('exam: original solutions missing');
 console.log(fails.length || errs.length ? 'E2E FAIL\n' + [...fails, ...errs].join('\n') : 'e2e ok');
 await b.close();
 process.exit(fails.length || errs.length ? 1 : 0);

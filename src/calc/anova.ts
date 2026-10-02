@@ -1,6 +1,7 @@
 // ANOVA (one-way, two-way with/without replication) and Gauge R&R (ANOVA and Average & Range).
 import { mean, sum } from '../stats/desc.ts';
 import { fSf } from '../stats/dist.ts';
+import { parseNum } from '../ui/core.ts';
 
 export interface AnovaRow { source: string; SS: number; df: number; MS: number; F?: number; p?: number }
 
@@ -81,7 +82,7 @@ export function twoWayRep(cells: number[][][]) {
  * Gauge R&R via ANOVA. data[part][operator] = array of trials.
  * AIAG: interaction pooled into error when p(interaction) > 0.25 (option).
  */
-export function grrAnova(data: number[][][], tol?: number, poolAlpha = 0.25) {
+export function grrAnova(data: number[][][], tol?: number, poolAlpha = 0.25, method: 'aiag' | 'course' = 'aiag') {
   const p = data.length;
   const o = data[0].length;
   const r = data[0][0].length;
@@ -92,6 +93,21 @@ export function grrAnova(data: number[][][], tol?: number, poolAlpha = 0.25) {
   let MSe = E.MS;
   let dfe = E.df;
   let rows: AnovaRow[];
+  if (method === 'course') {
+    // Course method (UGAIN ANOVA tool): standard two-way ANOVA with replication, all F against MS_E;
+    // EV^2 = MS_E, AV^2 = (MS_O - MS_E)/(p r), PV^2 = (MS_P - MS_E)/(o r); interaction not a separate component.
+    rows = [
+      row('Stukken (parts)', P.SS, P.df, E.MS, E.df),
+      row('Operatoren', O.SS, O.df, E.MS, E.df),
+      row('Interactie stuk x operator', PO.SS, PO.df, E.MS, E.df),
+      row('Herhaalbaarheid (fout)', E.SS, E.df),
+      { source: 'Totaal', SS: res.rows[4].SS, df: res.rows[4].df, MS: NaN },
+    ];
+    const varRep = E.MS;
+    const varOp = Math.max(0, (O.MS - E.MS) / (p * r));
+    const varPart = Math.max(0, (P.MS - E.MS) / (o * r));
+    return grrSummary(rows, false, PO.p!, varRep, varOp, 0, varPart, tol, 'course');
+  }
   if (PO.p! > poolAlpha) {
     pooled = true;
     dfe = PO.df + E.df;
@@ -117,12 +133,16 @@ export function grrAnova(data: number[][][], tol?: number, poolAlpha = 0.25) {
   const varInt = pooled ? 0 : Math.max(0, (PO.MS - E.MS) / r);
   const varOp = Math.max(0, (O.MS - msInt) / (p * r));
   const varPart = Math.max(0, (P.MS - msInt) / (o * r));
+  return grrSummary(rows, pooled, PO.p!, varRep, varOp, varInt, varPart, tol, 'aiag');
+}
+
+function grrSummary(rows: AnovaRow[], pooled: boolean, interactionP: number, varRep: number, varOp: number, varInt: number, varPart: number, tol: number | undefined, method: 'aiag' | 'course') {
   const varRepro = varOp + varInt;
   const varGRR = varRep + varRepro;
   const varTV = varGRR + varPart;
   const EV = Math.sqrt(varRep), AV = Math.sqrt(varRepro), GRR = Math.sqrt(varGRR), PV = Math.sqrt(varPart), TV = Math.sqrt(varTV);
   return {
-    rows, pooled, interactionP: PO.p!,
+    rows, pooled, interactionP, method,
     var: { rep: varRep, op: varOp, int: varInt, repro: varRepro, grr: varGRR, part: varPart, tv: varTV },
     EV, AV, GRR, PV, TV,
     pctEV: (100 * EV) / TV, pctAV: (100 * AV) / TV, pctGRR: (100 * GRR) / TV, pctPV: (100 * PV) / TV,
@@ -185,3 +205,25 @@ export const cpActual = (cpObs: number, grrFrac: number) => {
   const v = 1 / (cpObs * cpObs) - grrFrac * grrFrac;
   return v > 0 ? 1 / Math.sqrt(v) : NaN;
 };
+
+/**
+ * Excel "block" layout (as in Excel's Anova: two-factor with replication and the UGAIN ANOVA tool):
+ * header row = levels of the column factor; each row-factor level starts on a labelled row,
+ * its extra replicates follow on rows with an empty first cell. Returns long rows [rowLevel, colLevel, y], or null.
+ */
+export function blockToLong(raw: string[][], headers: string[]): string[][] | null {
+  if (raw.length < 2 || (raw[0]?.length ?? 0) < 3) return null;
+  if (!raw[0][0]?.trim()) return null;
+  if (!raw.some((r) => !(r[0] ?? '').trim())) return null;
+  const nc = Math.max(...raw.map((r) => r.length));
+  const numeric = (v: string) => { const p = parseNum(v); return p !== null && !Number.isNaN(p); };
+  if (!raw.every((r) => r.slice(1, nc).every((v) => numeric(v ?? '')))) return null;
+  const out: string[][] = [];
+  let cur = '';
+  for (const r of raw) {
+    if ((r[0] ?? '').trim()) cur = r[0].trim();
+    for (let j = 1; j < nc; j++) out.push([cur, (headers[j] ?? '').trim() || `kolom ${j}`, r[j]]);
+  }
+  return out;
+}
+

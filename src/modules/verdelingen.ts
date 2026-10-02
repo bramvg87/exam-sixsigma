@@ -308,6 +308,7 @@ function whichDist(el: HTMLElement) {
           ['Toetsen: verhouding van twee varianties', 'F(n1-1, n2-1)', 'd2/(d2-2)', '-', 'F.DIST, F.INV'],
         ],
       ),
+      h('p', null, 'Snelle onderscheiders (handout Six probability distributions): tellen of meten? Binomiaal heeft een noemer ("12 van de 100"), Poisson niet ("12 per week"). Bij telgegevens met gemiddelde ≈ variantie: denk Poisson. Exponentieel is geheugenloos (modelleert toevallig falen, geen slijtage). Normaal via de centrale limietstelling; 68-95-99,7-regel.'),
       h('p', { class: 'muted' }, 'Vuistregels: binomiaal ~ Poisson als n groot en π klein (λ = nπ); binomiaal ~ normaal als nπ ≥ 5 en n(1-π) ≥ 5; hypergeometrisch ~ binomiaal als n/N < 10%. Examen vraag 6: B Poisson, T exponentieel, C normaal, X Bernoulli, D binomiaal.'),
     ),
   );

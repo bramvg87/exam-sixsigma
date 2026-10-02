@@ -183,6 +183,7 @@ svg.chart .axlabel { fill: var(--text); font-size: 12px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
 .pass { color: var(--ok); font-weight: 700; }
 .fail { color: var(--bad); font-weight: 700; }
+.examfig { max-width: 100%; width: 720px; border: 1px solid var(--line); border-radius: 6px; margin: 6px 0; background: #fff; }
 details.sol { border: 1px solid var(--line); border-radius: 7px; padding: 6px 12px; background: var(--panel); margin: 8px 0; }
 details.sol summary { cursor: pointer; font-weight: 600; }
 .wizard .opt { display: block; width: 100%; text-align: left; margin: 5px 0; padding: 10px 12px; }

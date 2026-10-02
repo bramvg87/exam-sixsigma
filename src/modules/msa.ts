@@ -9,7 +9,7 @@ import { biasStudy, linearityStudy, buildCells, uSum, uProd, type UTerm } from '
 import { mean, sdS } from '../stats/desc.ts';
 import { live, need, moduleHead, pos, posInt, prob } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
-import { calc, anovaTable, parseLongRows } from './anova.ts';
+import { calc, anovaTable, parseLongRows, blockToLong, TOOL_EX } from './anova.ts';
 
 // ---------- example datasets ----------
 // AIAG MSA manual (4th ed.) Average & Range example: 10 parts, appraisers A/B/C, 3 trials.
@@ -38,14 +38,17 @@ const exSmall = () => {
   return { headers: ['Stuk', 'Operator', 'Herhaling', 'Meting'], rows };
 };
 const GRR_EXAMPLES = [
+  { label: 'Voorbeeld ANOVA-tool (5 stukken x 3 operatoren x 2, blokformaat)', data: () => TOOL_EX.grr() },
   { label: 'Voorbeeld AIAG-handboek (10 stukken x 3 operatoren x 3)', data: exAIAG },
   { label: 'Fictief voorbeeld (5 x 2 x 2)', data: exSmall },
 ];
-const GRR_HELP = 'Lang formaat (long format), één rij per meting: kolom 1 = stuk (part), kolom 2 = operator (appraiser), kolom 3 = herhaling (trial, optioneel), laatste kolom = meting. Met 3 kolommen is kolom 3 de meting. Labels mogen tekst of getallen zijn. Elke combinatie stuk x operator moet even veel herhalingen hebben.';
+const GRR_HELP = 'Twee formaten. (1) Excel-blokformaat zoals in de ANOVA-tool: kopregel = operatoren, elk stuk begint op een rij met label in de eerste kolom, volgende herhalingen op rijen met een lege eerste cel. (2) Lang formaat (long format), één rij per meting: kolom 1 = stuk (part), kolom 2 = operator (appraiser), kolom 3 = herhaling (trial, optioneel), laatste kolom = meting. Met 3 kolommen is kolom 3 de meting. Labels mogen tekst of getallen zijn. Elke combinatie stuk x operator moet even veel herhalingen hebben.';
 
 function grrData(grid: DataGrid) {
-  const raw = grid.getRaw();
-  need(raw.length > 0, 'Vul de meetdata in (lang formaat) of laad een voorbeeld.');
+  let raw = grid.getRaw();
+  need(raw.length > 0, 'Vul de meetdata in (lang formaat of Excel-blokformaat) of laad een voorbeeld.');
+  const blk = blockToLong(raw, grid.headers); // rows = parts, columns = operators (as in the ANOVA tool)
+  if (blk) raw = blk;
   const nc = raw[0].length;
   need(nc === 3 || nc === 4, `Gebruik 3 kolommen (stuk, operator, meting) of 4 kolommen (stuk, operator, herhaling, meting); nu ${nc} kolom(men) gevuld.`);
   const { recs, skipped } = parseLongRows(raw, 2, nc === 4 ? '4 (meting)' : '3 (meting)');
@@ -143,7 +146,7 @@ function anovaTab(el: HTMLElement) {
   let run = () => {};
   const f = new Form('msaan', () => run());
   const tol = f.optNum('tol', 'Tolerantie USL - LSL (optioneel)', '');
-  const pool = f.seg('pool', 'Interactie stuk x operator', [['auto', 'poolen als p > 0,25 (AIAG)'], ['never', 'nooit poolen'], ['always', 'altijd poolen']], 'auto');
+  const pool = f.seg('pool', 'Interactie stuk x operator', [['course', 'cursusmethode (ANOVA-tool)'], ['auto', 'AIAG: poolen als p > 0,25'], ['never', 'AIAG: nooit poolen'], ['always', 'AIAG: altijd poolen']], 'course');
   const alpha = f.num('alpha', 'α voor F-kritiek', 0.05);
   const grid = new DataGrid({ key: 'msaan', cols: 4, rows: 40, examples: GRR_EXAMPLES, onChange: () => run() });
   el.append(card('Gauge R&R via ANOVA (variantiecomponenten)', h('p', { class: 'muted' }, GRR_HELP + ' Geen beperking op het aantal stukken, operatoren of herhalingen (wel gebalanceerd).'), grid.el, row(tol.el, alpha.el), row(pool.el)), out);
@@ -153,7 +156,8 @@ function anovaTab(el: HTMLElement) {
     if (T !== undefined) pos(T, 'Tolerantie');
     const a = prob(alpha.get(), 'α');
     const pm = pool.get();
-    const g = calc(() => grrAnova(d.data, T, pm === 'auto' ? 0.25 : pm === 'never' ? Infinity : -1));
+    const course = pm === 'course';
+    const g = calc(() => grrAnova(d.data, T, pm === 'auto' ? 0.25 : pm === 'never' ? Infinity : -1, course ? 'course' : 'aiag'));
     const p = d.parts.length, o = d.ops.length, r = d.r;
     const v = g.var;
     const sd = (x: number) => Math.sqrt(x);
@@ -164,23 +168,28 @@ function anovaTab(el: HTMLElement) {
       comp.map(([n, x]) => [n, fmt(x), fmt((100 * x) / v.tv) + '%', fmt(sd(x)), fmt(6 * sd(x)), fmt((100 * sd(x)) / sd(v.tv)) + '%', ...(hasT ? [fmt((600 * sd(x)) / T!) + '%'] : [])]),
     );
     const rows = g.rows;
-    const den = (i: number) => (g.pooled ? rows[2].df : i < 2 ? rows[2].df : rows[3].df);
+    const den = (i: number) => (g.pooled ? rows[2].df : course ? rows[3].df : i < 2 ? rows[2].df : rows[3].df);
     const msE = g.pooled ? rows[2].MS : rows[3].MS;
     const msI = rows[2].MS;
     const main = hasT ? g.pctTol : g.pctGRR;
     const warnings: string[] = [];
     if (d.skipped) warnings.push(`${d.skipped} rij(en) zonder meting overgeslagen.`);
-    warnings.push(
+    if (course) warnings.push(`Cursusmethode (zoals de UGAIN ANOVA-tool): alle F-waarden tegen MS_E; EV² = MS_E, AV² = (MS_O - MS_E)/(p r), PV² = (MS_P - MS_E)/(o r). De interactie (p = ${fmt(g.interactionP)}) is geen aparte component. Kies "AIAG" om de interactie mee te nemen in de reproduceerbaarheid.`);
+    else warnings.push(
       g.pooled
         ? `Interactie stuk x operator: p = ${fmt(g.interactionP)}${pm === 'auto' ? ' > 0,25' : ''}, dus gepoold met de herhaalbaarheid (σ²_OxP = 0). Stukken en operatoren worden getoetst tegen de gepoolde fout.`
         : `Interactie stuk x operator: p = ${fmt(g.interactionP)}${pm === 'auto' ? ' <= 0,25' : ''}, niet gepoold. Stukken en operatoren worden getoetst tegen MS(interactie).`,
     );
     if ([v.op, v.part].concat(g.pooled ? [] : [v.int]).some((x) => x === 0)) warnings.push('Een negatieve variantieschatting werd op 0 gezet.');
-    const formula = g.pooled
+    const formula = course
+      ? [`\hat\sigma^2_{EV}=MS_E,\quad \hat\sigma^2_{AV}=\frac{MS_O-MS_E}{p\,r},\quad \hat\sigma^2_{PV}=\frac{MS_P-MS_E}{o\,r}`]
+      : g.pooled
       ? [`\\hat\\sigma^2_{EV}=MS_{E,pool},\\quad \\hat\\sigma^2_{O}=\\frac{MS_O-MS_{E,pool}}{p\\,r},\\quad \\hat\\sigma^2_{P}=\\frac{MS_P-MS_{E,pool}}{o\\,r}`]
       : [`\\hat\\sigma^2_{EV}=MS_E,\\quad \\hat\\sigma^2_{O\\times P}=\\frac{MS_{OP}-MS_E}{r},\\quad \\hat\\sigma^2_{O}=\\frac{MS_O-MS_{OP}}{p\\,r},\\quad \\hat\\sigma^2_{P}=\\frac{MS_P-MS_{OP}}{o\\,r}`];
     formula.push(`\\sigma^2_{GRR}=\\sigma^2_{EV}+\\sigma^2_{O}+\\sigma^2_{O\\times P},\\quad \\sigma^2_{TV}=\\sigma^2_{GRR}+\\sigma^2_P,\\quad \\%GRR=100\\frac{\\sigma_{GRR}}{\\sigma_{TV}},\\quad ndc=\\left\\lfloor1{,}41\\frac{\\sigma_P}{\\sigma_{GRR}}\\right\\rfloor`);
-    const sub = g.pooled
+    const sub = course
+      ? [`\hat\sigma^2_{EV}=${tx(msE)},\quad \hat\sigma^2_{AV}=\frac{${tx(rows[1].MS)}-${tx(msE)}}{${p}\cdot ${r}}=${tx(v.op)},\quad \hat\sigma^2_{PV}=\frac{${tx(rows[0].MS)}-${tx(msE)}}{${o}\cdot ${r}}=${tx(v.part)}`]
+      : g.pooled
       ? [`\\hat\\sigma^2_{EV}=${tx(msE)},\\quad \\hat\\sigma^2_{O}=\\frac{${tx(rows[1].MS)}-${tx(msE)}}{${p}\\cdot ${r}}=${tx(v.op)},\\quad \\hat\\sigma^2_{P}=\\frac{${tx(rows[0].MS)}-${tx(msE)}}{${o}\\cdot ${r}}=${tx(v.part)}`]
       : [`\\hat\\sigma^2_{EV}=${tx(msE)},\\quad \\hat\\sigma^2_{O\\times P}=\\frac{${tx(msI)}-${tx(msE)}}{${r}}=${tx(v.int)},\\quad \\hat\\sigma^2_{O}=\\frac{${tx(rows[1].MS)}-${tx(msI)}}{${p}\\cdot ${r}}=${tx(v.op)},\\quad \\hat\\sigma^2_{P}=\\frac{${tx(rows[0].MS)}-${tx(msI)}}{${o}\\cdot ${r}}=${tx(v.part)}`];
     sub.push(`\\sigma^2_{GRR}=${tx(v.grr)},\\quad \\sigma^2_{TV}=${tx(v.tv)},\\quad \\%GRR=100\\cdot\\frac{${tx(g.GRR)}}{${tx(g.TV)}}=${tx(g.pctGRR)}\\%,\\quad ndc=${g.ndc}`);
@@ -205,12 +214,12 @@ function anovaTab(el: HTMLElement) {
       excel: [
         'ANOVA: Gegevens > Gegevensanalyse > Anova: twee factoren met herhaling (stukken in rijen, operatoren in kolommen, r rijen per stuk)',
         ...(g.pooled ? [] : [`p interactie: =F.DIST.RT(${xl(rows[2].F!)};${rows[2].df};${rows[3].df})`]),
-        `σ²_O: =MAX(0;(${xl(rows[1].MS)}-${xl(g.pooled ? msE : msI)})/(${p}*${r}))`,
-        `σ²_P: =MAX(0;(${xl(rows[0].MS)}-${xl(g.pooled ? msE : msI)})/(${o}*${r}))`,
+        `σ²_O: =MAX(0;(${xl(rows[1].MS)}-${xl(g.pooled || course ? msE : msI)})/(${p}*${r}))`,
+        `σ²_P: =MAX(0;(${xl(rows[0].MS)}-${xl(g.pooled || course ? msE : msI)})/(${o}*${r}))`,
         `%GRR: =100*SQRT(${xl(v.grr)})/SQRT(${xl(v.tv)}) ; ndc: =FLOOR(1,41*SQRT(${xl(v.part)})/SQRT(${xl(v.grr)});1)`,
       ],
       answer:
-        `Uit de ANOVA (${p} stukken, ${o} operatoren, ${r} herhalingen) volgt σ²_EV = ${nl(v.rep)}, σ²_AV = ${nl(v.repro)} en σ²_stuk = ${nl(v.part)}; ${g.pooled ? `de interactie (p = ${nl(g.interactionP)}) werd gepoold met de fout` : `de interactie operator x stuk (p = ${nl(g.interactionP)}) werd apart geschat`}. ` +
+        `Uit de ANOVA (${p} stukken, ${o} operatoren, ${r} herhalingen) volgt σ²_EV = ${nl(v.rep)}, σ²_AV = ${nl(v.repro)} en σ²_stuk = ${nl(v.part)}; ${course ? `volgens de cursusmethode (EV² = MS_E, interactie p = ${nl(g.interactionP)} niet apart)` : g.pooled ? `de interactie (p = ${nl(g.interactionP)}) werd gepoold met de fout` : `de interactie operator x stuk (p = ${nl(g.interactionP)}) werd apart geschat`}. ` +
         `De GRR bedraagt ${nl(g.pctContribGRR)}% van de totale variantie (% contributie) en ${nl(g.pctGRR)}% in standaardafwijkingen (% study variation)${hasT ? `, ${nl(g.pctTol)}% van de tolerantie` : ''}: het meetsysteem is ${grrVerdict(main)}. ` +
         `ndc = ${g.ndc} ${g.ndc >= 5 ? '(>= 5, voldoende)' : '(< 5, onvoldoende)'}.`,
     });

@@ -17,7 +17,7 @@ The footer shows the build date and git commit.
 | Verdelingen | normal, Z, t, χ², F, binomial, Poisson, hypergeometric, Bernoulli, exponential, uniform: P(X ≤ x), P(X ≥ x), P(a ≤ X ≤ b), inverses, E/Var, plot; σ from a tail probability; "which distribution" table |
 | Toetsen & BI | Z, t, χ², F (+ CI for the variance ratio, both orientations), Z for a proportion + exact binomial, CI for a proportion (exact / Wilson / Wald / hypergeometric), two samples (pooled and Welch + F pre-check), paired t, sample size and power, duality |
 | Capabiliteit | Cp, Cpk, Pp, Ppk from μ/σ or data (individuals or subgroups; R̄/d₂, s̄/c₄, overall s), % and ppm out, centred what-if, σ for a target Cpk, sigma level, DPMO, discrete capability, DPMO ↔ sigma table |
-| Formularium | full formula sheet (search with highlighting, table of contents, print), "Open in tool" links, one-page spiekbrief |
+| Formularium | Bram's formularium merged with the October 2026 addendum (corrections A1-A9, sections B1-B11; see `content/MERGE_LOG.md`) (search with highlighting, table of contents, print), "Open in tool" links, one-page spiekbrief |
 | Voorbeeldexamen | the 7 questions with worked solutions and "Laad in tool" buttons |
 | SPC | X̄-R / X̄-s charts, Western Electric rules, revise limits, other subgroup size and shift detection (β, ARL), constants table, I-MR |
 | ANOVA | one-way, two-way with and without replication |
@@ -36,7 +36,7 @@ The data grid accepts a paste straight from Excel (decimal comma or point, heade
 ## Development
 ```
 npm install
-npm test            # golden values against the stats engine (node --test)
+npm test            # golden values + ANOVA tool / hypothesis tester / AIAG / sampling regression tests
 npm run build       # dist/index.html + release/sixsigma-toolkit.html
 node scripts/smoke.mjs   # open the release file offline in headless Chrome, visit every module and tab
 node scripts/e2e.mjs     # exam "Laad in tool" buttons + Excel paste
@@ -44,6 +44,6 @@ node scripts/e2e.mjs     # exam "Laad in tool" buttons + Excel paste
 Layout: `src/stats/` (special functions, distributions, descriptives), `src/calc/` (tests, capability, SPC, regression, DOE, ANOVA, sampling, misc), `src/components/` (grid, result panel, SVG charts), `src/modules/` (one file per module), `content/` (formularium, spiekbrief, exam solutions), `testdata/` (golden values).
 
 ## Known limitations
-- The original Drive files (formularium.md, ANOVA tool, hypothesis tester, worked solutions) were not available; see `DECISIONS.md`.
+- The Q2 machine data of the sample exam is not in the docx; Q2 uses the example variances (as in the worked solutions).
 - Dutch Excel function names (toggle) are from memory; verify them in your Excel.
 - No PDF of the formularium (pandoc not installed); print the Formularium page to PDF instead.

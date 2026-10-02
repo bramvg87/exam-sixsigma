@@ -71,7 +71,7 @@ function onewayTab(el: HTMLElement) {
   const grid = new DataGrid({
     key: 'an1',
     cols: 4,
-    examples: [{ label: 'Voorbeeld laden (3 groepen)', data: () => ({ headers: g.groups.map((_: any, i: number) => `Groep ${i + 1}`), rows: Array.from({ length: maxN }, (_, i) => g.groups.map((c: number[]) => c[i] ?? '')) }) }],
+    examples: [{ label: 'Voorbeeld ANOVA-tool: katoen % (5 groepen)', data: TOOL_EX.cotton }, { label: 'Voorbeeld laden (3 groepen)', data: () => ({ headers: g.groups.map((_: any, i: number) => `Groep ${i + 1}`), rows: Array.from({ length: maxN }, (_, i) => g.groups.map((c: number[]) => c[i] ?? '')) }) }],
     onChange: () => run(),
   });
   el.append(card('Eenweg-ANOVA (one-way ANOVA)', h('p', { class: 'muted' }, 'Elke kolom is een groep (niveau van de factor); de kolomkop is de groepsnaam. Groepen mogen verschillend groot zijn. H0: alle groepsgemiddelden zijn gelijk.'), grid.el, row(alpha.el)), out);
@@ -127,6 +127,13 @@ function onewayTab(el: HTMLElement) {
 }
 
 // ---------- two-way ----------
+// Examples from the UGAIN ANOVA tool (reference/drive/ANOVA Tool), verified in tests/drive.test.ts.
+export const TOOL_EX = {
+  cotton: () => ({ headers: ['15', '20', '25', '30', '35'], rows: [[7, 12, 14, 19, 7], [7, 17, 18, 25, 10], [15, 12, 18, 22, 11], [11, 18, 19, 19, 15], [9, 18, 19, 23, 11]] }),
+  machines: () => ({ headers: ['', 'Milling', 'Turning', 'Painting', 'Cutting'], rows: [['Peter', 46, 56, 55, 47], ['Paul', 54, 55, 51, 56], ['Mary', 48, 56, 50, 58], ['Donald', 46, 60, 51, 59], ['Hillary', 51, 53, 53, 55]] }),
+  plant: () => ({ headers: ['Water', 'None', 'Low', 'Medium', 'High'], rows: [['Daily', 4.8, 5, 6.4, 6.3], ['', 4.4, 5.2, 6.2, 6.4], ['', 3.2, 5.6, 4.7, 5.6], ['', 3.9, 4.3, 5.5, 4.8], ['', 4.4, 4.8, 5.8, 5.8], ['Weekly', 4.4, 4.9, 5.8, 6], ['', 4.2, 5.3, 6.2, 4.9], ['', 3.8, 5.7, 6.3, 4.6], ['', 3.7, 5.4, 6.5, 5.6], ['', 3.9, 4.8, 5.5, 5.5]] }),
+  grr: () => ({ headers: ['', 'A', 'B', 'C'], rows: [['P1', 20, 20, 20], ['', 15, 20, 15], ['P2', 20, 15, 20], ['', 25, 10, 20], ['P3', 25, 15, 25], ['', 25, 10, 25], ['P4', 50, 45, 45], ['', 50, 20, 50], ['P5', 45, 35, 40], ['', 40, 40, 40]] }),
+};
 const NOREP_EX = { headers: ['Operator 1', 'Operator 2', 'Operator 3'], rows: [[52, 55, 50], [48, 51, 47], [56, 58, 54], [50, 54, 49]] };
 const REP_EX = () => {
   const d: Record<string, Record<string, number[]>> = {
@@ -137,6 +144,9 @@ const REP_EX = () => {
   for (const [a, bs] of Object.entries(d)) for (const [b, ys] of Object.entries(bs)) for (const y of ys) rows.push([a, b, y]);
   return { headers: ['Temperatuur (A)', 'Druk (B)', 'Opbrengst (y)'], rows };
 };
+
+import { blockToLong } from '../calc/anova.ts';
+export { blockToLong };
 
 /** Parse a long-format grid: label columns + last column numeric response. */
 export function parseLongRows(raw: string[][], nKeys: number, what: string) {
@@ -167,10 +177,10 @@ function twowayTab(el: HTMLElement) {
   const f = new Form('an2', () => run());
   const mode = f.seg('mode', 'Ontwerp', [['norep', 'Zonder herhaling (1 waarneming per cel)'], ['rep', 'Met herhaling (lang formaat)']], 'rep');
   const alpha = f.num('alpha', 'α', 0.05);
-  const gN = new DataGrid({ key: 'an2n', cols: 4, examples: [{ label: 'Voorbeeld laden (4 machines x 3 operatoren)', data: () => NOREP_EX }], onChange: () => run() });
-  const gR = new DataGrid({ key: 'an2r', cols: 3, rows: 30, examples: [{ label: 'Voorbeeld laden (2 x 3, 3 herhalingen)', data: REP_EX }], onChange: () => run() });
+  const gN = new DataGrid({ key: 'an2n', cols: 4, examples: [{ label: 'Voorbeeld ANOVA-tool: machines x operatoren', data: TOOL_EX.machines }, { label: 'Voorbeeld laden (4 x 3)', data: () => NOREP_EX }], onChange: () => run() });
+  const gR = new DataGrid({ key: 'an2r', cols: 3, rows: 30, examples: [{ label: 'Voorbeeld ANOVA-tool: plantengroei (blokformaat)', data: TOOL_EX.plant }, { label: 'Voorbeeld lang formaat (2 x 3, 3 herhalingen)', data: REP_EX }], onChange: () => run() });
   const helpN = h('p', { class: 'muted' }, 'Zonder herhaling: elke rij = niveau van factor A (rij 1, 2, ...), elke kolom = niveau van factor B (kolomkop = naam). Eén waarneming per cel; geen lege cellen. De interactie kan hier niet getoetst worden (zit in de fout).');
-  const helpR = h('p', { class: 'muted' }, 'Met herhaling, lang formaat (long format): kolom 1 = niveau van factor A, kolom 2 = niveau van factor B, kolom 3 = respons y. Eén rij per waarneming; niveaus mogen tekst of getallen zijn. Elke combinatie A x B moet even veel herhalingen (r >= 2) hebben. Uit Excel-blokformaat: zet elke cel om naar rijen (A, B, y).');
+  const helpR = h('p', { class: 'muted' }, 'Met herhaling, twee formaten: (1) Excel-blokformaat zoals in Excel "Anova: twee factoren met herhaling" en de ANOVA-tool: kopregel = niveaus van factor B, elk niveau van factor A begint op een rij met label in de eerste kolom, de volgende herhalingen staan op rijen met een lege eerste cel. (2) Lang formaat: kolom 1 = niveau A, kolom 2 = niveau B, kolom 3 = y. Elke combinatie A x B moet even veel herhalingen (r >= 2) hebben.');
   el.append(card('Tweeweg-ANOVA (two-way ANOVA)', row(mode.el), helpN, gN.el, helpR, gR.el, row(alpha.el)), out);
   run = live(out, () => {
     const rep = mode.get() === 'rep';
@@ -180,14 +190,17 @@ function twowayTab(el: HTMLElement) {
     helpR.hidden = !rep;
     const a = prob(alpha.get(), 'α');
     if (!rep) {
-      const M = gN.getMatrix();
+      let M = gN.getMatrix();
+      const rawN = gN.getRaw();
+      const labelCol = rawN.length > 0 && rawN.every((r) => { const p = parseNum(r[0] ?? ''); return p === null || Number.isNaN(p); });
+      if (labelCol) M = M.map((r) => r.slice(1));
       need(M.length >= 2 && (M[0]?.length ?? 0) >= 2, 'Vul een matrix van minstens 2 rijen x 2 kolommen in.');
       need(M.every((r) => r.every((v) => v !== null)), 'Lege of niet-numerieke cellen gevonden: tweeweg zonder herhaling vereist een volledige matrix.');
       const Mx = M as number[][];
       const r = calc(() => twoWayNoRep(Mx));
       const [A, B, E] = r.rows;
-      const an = Mx.map((_, i) => `rij ${i + 1}`);
-      const bn = gN.headers.slice(0, Mx[0].length);
+      const an = Mx.map((_, i) => (labelCol ? rawN[i][0] : '') || `rij ${i + 1}`);
+      const bn = gN.headers.slice(labelCol ? 1 : 0, (labelCol ? 1 : 0) + Mx[0].length);
       const FcA = fInvRt(a, A.df, E.df);
       const FcB = fInvRt(a, B.df, E.df);
       return resultPanel({
@@ -201,14 +214,17 @@ function twowayTab(el: HTMLElement) {
         answer: `Tweeweg-ANOVA zonder herhaling (${Mx.length} x ${Mx[0].length}): factor A (rijen) heeft F = ${nl(A.F!)} met p = ${nl(A.p!)} en is dus ${pDec(A.p!, a)}; factor B (kolommen) heeft F = ${nl(B.F!)} met p = ${nl(B.p!)} en is ${pDec(B.p!, a)} (alpha = ${nl(a)}). Omdat er per cel slechts één waarneming is, wordt verondersteld dat er geen interactie is; de interactie zit in de foutterm.`,
       });
     }
-    const raw = gR.getRaw();
-    need(raw.length > 0, 'Vul de data in lang formaat in (kolommen: A, B, y) of laad het voorbeeld.');
+    let raw = gR.getRaw();
+    need(raw.length > 0, 'Vul de data in (lang formaat A, B, y of Excel-blokformaat) of laad een voorbeeld.');
+    const blk = blockToLong(raw, gR.headers);
+    const isBlock = blk !== null;
+    if (blk) raw = blk;
     need((raw[0]?.length ?? 0) >= 3, 'Lang formaat heeft 3 kolommen nodig: niveau A, niveau B, respons y.');
     const { recs, skipped } = parseLongRows(raw.map((r) => r.slice(0, 3)), 2, '3 (respons)');
     need(recs.length >= 8, 'Te weinig waarnemingen: minstens 2 x 2 combinaties met elk 2 herhalingen.');
     const hd = gR.headers;
-    const aLab = hd[0] || 'A';
-    const bLab = hd[1] || 'B';
+    const aLab = isBlock ? hd[0] || 'A (rijen)' : hd[0] || 'A';
+    const bLab = isBlock ? 'B (kolommen)' : hd[1] || 'B';
     const cs = calc(() => buildCells(recs.map((r) => ({ a: r.keys[0], b: r.keys[1], y: r.y })), aLab, bLab));
     need(cs.aLevels.length >= 2 && cs.bLevels.length >= 2, 'Beide factoren moeten minstens 2 niveaus hebben.');
     const r = calc(() => twoWayRep(cs.cells));

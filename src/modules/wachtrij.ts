@@ -184,6 +184,71 @@ function mcTab(el: HTMLElement) {
   return { prefill: (v: any) => f.setValues(v) };
 }
 
+// ---------- 4b. Simulation demo examples (De Vuyst, BB_SIM_demo.xlsx) ----------
+function serieTab(el: HTMLElement) {
+  const out = h('div');
+  const out2 = h('div');
+  let run = () => {};
+  let run2 = () => {};
+  const f = new Form('qser', () => run());
+  const m = f.num('m', 'Gemiddelde levensduur per lamp E[X] (uur)', 10000);
+  const k = f.num('k', 'Aantal lampen in serie k', 3);
+  const t = f.num('t', 'Tijd t voor P(T > t) (uur)', 2000);
+  const target = f.optNum('target', 'Beloofde MTTF (uur, optioneel)', 2000);
+  el.append(card('Serieschakeling: minimum van exponenti\u00eble levensduren (BB_SIM_demo "3 Lightbulbs")', h('p', { class: 'muted' }, 'X\u2081..X\u2096 iid exponentieel met gemiddelde m; de lichten gaan uit zodra \u00e9\u00e9n lamp faalt: T = min(X\u2081,...,X\u2096). In Excel simuleer je X met = -m*LN(RAND()) en T met MIN(...); analytisch is T opnieuw exponentieel.'), row(m.el, k.el, t.el, target.el)), out);
+  run = live(out, () => {
+    const M = pos(m.get(), 'gemiddelde levensduur');
+    const K = posInt(k.get(), 'k');
+    const T = t.get();
+    need(T >= 0, 't moet >= 0 zijn.');
+    const rate = K / M;
+    const mttf = M / K;
+    const sv = expSf(T, rate);
+    const tg = target.get();
+    const res: [string, string][] = [['rate van T: k/m', fmt(rate)], ['MTTF = E[min] = m/k', fmt(mttf)], [`P(T > ${fmt(T)})`, fmt(sv)], ['mediaan van T = ln(2)\u00b7m/k', fmt((Math.LN2 * M) / K)]];
+    let kmax = 0;
+    if (tg !== undefined) {
+      pos(tg, 'beloofde MTTF');
+      kmax = Math.floor(M / tg + 1e-12);
+      res.push([`max. aantal lampen voor MTTF \u2265 ${fmt(tg)}`, String(kmax)]);
+    }
+    return resultPanel({
+      question: [`Levensduur van een serieschakeling van \\(k=${K}\\) lampen met elk \\(E[X]=${tx(M)}\\) uur`],
+      formula: ['P(T>t)=\\prod_{i=1}^{k}P(X_i>t)=e^{-k t/m}\\ \\Rightarrow\\ T\\sim \\text{Exp}(k/m),\\quad E[T]=\\frac{m}{k}', 'E[T]\\ge MTTF^* \\iff k\\le \\frac{m}{MTTF^*}'],
+      substituted: [`E[T]=\\frac{${tx(M)}}{${K}}=${tx(mttf)},\\quad P(T>${tx(T)})=e^{-${K}\\cdot ${tx(T)}/${tx(M)}}=${tx(sv)}`].concat(tg !== undefined ? [`k\\le\\frac{${tx(M)}}{${tx(tg)}}=${tx(M / tg)}\\Rightarrow k_{max}=${kmax}`] : []),
+      result: res,
+      excel: [`simulatie X: =-${xl(M)}*LN(RAND())`, 'simulatie T: =MIN(B11:D11) ; MTTF: =AVERAGE(G11:G1010)', `analytisch P(T > t): =EXP(-${K}*${xl(T)}/${xl(M)})`, `=1-EXPON.DIST(${xl(T)};${xl(rate)};WAAR)`],
+      answer: `Het minimum van ${K} onafhankelijke exponenti\u00eble levensduren met gemiddelde ${nl(M)} uur is opnieuw exponentieel met rate ${K}/${nl(M)}, dus MTTF = ${nl(M)}/${K} = ${nl(mttf)} uur en P(T > ${nl(T)}) = ${nl(sv)}.${tg !== undefined ? ` Voor een beloofde MTTF van minstens ${nl(tg)} uur mogen er hoogstens ${kmax} lampen in serie staan (m/k >= ${nl(tg)}).` : ''} Een simulatie (Monte Carlo) benadert deze waarden, met een foutmarge die daalt met 1/wortel(n).`,
+    });
+  });
+  run();
+  const f2 = new Form('qpi', () => run2());
+  const n = f2.num('n', 'aantal runs n', 1000);
+  const hits = f2.num('hits', 'aantal treffers (X\u00b2 + Y\u00b2 < 1)', 785);
+  const conf = f2.num('conf', 'betrouwbaarheid', 0.95);
+  el.append(card('Monte Carlo voor een kans: \u03c0/4 (BB_SIM_demo "Pi")', h('p', { class: 'muted' }, 'Trek X, Y uniform op [-1, 1]; h = 1 als X\u00b2 + Y\u00b2 < 1, anders 0. Het gemiddelde van h schat \u03c0/4 = 0,7854; het BI gebruikt de steekproefvariantie van h (in Excel VAR.S).'), row(n.el, hits.el, conf.el)), out2);
+  run2 = live(out2, () => {
+    const N = posInt(n.get(), 'n', 2);
+    const H = hits.get();
+    need(Number.isInteger(H) && H >= 0 && H <= N, 'Aantal treffers moet een geheel getal tussen 0 en n zijn.');
+    const C = prob(conf.get(), 'betrouwbaarheid');
+    const p = H / N;
+    const v = (N / (N - 1)) * p * (1 - p);
+    const z = normInv(1 - (1 - C) / 2);
+    const marg = z * Math.sqrt(v / N);
+    const truth = Math.PI / 4;
+    return resultPanel({
+      question: `Monte Carlo-schatting van \\(\\pi/4\\) met \\(n=${N}\\) runs en ${pctNl(C)}-betrouwbaarheidsinterval`,
+      formula: ['\\hat{J}=\\frac{1}{n}\\sum h_i,\\qquad \\hat{J}\\pm z_{1-\\alpha/2}\\sqrt{\\frac{s_h^2}{n}},\\qquad s_h^2=\\frac{n}{n-1}\\hat{J}(1-\\hat{J})'],
+      substituted: [`\\hat{J}=\\frac{${H}}{${N}}=${tx(p)},\\quad ${tx(p)}\\pm ${tx(z)}\\sqrt{\\frac{${tx(v)}}{${N}}}=${tx(p)}\\pm ${tx(marg)}`],
+      result: [['schatting \u03c0/4', fmt(p)], ['schatting \u03c0 (x 4)', fmt(4 * p)], [`${pct(C)}-BI voor \u03c0/4`, `[${fmt(p - marg)} ; ${fmt(p + marg)}]`], ['werkelijke \u03c0/4', fmt(truth)], ['werkelijke waarde in BI?', truth >= p - marg && truth <= p + marg ? 'ja' : 'nee']],
+      excel: ['=RAND()*2-1 (X en Y) ; =IF(B4^2+C4^2<1;1;0) ; =AVERAGE($D$4:D4)', `BI: =E-NORM.INV(1-${xl(1 - C)}/2;0;1)*SQRT(VAR.S(h)/n)`],
+      answer: `Met ${H} treffers op ${N} runs is de schatting van pi/4 gelijk aan ${nl(p)} (pi ~ ${nl(4 * p)}). Het ${pctNl(C)}-betrouwbaarheidsinterval is [${nl(p - marg)} ; ${nl(p + marg)}]; de foutmarge ${nl(marg)} halveert pas bij vier keer zoveel runs.`,
+    });
+  });
+  run2();
+}
+
 // ---------- 5. Little + flow efficiency ----------
 function littleTab(el: HTMLElement) {
   const out = h('div');
@@ -265,6 +330,7 @@ export const wachtrij: ModuleDef = {
       { id: 'mm1k', label: 'M/M/1/K', build: mm1kTab },
       { id: 'poisson', label: 'Poisson-proces', build: poissonTab },
       { id: 'mc', label: 'Monte Carlo', build: mcTab },
+      { id: 'serie', label: 'Lampen in serie / π', build: serieTab },
       { id: 'little', label: 'Little / flow', build: littleTab },
     ], el);
     return { route: (sub, params) => sub && t.show(sub, params) };

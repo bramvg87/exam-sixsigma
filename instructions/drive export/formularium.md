@@ -8,19 +8,11 @@
 1. [Les 1 - Intro & Big Data (20/05)](#les-1)
    - [Inleiding tot Machine Learning (Naert - Lecture 2)](#ml)
 2. [Les 2 - Hypothesetoetsen, betrouwbaarheidsintervallen & acceptance sampling (29/05)](#les-2)
-   - Toetsrecepten - volledig overzicht (na C)
-   - Betrouwbaarheidsinterval voor een fractie: exact, Wilson en normaal (D)
-   - Steekproefgrootte met $\alpha$ én $\beta$ (D)
-   - OC-curve en ontwerp van een aanvaardingsplan; variabelenplan $(n,k)$ (E)
-   - Defecten per lot bij gekende capabiliteit (F)
 3. [Les 3 - Regressie & DOE (05/06)](#les-3)
 4. [Les 4 - SPC & proces-capabiliteit (12/06)](#les-4)
-   - SPC: andere subgroepgrootte, detectiekans en ARL (E)
 5. [Les 5 - MSA / Gage R&R & simulatie (19/06)](#les-5)
-   - MSA-constanten Average & Range (E)
 6. [Root - Voorbeeldexamen: formules per vraag](#root)
 7. [Volledig Excel-formularium](#excel)
-8. [Examenstrategie: vraagtype -> formule -> tool](#strategie)
 
 ---
 
@@ -34,7 +26,6 @@ $$Y = f(X_1, X_2, \dots, X_n)$$
 De output $Y$ is een functie van de proces-inputs (de "X-en"). DMAIC trechtert: Define >100 X-en -> Measure $\le 20$ -> Analyze $\le 6$ -> Improve $\le 4$ -> Control $\le 3$ ("vital few").
 
 ### Little's Law (flow / doorlooptijd)
-<!-- tool: wachtrij -->
 $$\text{WIP} = \text{Throughput} \times \text{Doorlooptijd} \qquad\Longleftrightarrow\qquad L = \lambda \cdot W$$
 
 | Symbool | Betekenis |
@@ -49,12 +40,10 @@ $$\Rightarrow\quad W = \frac{L}{\lambda} = \frac{\text{WIP}}{\text{Throughput}}$
 - **Bottleneck** = processtap met de langste cyclustijd; bepaalt de doorvoer.
 
 ### Flow efficiency
-<!-- tool: wachtrij -->
 $$\text{Flow efficiency} = \frac{\text{waarde-toevoegende tijd}}{\text{totale doorlooptijd}}$$
 Typisch is ~95% van de doorlooptijd niet-waarde-toevoegend.
 
 ### Basis beschrijvende statistiek
-<!-- tool: verdelingen -->
 *(Fundament voor alle volgende lessen; in de intro al via $\mu$ en $\sigma$.)*
 
 | Maat | Steekproef (sample) | Populatie |
@@ -78,9 +67,7 @@ Typisch is ~95% van de doorlooptijd niet-waarde-toevoegend.
 Hoger op de ladder = meer informatie. Het meetniveau bepaalt welke statistiek/test zinvol is (bv. een gemiddelde berekenen heeft geen zin voor nominale data; verhoudingen enkel bij ratio).
 
 ### Kansverdelingen: pdf/cdf, sampling & inference
-<!-- tool: verdelingen -->
-$$f(x)=P(X=x)\ \text{(pmf, enkel discreet)},\qquad F(x)=P(X\le x)=\int_{-\infty}^{x} f(t)\,dt\ \text{(cdf, gecumuleerd)}$$
-$f(x)=P(X=x)$ geldt enkel voor discrete verdelingen (kansmassa). Voor continue verdelingen is $f$ een **dichtheid** (pdf, vorm): $P(X=x)=0$ en $P(a\le X\le b)=\int_a^b f(x)\,dx$.
+$$f(x)=P(X=x)\ \text{(pdf, vorm)},\qquad F(x)=P(X\le x)=\int_{-\infty}^{x} f(t)\,dt\ \text{(cdf, gecumuleerd)}$$
 Naast de normale verdeling zijn er nog enkele kernverdelingen. De vraag die alles sorteert: **tel** je iets (discreet, staafjes) of **meet** je iets op een continue schaal (continu, curves)?
 
 | Verdeling | Type | pmf / pdf | Param. | $E[X]$ ; $Var[X]$ | Voorbeeld |
@@ -103,7 +90,6 @@ Naast de normale verdeling zijn er nog enkele kernverdelingen. De vraag die alle
 De kansverdeling en de (oneindige) zee aan data zijn wiskundig één en hetzelfde. Inference laat ook **voorspelling** toe (bv. uit $\lambda=2{,}96$ klanten/min volgt: $<2\%$ kans op $>7$ klanten/min).
 
 ### Marginale & voorwaardelijke kans, onafhankelijkheid
-<!-- tool: ml -->
 Bij twee variabelen heb je de **gezamenlijke (joint) verdeling** $P(X,Y)$. *Associatie* = de joint bevat informatie die je **niet** kan achterhalen door $X$ en $Y$ apart te bestuderen.
 
 | Begrip | Formule | Intuïtie |
@@ -134,7 +120,6 @@ $$E[Y\mid X=x]=\int_y y\cdot P(Y=y\mid X=x)\,dy$$
 Dit is een functie van $x$ alleen: de **regressielijn**. Te onthouden: vrijwel alle *supervised machine learning* (van lineaire regressie tot diepe neurale netwerken) is in essentie een schatting van $E[Y\mid X]$.
 
 ### Associatie vs. interventie (causaliteit)
-<!-- tool: ml -->
 Twee fundamenteel verschillende vragen:
 $$\underbrace{P(Y\mid X=x)}_{\text{associatie: we *observeren*}}\qquad\ne\qquad \underbrace{P\big(Y\mid \mathrm{do}(X=x)\big)}_{\text{interventie: we *forceren*}}$$
 In het algemeen zijn deze **niet** gelijk. Uit observationele data alleen kan je het effect van een interventie *niet* bepalen - je hebt steeds bijkomende **causale aannames** nodig.
@@ -176,7 +161,6 @@ Een **loss-/kostfunctie** kwantificeert hoe slecht een model presteert: $\ L_D(\
 Een complexer model doet het op de trainingsdata altijd minstens even goed; wat telt is de prestatie op **ongeziene** data. Daarom: train op de **trainset**, evalueer op een **testset** die het model nooit zag. Wie hyperparameters herhaaldelijk op dezelfde testset tunet, overtraint ook dáárop -> gebruik een derde **validatieset**. **k-voudige cross-validatie:** verdeel de data in $k$ delen, train telkens op $k-1$ delen en valideer op het overige, en middel de prestatie. (Onthoud: *parameters* worden door het algoritme gevonden, *hyperparameters* - polynoomgraad, boomdiepte, $\lambda$ - kiest de analist.)
 
 ### Bias-variance trade-off
-<!-- tool: ml -->
 De verwachte fout ontbindt in drie bronnen:
 $$E\big[(y-\hat{f}(x))^2\big]=\underbrace{\text{Bias}^2}_{\text{systematisch}}+\underbrace{\text{Var}}_{\text{gevoeligheid}}+\underbrace{\sigma^2}_{\text{ruis}}$$
 - **Bias:** de modelklasse kan $f(x)$ niet vatten -> **underfitting** (te simpel).
@@ -185,7 +169,6 @@ $$E\big[(y-\hat{f}(x))^2\big]=\underbrace{\text{Bias}^2}_{\text{systematisch}}+\
 Stijgt de complexiteit, dan daalt bias maar stijgt variance: de totale fout volgt een **U-vorm**, met het optimum ertussenin. (SPC-analogie: hoge bias/lage variance = consistent maar systematisch fout; lage bias/hoge variance = gemiddeld juist maar onbetrouwbaar.)
 
 ### Confusion matrix & evaluatie van classificatie
-<!-- tool: ml -->
 Bij classificatie is er niet één foutgetal maar verschillende soorten fouten. De $2\times2$-matrix telt werkelijk vs. voorspeld:
 
 | | Voorspeld $+$ | Voorspeld $-$ |
@@ -196,16 +179,6 @@ Bij classificatie is er niet één foutgetal maar verschillende soorten fouten. 
 $$\text{Accuracy}=\frac{TP+TN}{TP+TN+FP+FN},\quad \text{Precision}=\frac{TP}{TP+FP},\quad \text{Recall}=\frac{TP}{TP+FN},\quad F_1=\frac{2\,P\,R}{P+R}$$
 - *Accuracy* is misleidend bij klasse-onevenwicht. *Precision* = "hoe vaak klopt een positief?"; *Recall* = "hoeveel echte positieven vinden we?"; $F_1$ = harmonisch gemiddelde.
 - **Welke metric?** Domeinbeslissing: vals alarm duur (alarmsysteem) -> optimaliseer **precision**; gemist defect duur (veiligheidskritisch) -> optimaliseer **recall**.
-
-**Classificatie: extra maten.** Specificiteit $=TN/(TN+FP)$. Voorbeeldexamen vraag 5 (Goed = positief):
-
-| Model | train acc | test acc | kloof | diagnose |
-|---|---|---|---|---|
-| A | 96,5% | 61,7% | 34,8 | hoge variantie (overfit) |
-| B | 74,0% | 61,7% | 12,3 | hoge bias (underfit) |
-| C | 85,0% | 69,2% | 15,8 | optimaal (beste test) |
-
-Beslisregel: **train laag** -> bias; **train hoog en test veel lager** -> variantie; **beste test-score** -> optimaal.
 
 ### Neurale netwerken (hidden layers & deep learning)
 Eén neuron: $\ y=f(w_1x_1+\dots+w_nx_n+b)$ met gewichten $w_i$, bias $b$ en niet-lineaire **activatie** $f$ (ReLU, sigmoid, tanh). **Deep learning** = meerdere **verborgen (hidden) lagen** stapelen. Leren via **backpropagation** (gradiënt) + gewichten bijstellen richting lagere loss. *Universele approximatiestelling:* met genoeg neuronen kan elke continue functie benaderd worden. Risico: met miljoenen parameters leert het netwerk de ruis mee (overfitting) -> **regularisatie** (dropout, early stopping, weight decay). Schitteren bij grote datasets / sterk niet-lineair / ongestructureerde input (beeld, tekst); minder bij kleine datasets of vereiste interpreteerbaarheid. Architecturen: MLP (tabeldata), CNN (beeld), RNN/LSTM (tijdreeksen), Transformer (taal/LLMs), autoencoder (anomalie).
@@ -243,7 +216,6 @@ met **prior** $P(\theta)$ (voorkennis), **likelihood** $P(\text{data}\mid\theta)
 - $\alpha$ vooraf vastleggen (ontwerpparameter), nooit na het zien van de teststatistiek.
 
 ### B. Toetsprocedure (recept, 7 stappen)
-<!-- tool: hypothese -->
 1. Formuleer $H_0$ en $H_A$ (één- of tweezijdig).
 2. Kies significantie $\alpha$.
 3. Kies teststatistiek + steekproevenverdeling.
@@ -252,17 +224,16 @@ met **prior** $P(\theta)$ (voorkennis), **likelihood** $P(\text{data}\mid\theta)
 6. Trek steekproef, bereken teststatistiek.
 7. Vergelijk met kritieke waarde -> conclusie.
 
-*Voorbeeld (de 7 stappen toegepast - t-toets voor het gemiddelde).* Een proces maakt onderdelen met een kritische maat, normaal verdeeld rond 10. Na vervanging van een machineonderdeel vreest het management dat de stukken kleiner zijn geworden. 20 stukken worden gemeten: $\bar{x}=9{,}928$, $s=0{,}1079$ (uit de 20 ruwe meetwaarden; de slide rondt af naar $s=0{,}109$).
+*Voorbeeld (de 7 stappen toegepast - t-toets voor het gemiddelde).* Een proces maakt onderdelen met een kritische maat, normaal verdeeld rond 10. Na vervanging van een machineonderdeel vreest het management dat de stukken kleiner zijn geworden. 20 stukken worden gemeten: $\bar{x}=9{,}928$, $s=0{,}109$.
 1. $H_0:\mu=10$ (proces nog gecentreerd) vs. $H_A:\mu<10$ (verschoven naar beneden) - **eenzijdig**.
 2. $\alpha=2\%$ (conservatief: enkel bijsturen bij sterk bewijs).
 3. Teststatistiek $t=\dfrac{\bar{x}-\mu_0}{s/\sqrt{n}}$; steekproevenverdeling $t(n-1)=t(19)$.
 4. $n=20$ (gegeven).
 5. Kritieke waarde (eenzijdig links): $t_{0{,}02;\,19}=-2{,}20$ via `=T.INV(0,02;19)`.
-6. $t=\dfrac{9{,}928-10}{0{,}1079/\sqrt{20}}=-2{,}98$ (de slide vindt met de afgeronde $s=0{,}109$: $t=-2{,}95$).
-7. $-2{,}98<-2{,}20$ (en p-waarde $=0{,}38\%<\alpha$, via `=T.DIST(-2,98;19;WAAR)`) -> **verwerp $H_0$**: het proces is significant naar beneden verschoven en moet bijgesteld worden. Conclusie identiek met de slidewaarden. Equivalent: de eenzijdige 98%-bovengrens is $\mu<9{,}981$, dus 10 valt erbuiten.
+6. $t=\dfrac{9{,}928-10}{0{,}109/\sqrt{20}}=-2{,}95$.
+7. $-2{,}95<-2{,}20$ (en p-waarde $=0{,}4\%<\alpha$, via `=T.DIST(-2,95;19;WAAR)`) -> **verwerp $H_0$**: het proces is significant naar beneden verschoven en moet bijgesteld worden.
 
 ### C. Kern-teststatistieken
-<!-- tool: hypothese -->
 
 **Standaardisatie (Z):** als $X \sim N(\mu,\sigma)$ dan
 $$Z = \frac{X-\mu}{\sigma} \sim N(0,1)$$
@@ -279,28 +250,7 @@ Gebruik: testen of de procesvariabiliteit veranderd is. ($\chi^2$ is asymmetrisc
 $$F=\frac{s_1^2}{s_2^2}\qquad\text{en pivot}\qquad \frac{s_1^2}{s_2^2}\cdot\frac{\sigma_2^2}{\sigma_1^2}\sim F(n_1-1,\ n_2-1)$$
 Gebruik: testen of de ene machine/proces *nauwkeuriger* werkt dan de andere ("nauwkeuriger" $\Leftrightarrow$ kleinere $\sigma^2$). Excel: kritieke waarde `=F.INV(α;df1;df2)` (linkerstaart) of `=F.INV.RT(α;df1;df2)` (rechterstaart); p-waarde ineens met `=F.TEST(reeks1;reeks2)`.
 
-### Toetsrecepten - volledig overzicht (Ottoy, "Test Recipes - Further Reading")
-<!-- tool: nonparam -->
-
-| Toets | $H_0$ | Teststatistiek | Referentie | Voorwaarden | Excel |
-|---|---|---|---|---|---|
-| t-toets $\mu$ | $\mu=\mu_0$ | $t=\dfrac{\bar{x}-\mu_0}{s/\sqrt{n}}$ | $t(n-1)$ | X normaal (robuust bij grote n) | `T.DIST`, `T.INV` |
-| t-toets $\mu_1-\mu_2$ niet gepaard | $\mu_1-\mu_2=d$ | $t=\dfrac{\bar{x}_1-\bar{x}_2-d}{s_p\sqrt{\frac1{n_1}+\frac1{n_2}}}$, $\ s_p^2=\dfrac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}$ | $t(n_1+n_2-2)$ | normaal, **$\sigma_1=\sigma_2$**, onafhankelijke steekproeven | `T.TEST(r1;r2;zijden;2)` |
-| idem, ongelijke varianties (Welch) | idem | $t=\dfrac{\bar{x}_1-\bar{x}_2}{\sqrt{s_1^2/n_1+s_2^2/n_2}}$ | $t(\nu)$, $\nu$ via Welch-Satterthwaite | normaal | `T.TEST(r1;r2;zijden;3)` |
-| t-toets gepaard | $\mu_v=d$ | $v_i=x_{1i}-x_{2i}$, $\ t=\dfrac{\bar{v}-d}{s_v/\sqrt{n}}$ | $t(n-1)$ | verschillen normaal; **geen** voorwaarde $\sigma_1=\sigma_2$ | `T.TEST(r1;r2;zijden;1)` |
-| Z-toets $\pi$ | $\pi=\pi_0$ | $z=\dfrac{p-\pi_0}{\sqrt{\pi_0(1-\pi_0)/n}}$; continuïteitscorrectie: $p\pm\frac{1}{2n}$ (+ links, - rechts) | $N(0,1)$ | $n\pi_0>5$, anders exact (binomiaal) | `NORM.S.DIST` |
-| $\chi^2$-toets $\sigma$ | $\sigma=\sigma_0$ | $\chi^2=\dfrac{(n-1)s^2}{\sigma_0^2}$ | $\chi^2(n-1)$ | X normaal, **niet robuust** | `CHISQ.DIST.RT` |
-| F-toets $\sigma_1/\sigma_2$ | $\sigma_1=\sigma_2$ | $F=s_1^2/s_2^2$ | $F(n_1-1,n_2-1)$ | normaal, onafh.; **niet robuust** (dus voorzichtig als voortoets voor de pooled t-toets) | `F.DIST.RT`, `F.TEST` |
-| $\chi^2$ goodness of fit | X heeft opgegeven verdeling | $\chi^2=\sum_k\dfrac{(n_k-e_k)^2}{e_k}$, $e_k=n\pi_k$ | $\chi^2(r-g-1)$, $g$ = geschatte parameters | $e_k>5$ (anders klassen samenvoegen); altijd rechtszijdig | `CHISQ.DIST.RT` |
-| $\chi^2$ contingentietabel | X en Y onafhankelijk | $\chi^2=\sum_{k,l}\dfrac{(n_{kl}-e_{kl})^2}{e_{kl}}$, $e_{kl}=\dfrac{n_{k\cdot}\,n_{\cdot l}}{n}$ | $\chi^2((r-1)(s-1))$ | $e_{kl}>5$; 2x2: Yates $\lvert n-e\rvert-\frac12$ | `CHISQ.TEST(obs;exp)` geeft p |
-| Wilcoxon-Mann-Whitney | mediaan$_1$ = mediaan$_2$ | $W$ = som rangen groep 1 (alle waarden samen gerangschikt, ties: gemiddelde rang) | groot: $E[W]=\frac{n_1(N+1)}{2}$, $Var[W]=\frac{n_1n_2(N+1)}{12}$, Z-toets | zelfde vorm van verdeling; niet-parametrisch alternatief voor niet-gepaarde t | - |
-| Wilcoxon signed ranks | mediaan verschil = 0 | $T^+$ = som rangen van positieve verschillen (rangschik $\lvert v_i\rvert$; $v_i=0$ weglaten) | $n>15$: $E=\frac{n(n+1)}{4}$, $Var=\frac{n(n+1)(2n+1)}{24}$, Z-toets | alternatief voor gepaarde t | - |
-| Runs-toets (Wald-Wolfowitz) | steekproef is random (iid) | $R$ = aantal runs boven/onder de mediaan | $E[R]\approx\frac{n}{2}+1$, $Var[R]\approx\frac{n-1}{4}$, Z-toets | test de basisaanname "random steekproef" | - |
-
-*Rekenvoorbeeld contingentietabel (Les 1, lijn x kwaliteit, 500 stuks):* $\chi^2=11{,}80$, df $=(2-1)(3-1)=2$, p $=0{,}0027$ -> verwerp onafhankelijkheid: lijn en kwaliteit hangen samen (bevestigt de conclusie uit de voorwaardelijke kansen).
-
 ### D. Betrouwbaarheidsintervallen (CI)
-<!-- tool: hypothese -->
 
 **Centrale limietstelling (CLT):** voor voldoende grote $n$ is het steekproefgemiddelde
 $$\bar{X} \sim N\!\left(\mu,\ \frac{\sigma^2}{n}\right), \qquad \text{standaardfout } SE = \frac{\sigma}{\sqrt{n}}\ \approx\ \frac{s}{\sqrt{n}}$$
@@ -315,51 +265,19 @@ Eénzijdige ondergrens voor $\sigma$: $\ \sigma \ge \sqrt{\dfrac{(n-1)s^2}{\chi^
 
 **CI voor de verhouding van twee varianties** $\sigma_2^2/\sigma_1^2$ (via F; examenvraag 2). Eénzijdige $(1-\alpha)$-ondergrens:
 $$\frac{\sigma_2^2}{\sigma_1^2}\ \ge\ \frac{s_2^2}{s_1^2}\cdot F_{\alpha}(n_1-1,\ n_2-1),\qquad F_{\alpha}=\texttt{F.INV}(\alpha;n_1{-}1;n_2{-}1)$$
-*Beslisregel:* ligt de hele ondergrens $L>1$, dan is $\sigma_2^2>\sigma_1^2$ aangetoond (machine 1 nauwkeuriger). *Voorbeeld:* $n_1{=}10, n_2{=}15 \Rightarrow F_{0{,}05}(9;14)=0{,}3305$; met $s_1^2{=}0{,}004,\ s_2^2{=}0{,}015$: $L=\tfrac{0{,}015}{0{,}004}\cdot0{,}3305=1{,}24>1$ -> vermoeden bevestigd.
+*Beslisregel:* ligt de hele ondergrens $L>1$, dan is $\sigma_2^2>\sigma_1^2$ aangetoond (machine 1 nauwkeuriger). *Voorbeeld:* $n_1{=}10, n_2{=}15 \Rightarrow F_{0{,}05}(9;14)=0{,}3305$; met $s_1^2{=}0{,}004,\ s_2^2{=}0{,}015$: $L=\tfrac{0{,}015}{0{,}004}\cdot0{,}3305=1{,}24>1$ -> vermoeden bevestigd. (Tweezijdig: deel ook door $F_{1-\alpha/2}$ voor de bovengrens.)
 
-*Tweezijdig* (uit de pivot $\frac{s_1^2}{s_2^2}\cdot\rho\sim F(n_1-1,n_2-1)$ met $\rho=\sigma_2^2/\sigma_1^2$): **vermenigvuldig** de verhouding met beide F-kwantielen:
-$$\frac{s_2^2}{s_1^2}\,F_{\alpha/2}(n_1{-}1;n_2{-}1)\ \le\ \frac{\sigma_2^2}{\sigma_1^2}\ \le\ \frac{s_2^2}{s_1^2}\,F_{1-\alpha/2}(n_1{-}1;n_2{-}1)$$
-Excel: ondergrens `=(s2²/s1²)*F.INV(α/2;n1-1;n2-1)`, bovengrens `=(s2²/s1²)*F.INV(1-α/2;n1-1;n2-1)`. Handig: $F_{\alpha}(a;b)=1/F_{1-\alpha}(b;a)$, dus `F.INV(0,05;9;14)` = `1/F.INV.RT(0,05;14;9)` = 0,3305.
-Wil je de verhouding andersom ($\sigma_1^2/\sigma_2^2$), keer dan teller en noemer én de vrijheidsgraden om. Schrijf op het examen altijd expliciet welke variantie in de teller staat.
-
-**CI voor een fractie/proportie $\pi$.** Let op: de cursus (Ottoy, Confidence Intervals) gebruikt het **exacte** (binomiale/hypergeometrische) interval, niet de normale benadering: voor $n=100$, $d=4$ geven de slides **[1,1% ; 9,9%]**, terwijl de normale benadering hier [0,16% ; 7,84%] geeft, duidelijk anders. De normale benadering (grote steekproef):
+**CI voor een fractie/proportie $\pi$** (grote steekproef, normale benadering):
 $$\pi = p \pm Z_{1-\alpha/2}\sqrt{\frac{p(1-p)}{n}}, \qquad Z_{0.975}=1.96$$
-is enkel geldig als er minstens ~5 defecten in de steekproef zitten. Zie het exacte interval hieronder.
-
-**Betrouwbaarheidsinterval voor een fractie: exact, Wilson en normaal.**
-
-*Exact (Clopper-Pearson) - de methode van de slides.* Het interval bevat alle $\pi$ waarvoor de waargenomen $d$ niet in de $\alpha/2$-staarten van de binomiale verdeling valt:
-$$\pi_L=\texttt{BETA.INV}\big(\tfrac{\alpha}{2};\,d;\,n-d+1\big),\qquad \pi_U=\texttt{BETA.INV}\big(1-\tfrac{\alpha}{2};\,d+1;\,n-d\big)$$
-($d=0\Rightarrow\pi_L=0$; $d=n\Rightarrow\pi_U=1$.) Eenzijdig: vervang $\alpha/2$ door $\alpha$.
-
-| $n=100$, 95% | exact (cursus) | Wilson | normaal (Wald) |
-|---|---|---|---|
-| $d=0$ | [0% ; 3,6%] | [0% ; 3,7%] | onbruikbaar |
-| $d=2$ | [0,3% ; 7,0%] | [0,6% ; 7,0%] | [-0,7% ; 4,7%] |
-| $d=4$ | **[1,1% ; 9,9%]** | [1,6% ; 9,8%] | [0,2% ; 7,8%] |
-
-*Noot (herrekend):* de slidewaarden zijn het exacte **hypergeometrische** interval voor een lot van $N=10000$. Zuiver binomiaal (Clopper-Pearson, `BETA.INV`) geeft bijna hetzelfde: $d=2$: [0,24% ; 7,04%] (slide 0,3% ; 7,0%), $d=4$: [1,10% ; 9,93%]; 4/100 bij 70%: [2,05% ; 7,15%] (slide [2,1 ; 7,1]). Beide methoden zijn correct; vermeld welke je gebruikt.
-
-**Wilson (score-interval)** - beste benadering als je geen BETA.INV wil gebruiken:
-$$\pi=\frac{p+\frac{z^2}{2n}\pm z\sqrt{\frac{p(1-p)}{n}+\frac{z^2}{4n^2}}}{1+\frac{z^2}{n}}$$
-**Normaal (Wald)** $p\pm z\sqrt{p(1-p)/n}$: enkel als er minstens ~5 defecten in de steekproef zitten (slide: bij 1% defecten dus $n\ge500$).
-*Eindige populatie:* exact via de hypergeometrische verdeling (`HYPGEOM.DIST`); bij $N=10000$, $n=100$ nauwelijks verschil met binomiaal.
-*Les uit de slides:* betrouwbaarheid en nauwkeurigheid zijn een trade-off bij vaste $n$ (4/100: 70% -> [2,1;7,1], 95% -> [1,1;9,9], 99% -> [0,7;12,0]); de breedte halveren vraagt $n\times4$.
+Geldig als minstens ~5 defecten in de steekproef.
 
 **Steekproefgrootte** (gewenste halve breedte/marge $E$):
 $$\text{gemiddelde: } n=\left(\frac{Z_{1-\alpha/2}\,\sigma}{E}\right)^2 \qquad\qquad \text{proportie: } n=\frac{Z_{1-\alpha/2}^2\,p(1-p)}{E^2}$$
 Worst case proportie bij $p=0.5$. Vuistregel: accuraatheid verdubbelen (CI-breedte halveren) = steekproef $\times 4$.
 
-**Steekproefgrootte met $\alpha$ én $\beta$ (onderscheidingsvermogen).** Gemiddelde, eenzijdige toets, verschuiving $\delta$ detecteren met risico's $\alpha$ en $\beta$ (power $1-\beta$):
-$$n=\left(\frac{(z_{1-\alpha}+z_{1-\beta})\,\sigma}{\delta}\right)^2\qquad(\text{tweezijdig: }z_{1-\alpha/2})$$
-Omgekeerd, $\beta$ bij gegeven $n$ (eenzijdig rechts): $\beta=\Phi\!\left(z_{1-\alpha}-\dfrac{\delta\sqrt{n}}{\sigma}\right)$.
-Fractie (normale benadering): $n=\left(\dfrac{z_{1-\alpha}\sqrt{\pi_0(1-\pi_0)}+z_{1-\beta}\sqrt{\pi_1(1-\pi_1)}}{\pi_1-\pi_0}\right)^2$.
-Kernboodschap uit de slides: $\alpha$ kies je; $\beta$ volgt uit $\alpha$, $n$ en de werkelijke toestand. $\beta$ verkleinen bij vaste $\alpha$ kan enkel met een grotere steekproef. $\alpha\approx0$ kiezen maakt $\beta$ enorm ("de rechter die nooit een onschuldige veroordeelt, laat iedereen vrij").
-
 **Equivalentie CI <-> toets:** toetsen met een $(1-\alpha)\cdot100\%$-CI heeft significantie $\alpha$. Als $\pi_0 \in$ CI -> aanvaard $H_0$, anders verwerp. Betrouwbaarheidsniveau en significantie bevatten dezelfde info.
 
 ### E. Acceptance sampling
-<!-- tool: steekproeven -->
 
 **Basis:** lotfractie defecten $\pi = D/N$; schatting uit steekproef $p = d/n$. $P$ is zuiver (unbiased): $E[P]=\pi$.
 
@@ -374,26 +292,9 @@ $$P[d=i] = \binom{n}{i}\pi^i (1-\pi)^{n-i}, \qquad \sigma_P = \sqrt{\frac{\pi(1-
 - **OC-curve** = $P[\text{aanvaarden}]$ als functie van $\pi$. Equivalente plannen = zelfde OC-curve.
 - $AQL$ = acceptable quality level (goede kwaliteit); $LQL$/$LTPD$ = limiting quality level (slechte kwaliteit). Normen: ISO 2859 (attributen), ISO 3951 (variabelen).
 
-**OC-curve en ontwerp van een aanvaardingsplan (rekenkant).** Enkelvoudig plan $(n,c)$, lotfractie $\pi$:
-$$P_{acc}(\pi)=P[d\le c]=\sum_{i=0}^{c}\binom{n}{i}\pi^i(1-\pi)^{n-i}=\texttt{BINOM.DIST}(c;n;\pi;\text{WAAR})$$
-$$\alpha=1-P_{acc}(AQL)\ (\text{producer's risk}),\qquad \beta=P_{acc}(LQL)\ (\text{consumer's risk})$$
-
-| Plan | $P_{acc}(2\%)$ | $\alpha$ | $P_{acc}(8\%)=\beta$ |
-|---|---|---|---|
-| (100, 4) | 0,949 | 5,1% | 9,0% |
-| (130, 5) | 0,953 | 4,7% | 4,7% |
-
-(Hypergeometrisch met $N=10000$, $D=200$: $P_{acc}=0{,}950$.) **Ontwerp:** zoek de kleinste $n$ (met bijhorende $c$) zodat $P_{acc}(AQL)\ge1-\alpha$ én $P_{acc}(LQL)\le\beta$. Hogere $c$ bij vaste $n$: kleinere $\alpha$, grotere $\beta$.
-**Dubbel plan** $(n_1,c_1,c_2)+(n_2,c_3)$: $P_{acc}=P[d_1\le c_1]+\sum_{d_1=c_1+1}^{c_2-1}P[d_1]\cdot P[d_2\le c_3-d_1]$; gemiddelde steekproefgrootte $ASN=n_1+n_2\cdot P[c_1<d_1<c_2]$. Equivalente plannen = zelfde OC-curve; dubbel/sequentieel is efficiënter (kleinere ASN).
-**p-waarde bij acceptance sampling:** $P[d\ge d_{obs}\mid\pi=AQL]$.
-
 **Plan voor variabelen** $(n,k)$ bij ondergrens-spec $\xi$:
 $$Q = \frac{\bar{x}-\xi}{s}, \qquad \text{aanvaard als } Q \ge k \quad (k \approx t(1-\alpha,p_0,n))$$
 ($k$ is de tegenhanger van $c$.) Variabelen-plannen zijn efficiënter dan attribuut-plannen.
-
-*Hoe $k$ berekenen.* Exact: $k=\dfrac{t'_{1-\alpha}\big(n-1;\ z_{1-p_0}\sqrt{n}\big)}{\sqrt{n}}$ (niet-centrale t). Benadering (Natrella):
-$$k\approx\frac{z_{1-p_0}+\sqrt{z_{1-p_0}^2-ab}}{a},\quad a=1-\frac{z_{1-\alpha}^2}{2(n-1)},\quad b=z_{1-p_0}^2-\frac{z_{1-\alpha}^2}{n}$$
-Voorbeeld $n=20$, $p_0=AQL=2\%$, $\alpha=5\%$: $k=2{,}93$ (exact), 2,91 (benadering). Aanvaard als $Q=(\bar{x}-\xi)/s\ge k$. Variabelenplannen zijn efficiënter dan attribuutplannen (meer informatie per stuk).
 
 **Stratificatie** (variantiereductie). *Idee:* splits de populatie in homogenere deelgroepen (strata) en bemonster elk apart; zo verwijder je de spreiding *tussen* de strata uit de schattingsfout. De gestratificeerde schatter combineert de deel-schattingen met hun gewicht $W_h$ (= aandeel van stratum $h$):
 $$P_s = \sum_h W_h P_h \quad(\text{2 strata: } W_A P_A + W_B P_B),\qquad E[P_s]=\pi\ (\text{zuiver})$$
@@ -414,7 +315,6 @@ Populatie-decompositie: $\sigma^2 = \underbrace{\sum_h W_h\sigma_h^2}_{\text{wit
 - *Vertekening:* **selectiebias** (de steekproef is niet representatief door het *selectie*proces) en **non-response bias** (gekozen eenheden antwoorden niet en verschillen systematisch van wie wél antwoordt). Belangrijk: non-response treedt op *na* de selectie, dus **geen enkele** steekproefmethode (ook cluster sampling niet) is er immuun voor.
 
 ### F. Normaalverdeling (basis; volledige capability-behandeling in Les 4)
-<!-- tool: capabiliteit -->
 $$\varphi(x) = \frac{1}{\sigma\sqrt{2\pi}}\,e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}, \qquad \Phi(x)=\int_{-\infty}^{x}\varphi(t)\,dt$$
 Excel: CDF `=NORM.DIST(x;μ;σ;TRUE)`, inverse `=NORM.INV(p;μ;σ)`, random `=NORM.INV(RAND();μ;σ)`. Fractie conform = $\Phi(x_U)-\Phi(x_L)$.
 
@@ -423,8 +323,6 @@ $$X_U-X_L = 6\sigma \Rightarrow 99.73\%\text{ conform } (0.27\%\text{ defect}),\
 $$X_U-X_L = 8\sigma \Rightarrow 99.9937\%\text{ conform } (63\text{ ppm defect}),\ C_{pk}=1.33$$
 $$C_{pk} = \min\!\left(\frac{X_U-\mu}{3\sigma},\ \frac{\mu-X_L}{3\sigma}\right)$$
 Lotdefecten bij gekend $C_{pk}$: $\ E[i] = N\cdot\pi$ (bv. $C_{pk}=1 \Rightarrow \pi=0.27\% \Rightarrow$ in $N=10000$: $E[i]=27$).
-
-**Defecten per lot bij gekende capabiliteit.** Defecten onafhankelijk -> aantal defecten $i$ in een lot van $N$ is binomiaal: $P(i)=\binom{N}{i}\pi^i(1-\pi)^{N-i}$. $C_{pk}=1$ (gecentreerd): $\pi=0{,}27\%$, $N=10000$ -> $E[i]=27$, praktisch tussen ~12 en ~44. $C_{pk}=1{,}33$: $\pi=0{,}0063\%$ -> $E[i]=0{,}6$, nooit meer dan ~3. Een lot met 100 defecten bij $C_{pk}=1$ is zo onwaarschijnlijk dat het proces veranderd moet zijn.
 
 **DPMO, sigma-niveau & de 1,5σ-drift (Motorola).** Een proces op "$k$ sigma" betekent dat de dichtstbijzijnde speclimiet op $k$ standaardafwijkingen van het gemiddelde ligt. De defectkans lees je af uit de standaardnormale verdeling via de Z-waarde:
 $$\text{DPMO} = P(\text{defect})\times 10^6 = \big(1-\Phi(Z_{\text{eff}})\big)\times 10^6$$
@@ -469,7 +367,6 @@ Excel: DPMO uit sigma-niveau `=(1-NORM.S.DIST(k-1,5;WAAR))*1000000`; omgekeerd h
 *Bestanden: De Vuyst `BB_Regression`, `BB_DOE`. Twee blokken: (1) regressie, (2) ANOVA & Design of Experiments.*
 
 ### A. Enkelvoudige lineaire regressie
-<!-- tool: regressie -->
 
 **Model:** $\ Y = \beta_0 + \beta_1 x + \varepsilon,\quad \varepsilon \sim N(0,\sigma^2)$
 - $\mu_{Y|x} = E[Y|x] = \beta_0 + \beta_1 x$, en $\text{Var}[Y|x]=\sigma^2$ (gelijke spreiding voor alle $x$ = **homoscedasticiteit**).
@@ -487,7 +384,6 @@ $$\boxed{SS_T = SS_R + SS_E}\qquad \text{df: } (n-1)=(1)+(n-2)\ \text{[enkelvoud
 - **Correlatie (Pearson):** $\ r=\dfrac{S_{xY}}{\sqrt{S_{xx}S_{YY}}}$, en voor enkelvoudige regressie $\ R^2=r^2$. (Let op: correlatie $\ne$ causaliteit; pas op voor confounding.)
 
 ### B. Inferentie in (enkelvoudige) regressie
-<!-- tool: regressie -->
 Verdelingen: $\ \hat{\beta}_1 \sim N\!\left(\beta_1,\ \tfrac{\sigma^2}{S_{xx}}\right),\quad \hat{\beta}_0 \sim N\!\left(\beta_0,\ \sigma^2\big(\tfrac{1}{n}+\tfrac{\bar{x}^2}{S_{xx}}\big)\right)$.
 
 **t-toets helling / intercept** (df $=n-2$):
@@ -497,7 +393,7 @@ $$t=\frac{\hat{\beta}_1-\beta_{1,0}}{\sqrt{MSE/S_{xx}}}, \qquad t=\frac{\hat{\be
 $$F=\frac{MSR}{MSE}\sim F_{1,\,n-2}\quad(\text{algemeen } F_{k,\,n-k-1})$$
 De t-toets op $\beta_1$ en deze F-toets zijn equivalent.
 
-**CI voor helling/intercept:** $\ \hat{\beta}_1 \pm t_{1-\alpha/2,\,n-2}\sqrt{\tfrac{MSE}{S_{xx}}}$ ; $\ \hat{\beta}_0 \pm t_{1-\alpha/2,\,n-2}\sqrt{MSE\big(\tfrac{1}{n}+\tfrac{\bar{x}^2}{S_{xx}}\big)}$.
+**CI voor helling/intercept:** $\ \hat{\beta}_1 \pm t_{1-\alpha/2,\,n-2}\sqrt{\tfrac{MSE}{S_{xx}}}\ $ ; $\ \hat{\beta}_0 \pm t_{1-\alpha/2,\,n-2}\sqrt{MSE\big(\tfrac{1}{n}+\tfrac{\bar{x}^2}{S_{xx}}\big)}$.
 
 **CI voor de gemiddelde respons** in $x_0$ ($\hat{Y}_0=\hat{\beta}_0+\hat{\beta}_1 x_0$):
 $$\hat{Y}_0 \pm t_{1-\alpha/2,\,n-2}\cdot se(\hat{Y}_0),\qquad se(\hat{Y}_0)=\sqrt{MSE\left(\frac{1}{n}+\frac{(\bar{x}-x_0)^2}{S_{xx}}\right)}$$
@@ -506,7 +402,6 @@ $$\hat{Y}_0 \pm t_{1-\alpha/2,\,n-2}\cdot se(\hat{Y}_0),\qquad se(\hat{Y}_0)=\sq
 $$\hat{Y}_0 \pm t_{1-\alpha/2,\,n-2}\cdot se(e_0),\qquad se(e_0)=\sqrt{MSE\left(1+\frac{1}{n}+\frac{(\bar{x}-x_0)^2}{S_{xx}}\right)}$$
 
 ### C. Meervoudige lineaire regressie
-<!-- tool: regressie -->
 $$Y_i = \beta_0 + \beta_1 x_{1i} + \beta_2 x_{2i} + \dots + \beta_k x_{ki} + \varepsilon_i \qquad (k+2 \text{ vrije parameters: } k{+}1 \text{ coëff.} + \sigma)$$
 - $R^2=\dfrac{SS_R}{SS_T}$ stijgt altijd bij toevoegen van een variabele -> gebruik **aangepaste $R^2$** om modellen te vergelijken:
 $$R^2_{adj}=1-(1-R^2)\,\frac{n-1}{n-k-1}\qquad(k=\text{aantal x-variabelen})$$
@@ -514,11 +409,9 @@ $$R^2_{adj}=1-(1-R^2)\,\frac{n-1}{n-k-1}\qquad(k=\text{aantal x-variabelen})$$
 - $\hat{\sigma}=\sqrt{MSE}=\sqrt{\dfrac{SS_E}{n-k-1}}$ (standaardfout van de voorspelling); F-toets model: $F=\dfrac{MSR}{MSE}\sim F_{k,\,n-k-1}$.
 
 ### D. Model-adequaatheid
-<!-- tool: regressie -->
 Residuen $e_i=Y_i-\hat{Y}_i$ als proxy voor de fouten $\varepsilon_i$. Visueel checken: constante variantie? normaal verdeeld? Plots: residuen vs. gefitte/x-waarden (geen patroon), normal-probability-plot (op diagonaal), scale-location (meeste binnen $-2..2$). Remedies: andere/extra x-variabelen, responstransformatie ($\sqrt{y}, \ln y, 1/y$). Outliers aan de rand van het x-bereik = **influential observations** (beïnvloeden de helling sterk).
 
 ### E. One-way ANOVA (één factor $A$, $a$ levels, $n$ replicaten)
-<!-- tool: anova -->
 - **Means-model:** $Y_{ij}=\mu_i+\varepsilon_{ij}$ ; **effects-model:** $Y_{ij}=\mu+\tau_i+\varepsilon_{ij}$ met $\sum_{i}\tau_i=0$, $\varepsilon_{ij}\sim N(0,\sigma^2)$.
 - Groepsgemiddelde $\bar{Y}_{i\cdot}=\frac{1}{n}\sum_j Y_{ij}$ ; grootgemiddelde $\bar{Y}_{\cdot\cdot}=\frac{1}{an}\sum_i\sum_j Y_{ij}$.
 
@@ -553,13 +446,12 @@ Verwerp $H_0$ ($\mu_1=\dots=\mu_a$) als $F>F_{1-\alpha,\,a-1,\,a(n-1)}$. Rekenvo
 - **Confounding:** als het effect van factor $A$ niet te onderscheiden is van $B$ (100% gecorreleerd) -> ontwerp deugt niet. Volledig-factorieel ontwerp vermijdt confounding en maakt interacties schatbaar.
 
 ### G. $2^k$ factorieel ontwerp ($k$ factoren, 2 levels, $n$ replicaten)
-<!-- tool: doe -->
 - **Codering** van levels naar $-1/+1$ (translatie + herschaling; interactiekolommen = product van factorkolommen).
 - **Effect** van factor/interactie $Q$:
 $$[Q]=\bar{y}_{Q+}-\bar{y}_{Q-}=(\text{gem. respons bij }+1)-(\text{gem. respons bij }-1)$$
 - **Contrasten** (voorbeeld $2^2$, met lottotalen $(1),a,b,ab$):
 $$C_A=a+ab-b-(1),\quad C_B=ab+b-a-(1),\quad C_{AB}=ab+(1)-a-b$$
-- **Algemeen $2^k$:** $\ \text{Effect}=\dfrac{\text{Contrast}}{n\,2^{k-1}}$ en $\ SS=\dfrac{(\text{Contrast})^2}{n\,2^{k}}$ (voor $2^2$: $SS=\dfrac{C^2}{4n}$).
+- **Algemeen $2^k$:** $\ \text{Effect}=\dfrac{\text{Contrast}}{n\,2^{k-1}}\ $ en $\ SS=\dfrac{(\text{Contrast})^2}{n\,2^{k}}$ (voor $2^2$: $SS=\dfrac{C^2}{4n}$).
 - **Significantie van een effect:** standaardfout $\ se(\text{effect})=\sqrt{\dfrac{\hat{\sigma}^2}{n\,2^{k-2}}}$; benaderend 95%-CI $\ \text{effect}\pm 2\cdot se(\text{effect})$. Bevat de CI nul -> factor niet significant ($\alpha=0{,}05$).
 - **Single replicate / sparsity-of-effects:** bij grote $k$ slechts 1 replicaat; pool hogere-orde interacties in de foutterm (een volledig model is "saturated": geen df over voor inferentie).
 - **Fractioneel ontwerp $2^{k-p}$:** halve fractie = $2^{k-1}$ runs, gedefinieerd door een generator/relatie (bv. $I=ABC$); leidt tot aliasing van effecten.
@@ -587,7 +479,6 @@ $$C_A=a+ab-b-(1),\quad C_B=ab+b-a-(1),\quad C_{AB}=ab+(1)-a-b$$
 *Bestanden: deck `Capabiliteit - SPC` (Grymonprez), `Control charts - constants`, SPC-tabellen, oefeningen. Twee blokken: (1) capabiliteit, (2) regelkaarten.*
 
 ### A. Normaalverdeling & sigma-niveau (recap)
-<!-- tool: capabiliteit -->
 $$Z=\frac{X-\mu}{\sigma}\sim N(0,1);\qquad P[\mu\pm1\sigma]\approx68\%,\ P[\mu\pm2\sigma]\approx95\%,\ P[\mu\pm3\sigma]\approx99{,}73\%$$
 Standaardfout van het gemiddelde (CLT): $\ \sigma_{\bar{x}}=\dfrac{\sigma}{\sqrt{n}}$ (spreiding van steekproefgemiddelden < spreiding van individuele punten).
 
@@ -595,25 +486,23 @@ Standaardfout van het gemiddelde (CLT): $\ \sigma_{\bar{x}}=\dfrac{\sigma}{\sqrt
 
 | Sigma-niveau | DPMO | % Yield |
 |:-:|:-:|:-:|
-| 2 | 308.538 | 69,15% |
+| 2 | 308.537 | 69,15% |
 | 3 | 66.807 | 93,32% |
 | 4 | 6.210 | 99,38% |
 | 5 | 233 | 99,98% |
 | 6 | 3,4 | 99,99966% |
 
 ### B. Discrete capabiliteit (telgegevens)
-<!-- tool: capabiliteit -->
 Met $D$ = aantal defecten, $N$ = aantal eenheden (units), $O$ = opportuniteiten per eenheid:
 $$DPU=\frac{D}{N},\quad DPO=\frac{D}{N\cdot O},\quad DPMO=10^6\cdot\frac{D}{N\cdot O},\quad Yield=1-DPO$$
 PPM = parts per million; omrekenen van % naar PPM: $\times 10.000$.
 
 ### C. Proces-capabiliteit (continu): $C_p$, $C_{pk}$, $P_p$, $P_{pk}$
-<!-- tool: capabiliteit -->
 
 $$\boxed{C_p=\frac{USL-LSL}{6\sigma}}\qquad \boxed{C_{pk}=\min\!\left(\frac{USL-\mu}{3\sigma},\ \frac{\mu-LSL}{3\sigma}\right)}$$
 - $C_p$ = breedte distributie vs. tolerantie (de *potentiële* capability; houdt geen rekening met ligging). $C_{pk}$ houdt ook rekening met de **ligging** van $\mu$ (de "k" = Japans voor off-center). Steeds $C_{pk}\le C_p$; gelijk enkel als perfect gecentreerd.
 - **Korte termijn** $C_p/C_{pk}$ (within-variation, "white noise") vs. **lange termijn** $P_p/P_{pk}$ (overall variation, "black noise" - wat de klant ervaart): zelfde formules maar met $\sigma_{LT}$.
-- $\sigma$ schatten uit de regelkaart: $\ \hat{\sigma}=\dfrac{\bar{R}}{d_2}$ (of $\ \hat{\sigma}=\dfrac{\bar{s}}{c_4}$).
+- $\sigma$ schatten uit de regelkaart: $\ \hat{\sigma}=\dfrac{\bar{R}}{d_2}\ $ (of $\ \hat{\sigma}=\dfrac{\bar{s}}{c_4}$).
 
 | $C_p$ | Oordeel | Uitval (gecentreerd) |
 |:-:|---|---|
@@ -632,15 +521,12 @@ $$\boxed{C_p=\frac{USL-LSL}{6\sigma}}\qquad \boxed{C_{pk}=\min\!\left(\frac{USL-
 - $C_{pk}=\min\!\left(\dfrac{110-104}{3\cdot4},\dfrac{104-90}{3\cdot4}\right)=\min(0{,}5;\,1{,}17)=0{,}5$.
 - Centreren ($\mu=100$) zou $C_{pk}$ optrekken tot $C_p=0{,}83$, maar het proces blijft niet capabel: $3\sigma=12>10$, dus zelfs gecentreerd valt output buiten de specs - de **spreiding** moet omlaag.
 
-*Capabiliteitsoefening "as" (slide 42).* De slide geeft $C_p=1{,}17$, $C_{pk}=0{,}67$ en "uitval 5% of 2,5% eenzijdig"; dat laatste is fout. De juiste uitval is $P(Z<-2)=$ **2,28%** (bovenzijde $z=+5$ verwaarloosbaar). Gecentreerd ($\mu=72{,}1$): $z=\pm3{,}5$ -> 2 x 233 ppm = **465 ppm** (de slide zegt 400 ppm). Strikt genomen is $\hat\sigma=\bar{s}/c_4=0{,}2/0{,}940=0{,}213$ (dan $C_p=1{,}10$, $C_{pk}=0{,}63$); de slide gebruikt $\bar{s}$ rechtstreeks. Op het examen: vermeld welke $\sigma$ je gebruikt.
-
 ### D. Stabiliteit: common vs. special causes
 - **Common cause** (within, korte termijn): toevallige, voorspelbare variatie - proces is stabiel; verantwoordelijkheid management (proces-engineer).
 - **Special cause:** (a) *systematische* oorzaak = geleidelijk verloop (bv. slijtage); (b) *aanwijsbare* oorzaak = abrupte wijziging (nieuwe machine, ander materiaal). Verantwoordelijkheid operator.
 - **Stabiel proces** = verdeling van proceskenmerken constant over de tijd ($N(\mu_0,\sigma_0)$ met $\mu_0,\sigma_0$ constant). Stabiel $\ne$ capabel: een stabiel proces voldoet niet noodzakelijk aan de klantspecs.
 
 ### E. SPC - regelkaarten
-<!-- tool: spc -->
 - **Regelgrenzen (UCL/LCL)** = $\pm3\sigma$ van het gemiddelde = *voice of the process*; **tolerantiegrenzen (USL/LSL)** = *voice of the customer*. Niet verwarren - regelgrenzen staan op de controlekaart, specs op het histogram.
 
 **$\bar{X}$-kaart** (bewaakt het gemiddelde $\mu_0$):
@@ -666,21 +552,6 @@ $$CL=\bar{\bar{X}},\quad UCL/LCL=\bar{\bar{X}}\pm3\,\sigma_{\bar{x}}=\bar{\bar{X
 
 Verbanden: $A_2=\dfrac{3}{d_2\sqrt{n}}$, $A_3=\dfrac{3}{c_4\sqrt{n}}$. Voor $n>10$ is de $s$-kaart efficiënter; voor kleine $n$ of manueel werk is $R$ eenvoudiger.
 
-**Andere subgroepgrootte, detectiekans en ARL (oefening 4).**
-1. Schat $\hat\sigma=\bar{R}/d_2(n_{oud})$ (of $\bar{s}/c_4$).
-2. Nieuwe grenzen voor $n'$: $\ \bar{\bar{X}}\pm3\hat\sigma/\sqrt{n'}$ (= $\bar{\bar{X}}\pm A_2(n')\bar{R}'$ met $\bar{R}'=d_2(n')\hat\sigma$); R-kaart: $CL=d_2(n')\hat\sigma$, UCL $=D_4(n')\bar{R}'$, LCL $=D_3(n')\bar{R}'$.
-3. Kans dat een verschuiving van $k\sigma$ **niet** gedetecteerd wordt op de eerstvolgende subgroep:
-$$\beta=\Phi(3-k\sqrt{n})-\Phi(-3-k\sqrt{n}),\qquad P(\text{detectie})=1-\beta,\qquad ARL_1=\frac{1}{1-\beta}$$
-
-| $n$ | detectiekans 2σ-shift | ARL |
-|---|---|---|
-| 3 | 67,9% | 1,47 |
-| 5 | 93,0% | 1,08 |
-| 8 | 99,6% | 1,004 |
-
-Conclusie oefening 4c: kleinere subgroep = bredere grenzen voor $\bar{X}$ = tragere detectie; grotere subgroep detecteert sneller maar kost meer metingen. In-control: $\alpha=0{,}27\%$ per punt, $ARL_0=370$.
-*Variabele subgroepgrootte ($\bar{X}$-s):* grenzen per subgroep: $\bar{\bar{X}}\pm A_3(n_i)\bar{s}$, $B_3(n_i)\bar{s}$, $B_4(n_i)\bar{s}$, met $\bar{s}$ gewogen.
-
 **Out-of-control detectie - Western Electric-regels** (1 of meer treedt op = special cause):
 1. 1 punt buiten de $3\sigma$-grenzen (zone A);
 2. 2 van 3 opeenvolgende punten buiten $2\sigma$ aan dezelfde kant;
@@ -689,12 +560,6 @@ Conclusie oefening 4c: kleinere subgroep = bredere grenzen voor $\bar{X}$ = trag
 
 Twee fouten bij interpretatie: **tampering** (reageren op common cause -> vergroot variatie) en **underreacting** (special cause missen). Belangrijk: *proces onder controle $\ne$ proces voldoet aan klanteisen.*
 
-*SPC-oefening 2 (Excel-bestand).* In het oefenblad staan UCL 16,9 / LCL 15,7: dat zijn **geen** $\bar{X}$-kaartgrenzen. Correct ($n=5$, 20 subgroepen):
-- $\bar{\bar{X}}=16{,}266$, $\bar{R}=0{,}480$ -> $\bar{X}$-kaart: UCL $=16{,}543$, LCL $=15{,}989$; R-kaart: UCL $=D_4\bar{R}=1{,}015$, LCL $=0$.
-- Alternatief $\bar{X}$-s: $\bar{s}=0{,}1958$ -> UCL/LCL $=16{,}545/15{,}987$; s-kaart UCL $=0{,}409$.
-- Geen enkel punt buiten de grenzen -> proces statistisch onder controle.
-- Capabiliteit (specs $16{,}2\pm0{,}5$): $\hat\sigma=\bar{R}/d_2=0{,}206$ -> $C_p=0{,}81$, $C_{pk}=0{,}70$ (bovenzijde beperkend), verwachte uitval $\approx2{,}1\%$. Onder controle maar **niet capabel**.
-
 ### F. Relevante Excel-functies
 *(Nederlandse Excel; `WAAR`/`ONWAAR`.)*
 
@@ -702,7 +567,7 @@ Twee fouten bij interpretatie: **tampering** (reageren op common cause -> vergro
 |---|---|
 | % uitval / yield onder spec | `=NORM.DIST(LSL;μ;σ;WAAR)` (linkerstaart); rechterstaart $=1-$`NORM.DIST(USL;μ;σ;WAAR)` |
 | Standaardnormaal (Z naar p) | `=NORM.S.DIST(z;WAAR)` |
-| Sigma-niveau uit yield (inverse) | `=NORM.S.INV(yield)` (= Z lange termijn); met 1,5σ-shift: `=NORM.S.INV(yield)+1,5` |
+| Sigma-niveau uit yield (inverse) | `=NORM.S.INV(yield)` |
 | Gemiddelde / std subgroep | `=AVERAGE(...)`, `=STDEV.S(...)` |
 
 > Rekenwijze uitval: standaardiseer de speclimiet naar $Z=\frac{\text{spec}-\mu}{\sigma}$ en lees de staartkans af (let op één- vs. tweezijdig: tel beide staarten op bij een tweezijdige specificatie).
@@ -737,22 +602,19 @@ Een goed meetsysteem heeft: **adequate discriminatie** (Rule of Tens: discrimina
 Geheugensteun: *stabiliteit : bias = consistency : repeatability* (over tijd), en *lineariteit : bias = uniformity : repeatability* (over bereik).
 
 ### C. Gage R&R & meetsysteem capability/performance
-<!-- tool: msa -->
 $$\sigma_{GRR}^2=\sigma_{rep}^2+\sigma_{repro}^2 \quad\Longleftrightarrow\quad GRR=\sqrt{EV^2+AV^2}$$
 $$\sigma_{cap}^2=\sigma_{lin}^2+\sigma_{GRR}^2 \qquad \sigma_{perf}^2=\sigma_{cap}^2+\sigma_{stab}^2+\sigma_{consist}^2$$
 *Capability* = korte-termijn (lineariteit + GRR); *performance* = voegt stabiliteit + consistency toe (lange termijn).
 
 ### D. Waargenomen vs. werkelijke procesvariatie + %GRR
-<!-- tool: msa -->
 De waargenomen variatie bevat de meetfout. Met $o$ = observed, $a$ = actual, $m$ = measurement:
 $$\sigma_o^2=\sigma_a^2+\sigma_m^2 \quad\Longleftrightarrow\quad \frac{1}{C_{p,o}^2}=\frac{1}{C_{p,a}^2}+\frac{1}{C_{p,m}^2}$$
 $$\%GRR_{\text{proces}}=\frac{6\sigma_m}{6\sigma_o}=\frac{\sigma_m}{\sigma_o}\ \ (\times100\%)\qquad \%GRR_{\text{tol}}=\frac{6\sigma_m}{TOL}\ \ (\times100\%)$$
 Koppeling actual <-> observed Cp (tolerantie-gebaseerde %GRR):
 $$C_{p,o}=C_{p,a}\sqrt{1-(\%GRR\cdot C_{p,o})^2}\quad\Longleftrightarrow\quad \frac{1}{C_{p,o}^2}=\frac{1}{C_{p,a}^2}+\%GRR^2$$
-*Voorbeeld:* werkelijke $C_p=2$. Buy-off-gauge met $\%GRR=10\%$ -> waargenomen $C_p=1{,}96$; productiegauge met $\%GRR=30\%$ -> $C_p=1{,}71$ (nog aanvaardbaar); ongekwalificeerde gauge $\%GRR=60\%$ -> $1/C_{p,o}^2=0{,}25+0{,}36=0{,}61\Rightarrow C_{p,o}=1{,}28$ (onaanvaardbaar meetsysteem). Het verschil komt volledig van het meetsysteem, niet van procesverslechtering. Historisch werd voor de "volle spreiding" $5{,}15\sigma$ (99%) gebruikt; nu $6\sigma$ (99,73%).
+*Voorbeeld:* werkelijke $C_p=2$. Buy-off-gauge met $\%GRR=10\%$ -> waargenomen $C_p=1{,}96$; productiegauge met $\%GRR=30\%$ -> $C_p=1{,}71$ (nog aanvaardbaar); ongekwalificeerde gauge $\%GRR=60\%$ -> $C_p\approx1{,}2$ (onaanvaardbaar). Het verschil komt volledig van het meetsysteem, niet van procesverslechtering. Historisch werd voor de "volle spreiding" $5{,}15\sigma$ (99%) gebruikt; nu $6\sigma$ (99,73%).
 
 ### E. Average & range method (de GRR-studie)
-<!-- tool: msa -->
 $k$ operatoren meten elk $n$ stukken $r$ keer. Afgeleide grootheden:
 $$EV=\bar{R}/d_2=\bar{R}\cdot K_1,\quad K_1=1/d_2 \ \text{(subgroepgrootte} = r)$$
 $$AV=\sqrt{(\bar{X}_{DIFF}\cdot K_2)^2-\tfrac{EV^2}{nr}},\quad K_2=1/d_2^*\ \text{(1 subgroep van grootte } k)$$
@@ -763,25 +625,14 @@ $$\text{ndc (aantal onderscheidbare categorieën)}=1{,}41\cdot\frac{PV}{GRR}\ \t
 
 $d_2$-waarden (voor EV, subgroep = $r$): $\ r{=}2\to1{,}128$; $r{=}3\to1{,}693$; $r{=}4\to2{,}059$; $r{=}5\to2{,}326$. (De $d_2^*$ voor één subgroep wijken licht af; zie de MSA-tabellen.)
 
-**MSA-constanten Average & Range (AIAG).**
-
-| $K_1$ (trials) | 2: 0,8862 | 3: 0,5908 |
-|---|---|---|
-| $K_2$ (operatoren) | 2: 0,7071 | 3: 0,5231 |
-
-$K_3$ (aantal stukken): 2: 0,7071 · 3: 0,5231 · 4: 0,4467 · 5: 0,4030 · 6: 0,3742 · 7: 0,3534 · 8: 0,3375 · 9: 0,3249 · 10: 0,3146.
-$\%EV=100\,EV/TV$, $\%AV=100\,AV/TV$, $\%PV=100\,PV/TV$; tolerantie-basis: $\%GRR_{tol}=100\cdot6\,GRR/TOL$. (Controleer tegen `tabel MSA.pdf`.)
-
 **Aanvaardingscriteria $\%GRR$:** $\le10\%$ = aanvaardbaar · $10$-$30\%$ = mogelijk aanvaardbaar (afh. van belang/kost) · $>30\%$ = niet aanvaardbaar.
 
 ### F. Bias, stabiliteit & lineariteit bepalen
-<!-- tool: msa -->
 - **Bias:** $\text{bias}=\bar{X}-\text{ref.waarde}$; repeatability $\sigma_r=\bar{R}/d_2$. De statistiek $t=\dfrac{\text{bias}}{\sigma_r\cdot d_2^*/(d_2\sqrt{gm})}$ volgt een $t$-verdeling -> CI voor de ware bias; **significant** als $0$ er niet in ligt.
 - **Stabiliteit:** meet periodiek een referentiestandaard, plot $\bar{X}/R$- of $\bar{X}/s$-kaart over tijd; stabiel = statistische controle.
 - **Lineariteit:** meet $g\ge5$ stukken over het bereik, elk $m\ge10$ keer; bereken $\text{bias}_{i,j}=m_{i,j}-\text{ref}_i$, regresseer bias op ref.waarde, en toets $H_0:\text{helling}=0$. De gauge is lineair als de lijn bias$=0$ binnen de betrouwbaarheidsbanden ligt.
 
 ### G. Meetonzekerheid
-<!-- tool: msa -->
 $$\text{Ref.waarde}=\text{meting}\pm U,\qquad U=k\cdot u_c$$
 met $U$ = uitgebreide onzekerheid, $k$ = dekkingsfactor ($k=2$ voor 95% vertrouwen), $u_c$ = gecombineerde standaardonzekerheid $=\sigma_{\text{meetfout}}$. Een meetonzekerheid is dus een betrouwbaarheidsinterval voor de referentiewaarde.
 - **Type A** (via statistiek) en **Type B** (via kalibratiecertificaten, specs, gezond verstand).
@@ -794,7 +645,6 @@ met $U$ = uitgebreide onzekerheid, $k$ = dekkingsfactor ($k=2$ voor 95% vertrouw
 - **Inadequate discriminatie** doet een $\bar{X}/R$-kaart vals "out-of-control" lijken; vuistregel (subgroep $=2$): $\le3$ mogelijke bereik-waarden binnen de regelgrenzen = te grove meeteenheid.
 
 ### I. ANOVA-methode voor GRR
-<!-- tool: msa -->
 Twee-weg ANOVA (operator × stuk) ontbindt $SS_{\text{totaal}}$; de **error-MS** $=EV^2$ (repeatability), de factor-MS leveren AV/PV. Voordelen boven average&range: kan **interacties** (operator × stuk) schatten, splitst reproducibility verder op (tussen operatoren/instrumenten/...), en geeft nauwkeuriger schattingen.
 
 ---
@@ -805,13 +655,11 @@ Twee-weg ANOVA (operator × stuk) ontbindt $SS_{\text{totaal}}$; de **error-MS**
 Simulatie = "de kunst en wetenschap een proces of systeem na te bootsen om te experimenteren en evalueren." Een **systeem** evolueert in tijd, beïnvloed door input -> meetbare output. Een **model** is een abstractie (wiskundige beschrijving, vaak stochastisch). Kies een model naar zijn doel - de *holy trinity* **systeem - doel - model**. *"All models are wrong, but some are useful"* (Box). Twee manieren om een queue op te lossen: **wachtrijtheorie** (analytisch, exact) of **Monte Carlo / DES** (simulatie, beperkte precisie).
 
 ### B. M/M/1/K-wachtrij (analytisch)
-<!-- tool: wachtrij -->
 $M/M/1/K$: exponentiële tussenaankomsttijden (gem. $1/\lambda$, Poisson-aankomsten), exponentiële bedieningstijd (gem. $1/\mu$), 1 server, FIFO, capaciteit $K$. Met bezettingsgraad $\rho=\lambda/\mu<1$:
 $$\pi_j=\Pr[L=j]=\frac{\rho^j(1-\rho)}{1-\rho^{K+1}},\quad j=0,\dots,K$$
 $$E[L]=\sum_{j=0}^{K} j\,\pi_j,\qquad E[W]=\frac{E[L]}{\lambda(1-\pi_K)}\ \text{(Little, gecorrigeerd voor verlies)}$$
 
 ### C. Het Poisson-proces
-<!-- tool: wachtrij -->
 Een puntproces met intensiteit $\lambda$ waarbij de tussentijden iid $T\sim\text{Expon}(\lambda)$ zijn.
 - **Onafhankelijke increments:** $X(t)-X(s)\sim\text{Poiss}(\lambda(t-s))$.
 - **Superpositie:** twee onafhankelijke Poisson-processen $\lambda_1,\lambda_2$ -> samen Poisson met $\lambda_1+\lambda_2$.
@@ -823,7 +671,6 @@ $$\text{bias}=E[\hat\theta]-\theta,\qquad \text{MSE}(\hat\theta)=\text{bias}^2+\
 **Accuracy** = tegengestelde van bias (hoe dicht bij de waarde); **precision** = $1/\text{variantie}$ (efficiëntie). Een schatter is **consistent** als $\hat\theta_n\to\theta$ in kans voor $n\to\infty$. Onthoud: zuiverheid (bias) en consistentie zijn los van elkaar - $\bar{X}$ is beide; $\frac{X_1+X_2+X_3}{3}$ is zuiver maar niet consistent.
 
 ### E. Monte Carlo estimatie (MCE)
-<!-- tool: wachtrij -->
 Elke integraal is een verwachtingswaarde: $\theta=\int_\Omega h(x)f(x)\,dx=E[h(X)]$. De **MC-schatter**:
 $$\hat\theta_n=\frac{1}{n}\sum_{i=1}^{n}h(X_i)\quad\text{(zuiver én consistent)}$$
 $$\text{Var}[\hat\theta_n]=\frac{\text{Var}[h(X)]}{n},\qquad \text{Dev}[\hat\theta_n]=\frac{\text{Dev}[h(X)]}{\sqrt{n}}$$
@@ -836,7 +683,7 @@ $$\hat\theta_n+z_{\alpha/2}\frac{\text{Dev}[h(X)]}{\sqrt{n}}<\theta<\hat\theta_n
 - Discrete-tijd-queue (capaciteit $C$, aankomsten $A_n$, bediening $B_n\sim\text{Bern}(q)$):
 $$Q_{n+1}=\min\big(C,\ \max(Q_n-B_n,0)+A_n\big)$$
 $$\hat{J}=\frac{1}{N}\sum_{n=1}^{N}Q_n=\frac{1}{N}\sum_{j=0}^{C}h_j\cdot j\quad(\text{schatter voor }E[Q],\ h_j=\text{aantal slots met }Q=j)$$
-- **Warm-up:** gooi het begin van het traject weg (niet representatief voor steady state). Voor $C=\infty$ bestaat een evenwicht **enkel** als $\lambda<\mu$; bij $\lambda\ge\mu$ bestaat $E[Q]$ niet.
+- **Warm-up:** gooi het begin van het traject weg (niet representatief voor steady state). Voor $C=\infty$ bestaat een evenwicht **enkel** als $\lambda<\mu$; bij $\lambda\ge1$ bestaat $E[Q]$ niet.
 
 ### G. Discrete-Event Simulation (DES)
 Centraal idee: haal alle tijd-informatie uit de toestand en stop ze in een **agenda**. De toestand = **globale variabelen** (queue-grootte, status busy/idle, ...) + **agenda** (lijst van toekomstige events: tijdstip + type). Het programma springt telkens naar het event met de kleinste tijd-tag en roept een **event-handler** aan (update toestand, update statistieken, genereer nieuwe events); de **Clock** bevat de tijd van het laatst behandelde event.
@@ -853,51 +700,42 @@ Drie event-types (Arrival, Expiration, Completion); een expiratie-event wordt ge
 *Op basis van het examen van 9/10/2025 + worked solutions. Per vraag de kernformule(s), het antwoord en de relevante les.*
 
 ### Vraag 1 (2,5) - Interpretatie van statistische resultaten
-<!-- tool: hypothese -->
 - **(a)** Statistische significantie $\ne$ praktische/economische significantie: een p-waarde zegt niets over effectgrootte of kost (bij grote $n$ wordt zelfs een micro-effect "significant"). Beslissing vergt effectgrootte + kosten-batenanalyse. **Niet correct.**
 - **(b)** Een 95%-CI $[1{,}4\%;2{,}2\%]$ ligt volledig boven 1% -> proces kan geen $<1\%$ halen. **Correct.**
 - **(c)** CI-halfbreedte $=z\cdot\dfrac{\sigma}{\sqrt{n}}\to 0$ als $n\to\infty$; geen theoretische ondergrens (in theorie elke nauwkeurigheid). **Correct.**
 - **(d)** Cluster sampling is een *selectie*-methode; non-response treedt *na* selectie op. Geen enkel design immuniseert daartegen. **Niet correct.**
-- **(e)** Tweezijdige toets op niveau $\alpha$ $\Leftrightarrow$ $(1-\alpha)$-CI: $1\%\leftrightarrow99\%$. **Correct** (in de standaard, tweezijdige lezing; nuance: een eenzijdige toets op 1% hoort bij een eenzijdige 99%-grens).
+- **(e)** Tweezijdige toets op niveau $\alpha$ $\Leftrightarrow$ $(1-\alpha)$-CI: $1\%\leftrightarrow99\%$. **Correct.**
 
 ### Vraag 2 (3) - F-toets voor twee varianties
-<!-- tool: hypothese -->
 "M1 nauwkeuriger dan M2" $\Leftrightarrow \sigma_1^2<\sigma_2^2 \Leftrightarrow \sigma_2^2/\sigma_1^2>1$. Eénzijdige 95%-ondergrens:
 $$\frac{\sigma_2^2}{\sigma_1^2}\ \ge\ \frac{s_2^2}{s_1^2}\cdot F_{0{,}05}(n_1{-}1;n_2{-}1),\qquad F_{0{,}05}(9;14)=\texttt{=F.INV(0,05;9;14)}=0{,}3305$$
-Ligt de ondergrens $L>1$ -> vermoeden bevestigd (M1 nauwkeuriger). *Met de voorbeeldvarianties* $s_1^2=0{,}004$, $s_2^2=0{,}015$: $L=\dfrac{0{,}015}{0{,}004}\cdot0{,}3305=3{,}75\cdot0{,}3305=1{,}24>1$ -> bevestigd (vervang door de echte waarden uit het Excel-bestand). *(Les 2.C/D.)*
+Ligt de ondergrens $L>1$ -> vermoeden bevestigd (M1 nauwkeuriger). *(Les 2.C/D.)*
 
 ### Vraag 3 (2) - Proces-capabiliteit
-<!-- tool: capabiliteit -->
 $$C_p=\frac{USL-LSL}{6\sigma}=\frac{60}{60}=1{,}0,\qquad C_{pk}=\min\!\Big(\frac{20}{30},\frac{40}{30}\Big)=0{,}67$$
-Proces is 10 mm te hoog gecentreerd ($\mu=1440$ vs. centrum $1430$). **% uitval:** $Z_U=\frac{1460-1440}{10}=+2\to2{,}28\%$; $Z_L=-4\to\approx0$; totaal $\approx\mathbf{2{,}28\%}$ (`=1-NORM.DIST(1460;1440;10;WAAR)`). **Verbeteren:** (1) hercentreren ($\mu\to1430$), (2) $\sigma$ verlagen. **6$\sigma$-criterium:** max $\mathbf{3{,}4}$ ppm (DPMO) $=0{,}00034\%$ (lange termijn, met 1,5$\sigma$-drift; slide "Technical definition": $C_p=2$, $C_{pk}=1{,}5$). Een perfect gecentreerd 6$\sigma$-proces geeft op korte termijn ~0,002 ppm (2 per miljard; slide "Cp = 2: 2 defects per billion, short term"); vermeld dit in één zin, zo dek je beide lezingen af. *(Les 4 + Les 2 DPMO.)*
+Proces is 10 mm te hoog gecentreerd ($\mu=1440$ vs. centrum $1430$). **% uitval:** $Z_U=\frac{1460-1440}{10}=+2\to2{,}28\%$; $Z_L=-4\to\approx0$; totaal $\approx\mathbf{2{,}28\%}$ (`=1-NORM.DIST(1460;1440;10;WAAR)`). **Verbeteren:** (1) hercentreren ($\mu\to1430$), (2) $\sigma$ verlagen. **6$\sigma$-criterium:** max $\mathbf{3{,}4}$ DPMO $=0{,}00034\%$ (met 1,5$\sigma$-drift). *(Les 4 + Les 2 DPMO.)*
 
 ### Vraag 4 (1,5) - Regelkaarten
-<!-- tool: spc -->
 - **Normaliteit/gemiddelden:** door de **CLT** zijn subgroepgemiddelden $\bar{x}$ bij benadering normaal, ook als de individuele metingen dat niet zijn -> grenzen op $\mu\pm3\sigma$ (99,73%).
 - **Detecteerbaar:** **bijzondere (aanwijsbare) oorzaken** (signaal: punt buiten grenzen, run, trend); common cause = ruis binnen de grenzen (niet op reageren = tampering).
 - **Range als beste schatter:** bij **kleine subgroepen** ($n\lesssim8$-$10$): de range is dan bijna even efficiënt als $s$ en simpeler; voor grotere subgroepen is de s-kaart beter. *(Les 4.)*
 
 ### Vraag 5 (4) - Confusion matrix & bias-variance
-<!-- tool: ml -->
 Accuracy $=\dfrac{TP+TN}{\text{totaal}}$. A: train 96,5% / test 61,7% (kloof ~35) -> **hoge variantie** (overfit). B: train 74% / test 61,7% -> **hoge bias** (underfit, fit zelfs training slecht). C: train 85% / test **69,2%** (beste test) -> **optimaal**. Hoge bias in een boom verhelpen: **complexer maken** (grotere diepte, minder pruning, lagere min. samples/split, meer features). *(ML-sectie in Les 1.)*
 
 ### Vraag 6 (4) - Verdelingen & variantie
-<!-- tool: verdelingen -->
 | Var | Familie | $E[\cdot]$ |
 |---|---|---|
 | B (bestellingen/week) | **Poisson** | $175{,}3$ |
-| T (tijd tussen bestellingen) | **exponentieel** | $1/175{,}3$ week $=0{,}0057$ week |
+| T (tijd tussen bestellingen) | **exponentieel** | $1/175{,}3$ |
 | C (capaciteit µF) | **normaal** | $820$ |
 | X (conform j/n) | **Bernoulli** | $0{,}95$ |
 | D (niet-conform per lot) | **binomiaal**$(100;0{,}05)$ | $np=5$ |
-
-*$E[T]$ in uren* hangt af van de definitie van een week: 168 h -> 0,96 h; 40 werkuren -> 0,23 h. Schrijf je aanname op.
 
 *iid onrealistisch:* B (weken niet identiek verdeeld: seizoen/promo), en D/C (stukken van dezelfde lijn correleren -> defecten clusteren bij procesdrift).
 **Var berekenen:** binomiaal $\text{Var}[D]=np(1-p)=100\cdot0{,}05\cdot0{,}95=\mathbf{4{,}75}$. Normaal $\text{Var}[C]=\sigma^2$ met $\sigma$ uit de staartkans: $P(C<720)=5\%\Rightarrow\frac{720-820}{\sigma}=-1{,}645\Rightarrow\sigma=60{,}8\Rightarrow \text{Var}[C]\approx\mathbf{3696}\ \mu F^2$. *(Les 1 verdelingen.)*
 
 ### Vraag 7 (3) - Regressielijn & causale interventie
-<!-- tool: ml -->
 $f(x)=E[S\mid T=x]$ = voorwaardelijk gemiddelde = regressielijn door het verticale centrum van de puntenwolk.
 - **do(T=730), S→T** (interventie op het *gevolg*): S behoudt zijn **marginale** verdeling -> bolletjes verticaal over de hele S-range.
 - **do(T=730), T→S** (interventie op de *oorzaak*): S volgt $P(S\mid T=730)$ -> kruisjes dicht rond $E[S\mid T=730]$.
@@ -983,37 +821,6 @@ Kern: conditioneren (zien) $\ne$ interveniëren (doen); dezelfde scatter past bi
 | $C_{pk}$ | `=MIN((USL-μ)/(3*σ);(μ-LSL)/(3*σ))` |
 | DPMO uit sigma-niveau $k$ (1,5$\sigma$-drift) | `=(1-NORM.S.DIST(k-1,5;WAAR))*1000000` |
 | Sigma-niveau (KT) uit DPMO | `=NORM.S.INV(1-DPMO/1000000)+1,5` |
-| Sigma-niveau uit yield | `=NORM.S.INV(yield)` (LT); met 1,5σ-shift `=NORM.S.INV(yield)+1,5` |
-
-### Aanvulling: exacte CI, acceptance sampling, toetsen
-| Doel | Functie |
-|---|---|
-| Exact CI fractie (Clopper-Pearson) | `=BETA.INV(α/2;d;n-d+1)` ; `=BETA.INV(1-α/2;d+1;n-d)` |
-| Kritieke c bij acceptance sampling | `=BINOM.INV(n;π;1-α)` (kleinste c met cumulatieve kans ≥ 1-α) |
-| t-toets twee reeksen | `=T.TEST(r1;r2;zijden;type)` type 1 = gepaard, 2 = gelijke varianties, 3 = ongelijke |
-| $\chi^2$-toets onafhankelijkheid | `=CHISQ.TEST(waargenomen;verwacht)` (geeft p-waarde) |
-| Exponentieel | `=EXPON.DIST(x;λ;WAAR)` |
-| Gamma / lnGamma | `=GAMMA.DIST(...)`, `=GAMMALN(x)` |
-| Wisselen staarten F | `=F.INV(α;a;b)` = `=1/F.INV.RT(α;b;a)` |
+| Sigma-niveau uit yield | `=NORM.S.INV(yield)` |
 
 *Tip: `F.INV`, `T.INV` en `CHISQ.INV` zijn links-staart inversen (kans onder de waarde); de `.RT`-varianten werken vanaf de rechterstaart. Let bij CI's en kritieke waarden steeds op één- vs. tweezijdig ($\alpha$ vs. $\alpha/2$).*
-
----
-
-<a name="strategie"></a>
-## Examenstrategie: vraagtype -> formule -> tool
-
-| Als de vraag gaat over... | Formule / methode | Toolkit-module |
-|---|---|---|
-| "Klopt deze uitspraak?" (significant, CI, steekproef) | significantie ≠ relevantie; CI <-> toets; $SE=\sigma/\sqrt n$; non-response na selectie | Formularium, M2 duality |
-| "M1 nauwkeuriger dan M2?" | F-verdeling, eenzijdige CI voor variantieverhouding | M2 F-toets / CI ratio |
-| "Is het gemiddelde verschoven?" | t-toets (1 steekproef), gepaard of 2 steekproeven | M2 |
-| "Is de spreiding toegenomen?" | $\chi^2$-toets / CI voor $\sigma$ | M2 |
-| Fractie defecten, lot aanvaarden | exact CI, OC-curve, $(n,c)$ | M2, M10 |
-| Capabiliteit, % uitval, verbeteren | $C_p$, $C_{pk}$, z-scores, DPMO | M3 |
-| Regelkaart opstellen / interpreteren | $\bar{X}$-R, $\bar{X}$-s, Western Electric | M6 |
-| Meetsysteem goed genoeg? | GRR, %GRR, ndc | M7 |
-| Welke factoren beïnvloeden y? | ANOVA, $2^k$ effecten, regressie | M7, M8, M9 |
-| Welke verdeling, E en Var, σ uit staartkans | familie-tabel, $z=(x-\mu)/\sigma$ | M1 |
-| Bias/variantie, confusion matrix | accuracy train vs test | M11 |
-| Regressielijn schetsen, interventie | $E[S\mid T]$, do-operator | M11 uitleg |

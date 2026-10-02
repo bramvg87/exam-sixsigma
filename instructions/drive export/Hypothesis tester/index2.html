@@ -1,0 +1,478 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hypothesetoetsen</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#1c2330; --muted:#5b6472;
+    --line:#e2e6ec; --accent:#2f6df6; --accent-soft:#e8f0ff;
+    --good:#0a8a4a; --bad:#c1341c; --warn:#b7791f;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#12151b; --card:#1a1f27; --ink:#e7ebf0; --muted:#9aa4b2;
+      --line:#2b323d; --accent:#5b8cff; --accent-soft:#20293a;
+      --good:#3fca80; --bad:#ff7a63; --warn:#e0b04a;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  .wrap{max-width:920px; margin:0 auto; padding:28px 20px 90px}
+  h1{font-size:24px; margin:0 0 4px}
+  .sub{color:var(--muted); margin:0 0 20px}
+  a.nav{color:var(--accent); text-decoration:none; font-size:13.5px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:18px;}
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px}
+  .tab{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:9px 14px; border-radius:9px; cursor:pointer; font-size:14px;}
+  .tab.active{background:var(--accent); border-color:var(--accent); color:#fff}
+  label.fld{display:block; font-size:13px; color:var(--muted); margin:0 0 3px}
+  select,input.txt{width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:14px; font-family:var(--mono)}
+  select{font-family:system-ui,sans-serif}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin:14px 0}
+  .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px}
+  button.act{border:0; background:var(--accent); color:#fff; padding:10px 18px; border-radius:9px; cursor:pointer; font-size:14px; font-weight:600;}
+  button.ghost{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:9px 14px; border-radius:9px; cursor:pointer; font-size:13.5px;}
+  button:active{transform:translateY(1px)}
+  .err{background:#fff0ee; border:1px solid #f3b4a8; color:#a02714; padding:12px 14px; border-radius:9px; margin-top:14px; font-size:14px}
+  @media (prefers-color-scheme: dark){ .err{background:#2a1714; border-color:#5a2a20; color:#ff9c88} }
+  h2{font-size:17px; margin:2px 0 10px}
+  h3{font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:20px 0 8px}
+  ol.steps{margin:6px 0; padding-left:22px}
+  ol.steps li{margin:7px 0}
+  .kv{font-family:var(--mono)}
+  .hyp{font-family:var(--mono); background:var(--accent-soft); border-radius:8px; padding:10px 12px; margin:6px 0; font-size:14px}
+  .calc{font-family:var(--mono); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin:8px 0; overflow-x:auto; white-space:nowrap; font-size:13.5px}
+  .banner{border-radius:10px; padding:14px 16px; margin:14px 0; font-weight:600; font-size:15px}
+  .banner.reject{background:rgba(193,52,28,.12); color:var(--bad); border:1px solid rgba(193,52,28,.35)}
+  .banner.keep{background:rgba(10,138,74,.12); color:var(--good); border:1px solid rgba(10,138,74,.32)}
+  .interp{border-left:3px solid var(--accent); padding:4px 0 4px 14px; margin:10px 0}
+  .muted{color:var(--muted)}
+  table.cmp{border-collapse:collapse; margin:6px 0; font-size:13.5px}
+  table.cmp td,table.cmp th{border:1px solid var(--line); padding:6px 10px; font-family:var(--mono); text-align:left}
+  table.cmp th{background:var(--accent-soft); font-family:system-ui,sans-serif}
+  details{margin:10px 0} summary{cursor:pointer; color:var(--accent); font-size:13.5px}
+  details .body{margin-top:8px; color:var(--ink)}
+  .num{border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:10px 0}
+  .num table{border-collapse:collapse; width:100%; font-size:13.5px}
+  .num td{padding:7px 11px; border-bottom:1px solid var(--line); font-family:var(--mono)}
+  .num td:first-child{color:var(--muted); font-family:system-ui,sans-serif; width:55%}
+  .num tr:last-child td{border-bottom:0}
+  sub,sup{font-size:.75em}
+  .pill{display:inline-block; background:var(--accent-soft); border-radius:6px; padding:1px 6px; font-family:var(--mono); font-size:12.5px}
+</style>
+
+<div class="wrap">
+  <h1>Hypothesetoetsen &amp; betrouwbaarheidsintervallen</h1>
+  <p class="sub">Vul de variabelen in, kies één- of tweezijdig, en de tool voert de toets uit met volledige uitleg. <a class="nav" href="index.html">← naar de ANOVA-tool</a></p>
+
+  <details>
+    <summary>Het beslissingskader (α, β, p-waarde) — klik om uit te klappen</summary>
+    <div class="body card" style="margin-top:8px">
+      <p><b>H<sub>0</sub></b> = de status quo (do-nothing), <b>H<sub>A</sub></b> = de special action. Je verwerpt H<sub>0</sub> alleen bij voldoende bewijs.</p>
+      <table class="cmp">
+        <tr><th></th><th>Werkelijkheid: H<sub>0</sub> waar</th><th>Werkelijkheid: H<sub>A</sub> waar</th></tr>
+        <tr><th>Beslissing: H<sub>0</sub></th><td>OK</td><td>Type-II fout — risico β</td></tr>
+        <tr><th>Beslissing: H<sub>A</sub></th><td>Type-I fout — risico α</td><td>OK</td></tr>
+      </table>
+      <ul>
+        <li><b>α</b> = significantie = P[H<sub>0</sub> ten onrechte verwerpen] = <i>producer's risk</i>. Leg α <b>vooraf</b> vast.</li>
+        <li><b>β</b> = P[H<sub>0</sub> ten onrechte aanvaarden] = <i>consumer's risk</i>.</li>
+        <li><b>p-waarde</b> = kans op een teststatistiek die mínstens even sterk afwijkt als de waarneming, gegeven dat H<sub>0</sub> waar is.</li>
+        <li><b>Beslisregel:</b> verwerp H<sub>0</sub> als p&nbsp;&lt;&nbsp;α. Dit is exact gelijkwaardig aan “teststatistiek voorbij de kritieke waarde”.</li>
+      </ul>
+    </div>
+  </details>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="test">Standaardmethode (teststatistiek)</button>
+    <button class="tab" data-tab="ci">Via betrouwbaarheidsinterval</button>
+  </div>
+
+  <div class="card">
+    <div class="grid" style="grid-template-columns:1fr">
+      <div>
+        <label class="fld" id="selLabel">Welke toets?</label>
+        <select id="testType"></select>
+      </div>
+    </div>
+    <div class="grid" id="dirWrap">
+      <div>
+        <label class="fld">Zijdigheid / alternatief H<sub>A</sub></label>
+        <select id="direction"></select>
+      </div>
+      <div>
+        <label class="fld">Significantie α (of 1−betrouwbaarheid)</label>
+        <input class="txt" id="alpha" value="0.05">
+      </div>
+    </div>
+    <div class="grid" id="fields"></div>
+    <div class="row">
+      <button class="act" id="run">Bereken</button>
+      <button class="ghost" id="loadEx">Voorbeeld laden</button>
+      <button class="ghost" id="clear">Wissen</button>
+    </div>
+    <div id="errbox"></div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ===================== kansverdelingen ===================== */
+function gammaln(xx){var cof=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];var x=xx,y=xx,tmp=x+5.5;tmp-=(x+0.5)*Math.log(tmp);var ser=1.000000000190015;for(var j=0;j<6;j++){y++;ser+=cof[j]/y;}return -tmp+Math.log(2.5066282746310005*ser/x);}
+function betacf(a,b,x){var MAXIT=300,EPS=3e-14,FPMIN=1e-300;var qab=a+b,qap=a+1,qam=a-1;var c=1,d=1-qab*x/qap;if(Math.abs(d)<FPMIN)d=FPMIN;d=1/d;var h=d;for(var m=1;m<=MAXIT;m++){var m2=2*m;var aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;h*=d*c;aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;var del=d*c;h*=del;if(Math.abs(del-1)<EPS)break;}return h;}
+function betai(a,b,x){if(x<=0)return 0;if(x>=1)return 1;var bt=Math.exp(gammaln(a+b)-gammaln(a)-gammaln(b)+a*Math.log(x)+b*Math.log(1-x));if(x<(a+1)/(a+b+2))return bt*betacf(a,b,x)/a;return 1-bt*betacf(b,a,1-x)/b;}
+function gser(a,x){var gln=gammaln(a);if(x<=0)return 0;var ap=a,sum=1/a,del=sum;for(var n=1;n<=400;n++){ap++;del*=x/ap;sum+=del;if(Math.abs(del)<Math.abs(sum)*3e-14)break;}return sum*Math.exp(-x+a*Math.log(x)-gln);}
+function gcf(a,x){var gln=gammaln(a),FPMIN=1e-300;var b=x+1-a,c=1/FPMIN,d=1/b,h=d;for(var i=1;i<=400;i++){var an=-i*(i-a);b+=2;d=an*d+b;if(Math.abs(d)<FPMIN)d=FPMIN;c=b+an/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;var del=d*c;h*=del;if(Math.abs(del-1)<3e-14)break;}return Math.exp(-x+a*Math.log(x)-gln)*h;}
+function gammp(a,x){if(x<0||a<=0)return NaN;if(x<a+1)return gser(a,x);return 1-gcf(a,x);}
+function erf(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);var y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+function normCDF(z){return 0.5*(1+erf(z/Math.SQRT2));}
+function normQ(p){var a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];var b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];var c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];var d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];var pl=0.02425,ph=1-pl,q,r;if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}else if(p<=ph){q=p-0.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}else{q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}}
+function tCDF(t,df){var x=df/(df+t*t);var ib=betai(df/2,0.5,x);return t>0?1-0.5*ib:0.5*ib;}
+function chiCDF(x,df){return gammp(df/2,x/2);}
+function fCDF(x,d1,d2){if(x<=0)return 0;return betai(d1/2,d2/2,d1*x/(d1*x+d2));}
+function invCDF(cdf,p,lo,hi,grow){if(grow){for(var g=0;g<200&&cdf(hi)<p;g++)hi*=2;}for(var i=0;i<200;i++){var m=(lo+hi)/2;if(cdf(m)<p)lo=m;else hi=m;}return (lo+hi)/2;}
+function normQuant(p){return normQ(p);}
+function tQ(p,df){return invCDF(function(x){return tCDF(x,df);},p,-1e5,1e5,false);}
+function chiQ(p,df){return invCDF(function(x){return chiCDF(x,df);},p,0,10,true);}
+function fQ(p,d1,d2){return invCDF(function(x){return fCDF(x,d1,d2);},p,0,10,true);}
+
+/* ===================== helpers ===================== */
+function toNum(s){if(s===undefined||s===null)return NaN;s=(''+s).trim();if(s==='')return NaN;if(s.indexOf(',')>=0&&s.indexOf('.')>=0)s=s.replace(/,/g,'');else s=s.replace(',','.');return parseFloat(s);}
+function g(x){if(x===undefined||x===null||isNaN(x))return '—';if(!isFinite(x))return x>0?'+∞':'−∞';var ax=Math.abs(x);var r=ax>=1000?x.toFixed(1):(ax>=1?x.toFixed(4):x.toPrecision(4));return (''+parseFloat(r));}
+function fmtP(p){if(!isFinite(p)||isNaN(p))return '—';if(p<1e-4)return p.toExponential(2);return p.toFixed(4);}
+function esc(s){return (''+s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+
+/* ===================== toets-definities ===================== */
+// symmetric = t / z (statistic centred on 0); asym = chi2 / F (positive)
+var TESTS={
+  tmean:{
+    label:'t-toets voor het gemiddelde  (σ onbekend)',
+    param:'μ', h0:'μ = μ₀',
+    fields:[['xbar','Steekproefgemiddelde x̄'],['mu0','Hypothesewaarde μ₀'],['s','Steekproef-std s'],['n','Steekproefgrootte n',true]],
+    ex:{xbar:9.928,mu0:10,s:0.109,n:20,alpha:0.02,dir:'left'},
+    compute:function(v){
+      var df=v.n-1, se=v.s/Math.sqrt(v.n), t=(v.xbar-v.mu0)/se;
+      return {stat:t,statName:'t',ref:'t('+df+')',sym:true,df:df,
+        cdf:function(x){return tCDF(x,df);}, q:function(p){return tQ(p,df);},
+        formula:'t = (x̄ − μ₀) / (s/√n) = ('+g(v.xbar)+' − '+g(v.mu0)+') / ('+g(v.s)+'/√'+v.n+') = <b>'+g(t)+'</b>',
+        note:'De t-verdeling gebruik je omdat σ onbekend is en geschat wordt door s. Voor grote n nadert t(n−1) naar Z.'};
+    }
+  },
+  zmean:{
+    label:'Z-toets voor het gemiddelde  (σ bekend)',
+    param:'μ', h0:'μ = μ₀',
+    fields:[['xbar','Steekproefgemiddelde x̄'],['mu0','Hypothesewaarde μ₀'],['sigma','Bekende σ'],['n','Steekproefgrootte n',true]],
+    ex:{xbar:10.1,mu0:10,sigma:0.3,n:36,alpha:0.05,dir:'two'},
+    compute:function(v){
+      var se=v.sigma/Math.sqrt(v.n), z=(v.xbar-v.mu0)/se;
+      return {stat:z,statName:'z',ref:'N(0,1)',sym:true,
+        cdf:normCDF, q:normQuant,
+        formula:'z = (x̄ − μ₀) / (σ/√n) = ('+g(v.xbar)+' − '+g(v.mu0)+') / ('+g(v.sigma)+'/√'+v.n+') = <b>'+g(z)+'</b>',
+        note:'Omdat σ bekend is, is de teststatistiek exact standaardnormaal verdeeld.'};
+    }
+  },
+  chi2var:{
+    label:'χ²-toets voor de variantie / standaardafwijking',
+    param:'σ²', h0:'σ² = σ₀²',
+    fields:[['s','Steekproef-std s'],['sigma0','Hypothese-σ₀'],['n','Steekproefgrootte n',true]],
+    ex:{s:0.13,sigma0:0.10,n:25,alpha:0.05,dir:'right'},
+    compute:function(v){
+      var df=v.n-1, chi=df*v.s*v.s/(v.sigma0*v.sigma0);
+      return {stat:chi,statName:'χ²',ref:'χ²('+df+')',sym:false,df:df,
+        cdf:function(x){return chiCDF(x,df);}, q:function(p){return chiQ(p,df);},
+        formula:'χ² = (n−1)·s² / σ₀² = '+df+'·'+g(v.s*v.s)+' / '+g(v.sigma0*v.sigma0)+' = <b>'+g(chi)+'</b>',
+        note:'De χ²-verdeling is asymmetrisch en enkel positief. Test of de procesvariabiliteit veranderd is.'};
+    }
+  },
+  ftwovar:{
+    label:'F-toets voor twee varianties',
+    param:'σ₁²/σ₂²', h0:'σ₁² = σ₂²',
+    fields:[['s1','Std steekproef 1 (s₁)'],['n1','n₁',true],['s2','Std steekproef 2 (s₂)'],['n2','n₂',true]],
+    ex:{s1:0.12247,n1:15,s2:0.06325,n2:10,alpha:0.05,dir:'right'},
+    compute:function(v){
+      var df1=v.n1-1, df2=v.n2-1, F=(v.s1*v.s1)/(v.s2*v.s2);
+      return {stat:F,statName:'F',ref:'F('+df1+','+df2+')',sym:false,df1:df1,df2:df2,
+        cdf:function(x){return fCDF(x,df1,df2);}, q:function(p){return fQ(p,df1,df2);},
+        formula:'F = s₁² / s₂² = '+g(v.s1*v.s1)+' / '+g(v.s2*v.s2)+' = <b>'+g(F)+'</b>',
+        note:'Vergelijkt de spreiding van twee normale populaties. “Nauwkeuriger” ⇔ kleinere σ². Zet de grootste s² in de teller voor een rechtszijdige toets.'};
+    }
+  },
+  zprop:{
+    label:'Z-toets voor een proportie / fractie',
+    param:'π', h0:'π = π₀',
+    fields:[['p','Steekproeffractie p (bv. 0.08)'],['pi0','Hypothesefractie π₀'],['n','Steekproefgrootte n',true]],
+    ex:{p:0.08,pi0:0.05,n:200,alpha:0.05,dir:'right'},
+    compute:function(v){
+      var se=Math.sqrt(v.pi0*(1-v.pi0)/v.n), z=(v.p-v.pi0)/se;
+      var warn = v.n*v.pi0<5 ? 'Let op: n·π₀ = '+g(v.n*v.pi0)+' &lt; 5 — de normale benadering is hier twijfelachtig (vuistregel: minstens ~5 verwachte defecten).' : '';
+      return {stat:z,statName:'z',ref:'N(0,1)',sym:true,
+        cdf:normCDF, q:normQuant,
+        formula:'z = (p − π₀) / √(π₀(1−π₀)/n) = ('+g(v.p)+' − '+g(v.pi0)+') / √('+g(v.pi0)+'·'+g(1-v.pi0)+'/'+v.n+') = <b>'+g(z)+'</b>',
+        note:'Normale benadering van de binomiale verdeling voor een fractie defecten.', warn:warn};
+    }
+  }
+};
+
+var DIRS={
+  two:{lab:'tweezijdig  (H_A: PARAM ≠ waarde)', sign:'≠'},
+  left:{lab:'eenzijdig links  (H_A: PARAM < waarde)', sign:'<'},
+  right:{lab:'eenzijdig rechts  (H_A: PARAM > waarde)', sign:'>'}
+};
+
+/* ===================== beslissing (standaardmethode) ===================== */
+function decide(res, dir, alpha){
+  var s=res.stat, cdf=res.cdf, q=res.q, crit, reject, critText, ruleText, p;
+  if(res.sym){
+    if(dir==='two'){ crit=q(1-alpha/2); reject=Math.abs(s)>crit; critText='±'+g(crit);
+      ruleText='verwerp H₀ als |'+res.statName+'| > '+g(crit); p=2*(1-cdf(Math.abs(s))); }
+    else if(dir==='right'){ crit=q(1-alpha); reject=s>crit; critText=g(crit);
+      ruleText='verwerp H₀ als '+res.statName+' > '+g(crit); p=1-cdf(s); }
+    else{ crit=q(alpha); reject=s<crit; critText=g(crit);
+      ruleText='verwerp H₀ als '+res.statName+' < '+g(crit); p=cdf(s); }
+  }else{
+    if(dir==='two'){ var lo=q(alpha/2), hi=q(1-alpha/2); crit=[lo,hi]; reject=s<lo||s>hi;
+      critText=g(lo)+'  of  '+g(hi); ruleText='verwerp H₀ als '+res.statName+' < '+g(lo)+' of > '+g(hi);
+      var pr=1-cdf(s), pl=cdf(s); p=2*Math.min(pr,pl); }
+    else if(dir==='right'){ crit=q(1-alpha); reject=s>crit; critText=g(crit);
+      ruleText='verwerp H₀ als '+res.statName+' > '+g(crit); p=1-cdf(s); }
+    else{ crit=q(alpha); reject=s<crit; critText=g(crit);
+      ruleText='verwerp H₀ als '+res.statName+' < '+g(crit); p=cdf(s); }
+  }
+  if(p>1)p=1; if(p<0)p=0;
+  return {crit:crit,critText:critText,reject:reject,ruleText:ruleText,p:p};
+}
+
+/* ===================== render standaardmethode ===================== */
+function runTest(){
+  var t=TESTS[curTest], v=readFields();
+  var alpha=toNum(document.getElementById('alpha').value);
+  if(isNaN(alpha)||alpha<=0||alpha>=1) throw 'Vul een geldige α in tussen 0 en 1 (bv. 0.05).';
+  for(var i=0;i<t.fields.length;i++){var k=t.fields[i][0]; if(isNaN(v[k])) throw 'Vul een geldige waarde in voor “'+t.fields[i][1]+'”.';}
+  ['n','n1','n2'].forEach(function(k){ if(v[k]!==undefined && (!(v[k]>1)||v[k]%1!==0)) throw 'Steekproefgrootte '+k+' moet een geheel getal > 1 zijn.'; });
+
+  var res=t.compute(v), dir=document.getElementById('direction').value, d=decide(res,dir,alpha);
+  var waarde = v.mu0!==undefined?v.mu0 : v.sigma0!==undefined?v.sigma0 : v.pi0!==undefined?v.pi0 : (t.param==='σ₁²/σ₂²'?'σ₂²':'');
+  var HA = t.h0.replace('=', DIRS[dir].sign);
+  var sign=DIRS[dir].sign;
+
+  var html='<div class="card"><h2>'+esc(t.label)+'</h2>';
+  html+='<ol class="steps">';
+  html+='<li><b>Hypothesen.</b><div class="hyp">H₀ : '+esc(t.h0)+' &nbsp;&nbsp; vs &nbsp;&nbsp; H_A : '+esc(HA)+'</div>'+
+        '<span class="muted">H₀ is de status quo; de '+({two:'tweezijdige',left:'eenzijdig-linkse',right:'eenzijdig-rechtse'}[dir])+' toets zoekt bewijs dat de parameter '+
+        ({two:'afwijkt van',left:'kleiner is dan',right:'groter is dan'}[dir])+' de hypothesewaarde.</span></li>';
+  html+='<li><b>Significantie.</b> α = '+g(alpha)+' &nbsp;<span class="muted">(vooraf vastgelegd; kans om H₀ ten onrechte te verwerpen).</span></li>';
+  html+='<li><b>Teststatistiek &amp; verdeling.</b> Referentieverdeling onder H₀: <span class="pill">'+res.ref+'</span>. <span class="muted">'+res.note+'</span></li>';
+  if(res.warn) html+='<li class="muted">'+res.warn+'</li>';
+  html+='<li><b>Kritieke waarde.</b> '+esc(d.ruleText)+' &nbsp;→&nbsp; kritieke waarde = <b>'+d.critText+'</b>.</li>';
+  html+='<li><b>Bereken de teststatistiek.</b><div class="calc">'+res.formula+'</div></li>';
+  html+='<li><b>Beslissing.</b> Twee gelijkwaardige wegen:</li>';
+  html+='</ol>';
+
+  html+='<table class="cmp"><tr><th>vergelijking</th><th>waarde</th><th>uitkomst</th></tr>'+
+        '<tr><td>teststatistiek '+res.statName+'</td><td>'+g(res.stat)+'</td><td>vs kritieke '+d.critText+'</td></tr>'+
+        '<tr><td>p-waarde</td><td>'+fmtP(d.p)+'</td><td>vs α = '+g(alpha)+' → p '+(d.p<alpha?'&lt;':'≥')+' α</td></tr>'+
+        '</table>';
+
+  html+='<div class="banner '+(d.reject?'reject':'keep')+'">'+
+    (d.reject
+      ? '✗ Verwerp H₀ — het bewijs is significant (p = '+fmtP(d.p)+' &lt; α = '+g(alpha)+').'
+      : '✓ Aanvaard H₀ (niet verwerpen) — onvoldoende bewijs (p = '+fmtP(d.p)+' ≥ α = '+g(alpha)+').')+'</div>';
+
+  html+='<div class="interp"><b>In gewone taal:</b> '+plainTest(t,dir,d,res,v,waarde)+'</div>';
+  html+='</div>';
+  document.getElementById('out').innerHTML=html;
+}
+
+function plainTest(t,dir,d,res,v,waarde){
+  var pn=t.param;
+  var richting={two:'anders is dan',left:'kleiner is dan',right:'groter is dan'}[dir];
+  if(!d.reject){
+    return 'De waargenomen afwijking valt binnen wat toeval alleen al kan veroorzaken. Er is <b>geen statistisch bewijs</b> dat '+pn+' '+richting+' de hypothesewaarde. We handhaven de status quo.';
+  }
+  var extra='';
+  if(t.param==='σ₁²/σ₂²') extra=' Concreet: '+(dir==='right'?'proces/​machine&nbsp;1 werkt significant <b>minder nauwkeurig</b> (grotere spreiding) dan 2.':(dir==='left'?'proces/​machine&nbsp;1 werkt significant <b>nauwkeuriger</b> dan 2.':'de twee varianties verschillen significant.'));
+  else if(t.param==='σ²') extra=' De procesvariabiliteit is significant '+(dir==='right'?'toegenomen':(dir==='left'?'afgenomen':'veranderd'))+'.';
+  else if(t.param==='π') extra=' De werkelijke fractie ligt significant '+(dir==='right'?'hoger':(dir==='left'?'lager':'anders'))+' dan '+g(waarde)+'.';
+  else extra=' Het procesgemiddelde is significant '+(dir==='right'?'hoger':(dir==='left'?'lager':'verschoven'))+' t.o.v. '+g(waarde)+' en vraagt actie.';
+  return 'De teststatistiek ligt voorbij de kritieke waarde, dus de afwijking is groter dan toeval plausibel maakt. We besluiten dat '+pn+' '+richting+' de hypothesewaarde.'+extra;
+}
+
+/* ===================== betrouwbaarheidsinterval-methode ===================== */
+var CITESTS={
+  cimean_t:{
+    label:'Gemiddelde μ  (t, σ onbekend)', param:'μ', hypLabel:'Hypothesewaarde μ₀',
+    fields:[['xbar','Steekproefgemiddelde x̄'],['s','Steekproef-std s'],['n','Steekproefgrootte n',true],['h0','Hypothesewaarde μ₀']],
+    ex:{xbar:9.928,s:0.109,n:20,h0:10,alpha:0.02,dir:'two'},
+    ci:function(v,alpha,dir){
+      var df=v.n-1, se=v.s/Math.sqrt(v.n), pt=v.xbar, tc, L, U, formula;
+      if(dir==='two'){ tc=tQ(1-alpha/2,df); L=pt-tc*se; U=pt+tc*se; formula='x̄ ± t<sub>1−α/2</sub>·s/√n = '+g(pt)+' ± '+g(tc)+'·'+g(se); }
+      else if(dir==='lower'){ tc=tQ(1-alpha,df); L=pt-tc*se; U=Infinity; formula='x̄ − t<sub>1−α</sub>·s/√n = '+g(pt)+' − '+g(tc)+'·'+g(se); }
+      else{ tc=tQ(1-alpha,df); L=-Infinity; U=pt+tc*se; formula='x̄ + t<sub>1−α</sub>·s/√n = '+g(pt)+' + '+g(tc)+'·'+g(se); }
+      return {L:L,U:U,pt:pt,ptLabel:'x̄',formula:formula,ref:'t('+df+')'};
+    }
+  },
+  cimean_z:{
+    label:'Gemiddelde μ  (Z, σ bekend)', param:'μ', hypLabel:'Hypothesewaarde μ₀',
+    fields:[['xbar','Steekproefgemiddelde x̄'],['sigma','Bekende σ'],['n','Steekproefgrootte n',true],['h0','Hypothesewaarde μ₀']],
+    ex:{xbar:10.1,sigma:0.3,n:36,h0:10,alpha:0.05,dir:'two'},
+    ci:function(v,alpha,dir){
+      var se=v.sigma/Math.sqrt(v.n), pt=v.xbar, zc, L, U, formula;
+      if(dir==='two'){ zc=normQ(1-alpha/2); L=pt-zc*se; U=pt+zc*se; formula='x̄ ± Z<sub>1−α/2</sub>·σ/√n = '+g(pt)+' ± '+g(zc)+'·'+g(se); }
+      else if(dir==='lower'){ zc=normQ(1-alpha); L=pt-zc*se; U=Infinity; formula='x̄ − Z<sub>1−α</sub>·σ/√n = '+g(pt)+' − '+g(zc)+'·'+g(se); }
+      else{ zc=normQ(1-alpha); L=-Infinity; U=pt+zc*se; formula='x̄ + Z<sub>1−α</sub>·σ/√n'; }
+      return {L:L,U:U,pt:pt,ptLabel:'x̄',formula:formula,ref:'N(0,1)'};
+    }
+  },
+  civar:{
+    label:'Variantie σ² / standaardafwijking σ  (χ²)', param:'σ²', hypLabel:'Hypothesewaarde σ₀²  (vul σ₀ in)', hypFromSigma:true,
+    fields:[['s','Steekproef-std s'],['n','Steekproefgrootte n',true],['sigma0','Hypothese-σ₀']],
+    ex:{s:0.13,n:25,sigma0:0.10,alpha:0.05,dir:'two'},
+    ci:function(v,alpha,dir){
+      var df=v.n-1, T=df*v.s*v.s, L, U, formula;
+      if(dir==='two'){ L=T/chiQ(1-alpha/2,df); U=T/chiQ(alpha/2,df); formula='[ (n−1)s²/χ²<sub>1−α/2</sub> , (n−1)s²/χ²<sub>α/2</sub> ]'; }
+      else if(dir==='lower'){ L=T/chiQ(1-alpha,df); U=Infinity; formula='(n−1)s² / χ²<sub>1−α</sub>'; }
+      else{ L=0; U=T/chiQ(alpha,df); formula='(n−1)s² / χ²<sub>α</sub>'; }
+      return {L:L,U:U,pt:v.s*v.s,ptLabel:'s²',formula:formula,ref:'χ²('+df+')',
+        extra:'Voor de standaardafwijking σ: [ '+g(Math.sqrt(Math.max(0,L)))+' , '+(isFinite(U)?g(Math.sqrt(U)):'+∞')+' ].'};
+    }
+  },
+  ciprop:{
+    label:'Proportie π  (normale benadering)', param:'π', hypLabel:'Hypothesefractie π₀',
+    fields:[['p','Steekproeffractie p'],['n','Steekproefgrootte n',true],['h0','Hypothesefractie π₀']],
+    ex:{p:0.08,n:200,h0:0.05,alpha:0.05,dir:'two'},
+    ci:function(v,alpha,dir){
+      var se=Math.sqrt(v.p*(1-v.p)/v.n), pt=v.p, zc, L, U, formula;
+      if(dir==='two'){ zc=normQ(1-alpha/2); L=pt-zc*se; U=pt+zc*se; formula='p ± Z<sub>1−α/2</sub>·√(p(1−p)/n) = '+g(pt)+' ± '+g(zc)+'·'+g(se); }
+      else if(dir==='lower'){ zc=normQ(1-alpha); L=pt-zc*se; U=1; formula='p − Z<sub>1−α</sub>·√(p(1−p)/n)'; }
+      else{ zc=normQ(1-alpha); L=0; U=pt+zc*se; formula='p + Z<sub>1−α</sub>·√(p(1−p)/n)'; }
+      L=Math.max(0,L); U=Math.min(1,U);
+      return {L:L,U:U,pt:pt,ptLabel:'p',formula:formula,ref:'N(0,1)',
+        extra:(v.n*v.p<5?'Let op: minder dan ~5 defecten in de steekproef — normale benadering twijfelachtig.':'')};
+    }
+  },
+  ciratio:{
+    label:'Verhouding varianties σ₁²/σ₂²  (F)', param:'σ₁²/σ₂²', hypLabel:'Hypotheseverhouding (meestal 1)',
+    fields:[['s1','Std steekproef 1 (s₁)'],['n1','n₁',true],['s2','Std steekproef 2 (s₂)'],['n2','n₂',true],['h0','Hypotheseverhouding ρ₀']],
+    ex:{s1:0.06325,n1:10,s2:0.12247,n2:15,h0:1,alpha:0.05,dir:'upper'},
+    ci:function(v,alpha,dir){
+      var df1=v.n1-1, df2=v.n2-1, R=(v.s1*v.s1)/(v.s2*v.s2), L, U, formula;
+      if(dir==='two'){ L=R/fQ(1-alpha/2,df1,df2); U=R/fQ(alpha/2,df1,df2); formula='[ (s₁²/s₂²)/F<sub>1−α/2</sub> , (s₁²/s₂²)/F<sub>α/2</sub> ]'; }
+      else if(dir==='lower'){ L=R/fQ(1-alpha,df1,df2); U=Infinity; formula='(s₁²/s₂²) / F<sub>1−α</sub>(n₁−1,n₂−1)'; }
+      else{ L=0; U=R/fQ(alpha,df1,df2); formula='(s₁²/s₂²) / F<sub>α</sub>(n₁−1,n₂−1)'; }
+      return {L:L,U:U,pt:R,ptLabel:'s₁²/s₂²',formula:formula,ref:'F('+df1+','+df2+')'};
+    }
+  }
+};
+
+function runCI(){
+  var t=CITESTS[curTest], v=readFields();
+  var alpha=toNum(document.getElementById('alpha').value);
+  if(isNaN(alpha)||alpha<=0||alpha>=1) throw 'Vul een geldige α in tussen 0 en 1 (bv. 0.05).';
+  for(var i=0;i<t.fields.length;i++){var k=t.fields[i][0]; if(isNaN(v[k])) throw 'Vul een geldige waarde in voor “'+t.fields[i][1]+'”.';}
+  ['n','n1','n2'].forEach(function(k){ if(v[k]!==undefined && (!(v[k]>1)||v[k]%1!==0)) throw 'Steekproefgrootte '+k+' moet een geheel getal > 1 zijn.'; });
+
+  var dir=document.getElementById('direction').value;
+  var r=t.ci(v,alpha,dir);
+  var hyp = t.hypFromSigma ? v.sigma0*v.sigma0 : v.h0;
+  var inside = hyp>=r.L && hyp<=r.U;
+  var conf=(1-alpha)*100;
+  var dirName={two:'tweezijdig',lower:'eenzijdige ondergrens',upper:'eenzijdige bovengrens'}[dir];
+
+  var html='<div class="card"><h2>'+esc(t.label)+'</h2>';
+  html+='<div class="num"><table>'+
+    '<tr><td>Betrouwbaarheidsniveau</td><td>'+g(conf)+'%  (α = '+g(alpha)+', '+dirName+')</td></tr>'+
+    '<tr><td>Puntschatting '+r.ptLabel+'</td><td>'+g(r.pt)+'</td></tr>'+
+    '<tr><td>Referentieverdeling</td><td>'+r.ref+'</td></tr>'+
+    '</table></div>';
+  html+='<h3>Constructie</h3><div class="calc">'+r.formula+'</div>';
+  html+='<div class="banner keep" style="background:var(--accent-soft);color:var(--ink);border-color:var(--line)">'+
+        g(conf)+'%-BI voor '+t.param+' :&nbsp; [ '+g(r.L)+' , '+g(r.U)+' ]</div>';
+  if(r.extra) html+='<p class="muted">'+r.extra+'</p>';
+
+  html+='<h3>Toets via het interval</h3>';
+  html+='<div class="hyp">H₀ : '+t.param+' = '+g(hyp)+' &nbsp;&nbsp;→&nbsp;&nbsp; ligt '+g(hyp)+' in het interval?</div>';
+  html+='<div class="banner '+(inside?'keep':'reject')+'">'+
+    (inside
+      ? '✓ '+g(hyp)+' ligt <b>binnen</b> het interval → aanvaard H₀ (de hypothesewaarde is plausibel).'
+      : '✗ '+g(hyp)+' ligt <b>buiten</b> het interval → verwerp H₀ (significant op α = '+g(alpha)+').')+'</div>';
+
+  html+='<div class="interp"><b>Waarom dit werkt:</b> een '+g(conf)+'%-betrouwbaarheidsinterval en een toets op significantie α = '+g(alpha)+' bevatten <b>exact dezelfde informatie</b>. '+
+    'Het interval is de verzameling hypothesewaarden die je niet zou verwerpen. Ligt de veronderstelde waarde erbuiten, dan is ze onverenigbaar met de data op niveau α — precies de conclusie van de standaardtoets. '+
+    (dir==='two'?'':'Bij een eenzijdig interval hoort een eenzijdige toets.')+'</div>';
+  html+='</div>';
+  document.getElementById('out').innerHTML=html;
+}
+
+/* ===================== UI ===================== */
+var MODE='test', curTest=null;
+function activeSet(){ return MODE==='test'?TESTS:CITESTS; }
+
+function buildTestSelect(){
+  var set=activeSet(), sel=document.getElementById('testType'); sel.innerHTML='';
+  Object.keys(set).forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=set[k].label; sel.appendChild(o); });
+  curTest=sel.value;
+}
+function buildDirections(){
+  var set=activeSet(), t=set[curTest], sel=document.getElementById('direction'); sel.innerHTML='';
+  if(MODE==='test'){
+    [['two','tweezijdig — H_A: '+t.param+' ≠ waarde'],
+     ['left','eenzijdig links — H_A: '+t.param+' < waarde'],
+     ['right','eenzijdig rechts — H_A: '+t.param+' > waarde']
+    ].forEach(function(d){ var o=document.createElement('option'); o.value=d[0]; o.textContent=d[1]; sel.appendChild(o); });
+  }else{
+    [['two','tweezijdig interval'],
+     ['lower','eenzijdige ondergrens'],
+     ['upper','eenzijdige bovengrens']
+    ].forEach(function(d){ var o=document.createElement('option'); o.value=d[0]; o.textContent=d[1]; sel.appendChild(o); });
+  }
+}
+function buildFields(keepVals){
+  var set=activeSet(), t=set[curTest], wrap=document.getElementById('fields');
+  var old={}; if(keepVals) Array.prototype.forEach.call(wrap.querySelectorAll('input'),function(i){old[i.dataset.k]=i.value;});
+  wrap.innerHTML='';
+  t.fields.forEach(function(f){
+    var div=document.createElement('div');
+    div.innerHTML='<label class="fld">'+f[1]+'</label>';
+    var inp=document.createElement('input'); inp.className='txt'; inp.dataset.k=f[0]; inp.placeholder='…';
+    if(old[f[0]]!==undefined) inp.value=old[f[0]];
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') go(); });
+    div.appendChild(inp); wrap.appendChild(div);
+  });
+}
+function readFields(){
+  var v={}; Array.prototype.forEach.call(document.querySelectorAll('#fields input'),function(i){ v[i.dataset.k]=toNum(i.value); });
+  return v;
+}
+function loadExample(){
+  var set=activeSet(), t=set[curTest], ex=t.ex;
+  Array.prototype.forEach.call(document.querySelectorAll('#fields input'),function(i){ if(ex[i.dataset.k]!==undefined) i.value=ex[i.dataset.k]; });
+  if(ex.alpha!==undefined) document.getElementById('alpha').value=ex.alpha;
+  if(ex.dir!==undefined) document.getElementById('direction').value=ex.dir;
+  go();
+}
+function go(){
+  document.getElementById('errbox').innerHTML='';
+  try{ if(MODE==='test') runTest(); else runCI(); }
+  catch(e){ document.getElementById('out').innerHTML=''; document.getElementById('errbox').innerHTML='<div class="err">'+esc(typeof e==='string'?e:(e&&e.message)||'Kon de berekening niet uitvoeren.')+'</div>'; }
+}
+function rebuild(){ buildTestSelect(); buildDirections(); buildFields(false); document.getElementById('out').innerHTML=''; document.getElementById('errbox').innerHTML=''; }
+
+document.getElementById('testType').addEventListener('change',function(){ curTest=this.value; buildDirections(); buildFields(false); document.getElementById('out').innerHTML=''; });
+document.getElementById('run').onclick=go;
+document.getElementById('loadEx').onclick=loadExample;
+document.getElementById('clear').onclick=function(){ buildFields(false); document.getElementById('out').innerHTML=''; document.getElementById('errbox').innerHTML=''; };
+document.getElementById('alpha').addEventListener('keydown',function(e){ if(e.key==='Enter') go(); });
+Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'),function(tab){
+  tab.onclick=function(){
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'),function(t){t.classList.remove('active');});
+    tab.classList.add('active'); MODE=tab.dataset.tab;
+    document.getElementById('selLabel').textContent = MODE==='test'?'Welke toets?':'Betrouwbaarheidsinterval voor welke parameter?';
+    rebuild();
+  };
+});
+
+rebuild();
+</script>

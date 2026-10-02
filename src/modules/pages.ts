@@ -306,8 +306,10 @@ export const examen: ModuleDef = {
         h('section', { class: 'card' },
           h('h3', null, `Vraag ${i}`),
           h('div', { class: 'md', html: q }),
+          exam.figures[k] ? h('img', { src: exam.figures[k], alt: `Figuur vraag ${i}`, class: 'examfig' }) : '',
           h('div', { class: 'row' }, btns),
-          h('details', { class: 'sol' }, h('summary', null, 'Uitgewerkte oplossing'), h('div', { class: 'md', html: s })),
+          h('details', { class: 'sol' }, h('summary', null, 'Uitgewerkte oplossing (Nederlands, examenantwoord)'), h('div', { class: 'md', html: s })),
+          exam.original[k] ? h('details', { class: 'sol' }, h('summary', null, 'Originele uitwerking (Worked Solutions, Engels)'), h('div', { class: 'md', html: exam.original[k] })) : '',
         ),
       );
     }

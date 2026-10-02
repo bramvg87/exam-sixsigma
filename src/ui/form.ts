@@ -138,6 +138,10 @@ export class Form {
   }
 }
 
+/** Row of buttons that load example values into a form. */
+export function exampleRow(f: Form, examples: [string, Record<string, any>][]) {
+  return h('div', { class: 'row' }, examples.map(([label, vals]) => h('button', { type: 'button', class: 'btn btn-sm', onclick: () => f.setValues(vals) }, label)));
+}
 export function row(...els: (HTMLElement | null)[]) {
   return h('div', { class: 'row' }, els);
 }

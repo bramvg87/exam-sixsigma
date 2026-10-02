@@ -1,0 +1,608 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANOVA Analyzer</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#1c2330; --muted:#5b6472;
+    --line:#e2e6ec; --accent:#2f6df6; --accent-soft:#e8f0ff;
+    --good:#0a8a4a; --bad:#c1341c; --warn:#b7791f;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#12151b; --card:#1a1f27; --ink:#e7ebf0; --muted:#9aa4b2;
+      --line:#2b323d; --accent:#5b8cff; --accent-soft:#20293a;
+      --good:#3fca80; --bad:#ff7a63; --warn:#e0b04a;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:28px 20px 80px}
+  h1{font-size:24px; margin:0 0 4px}
+  .sub{color:var(--muted); margin:0 0 22px}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:18px;
+  }
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px}
+  .tab{
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+    padding:9px 14px; border-radius:9px; cursor:pointer; font-size:14px;
+  }
+  .tab.active{background:var(--accent); border-color:var(--accent); color:#fff}
+  .hint{color:var(--muted); font-size:13.5px; margin:0 0 12px}
+  .hint code{background:var(--accent-soft); padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:12.5px}
+  textarea{
+    width:100%; min-height:170px; resize:vertical; padding:11px 12px;
+    border:1px solid var(--line); border-radius:9px; background:var(--bg);
+    color:var(--ink); font-family:var(--mono); font-size:13px; white-space:pre; overflow:auto;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px}
+  button.act{
+    border:0; background:var(--accent); color:#fff; padding:10px 18px;
+    border-radius:9px; cursor:pointer; font-size:14px; font-weight:600;
+  }
+  button.ghost{
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+    padding:9px 14px; border-radius:9px; cursor:pointer; font-size:13.5px;
+  }
+  button:active{transform:translateY(1px)}
+  label.opt{display:inline-flex; align-items:center; gap:6px; font-size:13.5px; color:var(--muted); cursor:pointer}
+  .alpha{display:inline-flex; align-items:center; gap:6px; font-size:13.5px; color:var(--muted)}
+  .alpha input{width:64px; padding:5px 7px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font-family:var(--mono)}
+  .err{background:#fff0ee; border:1px solid #f3b4a8; color:#a02714; padding:12px 14px; border-radius:9px; margin-top:14px; font-size:14px}
+  @media (prefers-color-scheme: dark){ .err{background:#2a1714; border-color:#5a2a20; color:#ff9c88} }
+  h2{font-size:17px; margin:2px 0 12px}
+  h3{font-size:14px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:22px 0 8px}
+  table{border-collapse:collapse; width:100%; font-size:13.5px}
+  .scroll{overflow-x:auto}
+  th,td{border:1px solid var(--line); padding:6px 9px; text-align:right; font-family:var(--mono); white-space:nowrap}
+  th{background:var(--accent-soft); font-family:system-ui,sans-serif; font-weight:600}
+  td.lab,th.lab{text-align:left; font-family:system-ui,sans-serif}
+  tr.sig td{font-weight:700}
+  .tag{display:inline-block; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:600}
+  .tag.yes{background:rgba(10,138,74,.14); color:var(--good)}
+  .tag.no{background:rgba(120,130,145,.16); color:var(--muted)}
+  .interp{border-left:3px solid var(--accent); padding:4px 0 4px 14px; margin:10px 0; color:var(--ink)}
+  .interp b{color:var(--ink)}
+  .muted{color:var(--muted)}
+  .pill{font-size:12px; color:var(--muted)}
+  .flexhead{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .verdict{font-weight:700}
+  .verdict.good{color:var(--good)} .verdict.warn{color:var(--warn)} .verdict.bad{color:var(--bad)}
+  details{margin-top:8px} summary{cursor:pointer; color:var(--accent); font-size:13.5px}
+  .copied{color:var(--good); font-size:12.5px; margin-left:6px}
+</style>
+
+<div class="wrap">
+  <h1>ANOVA Analyzer</h1>
+  <p class="sub">Paste measurements from Excel / Google Sheets, pick a design, get the full ANOVA table with a plain-language reading — and copy the result straight back out.</p>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-mode="one">One-way ANOVA</button>
+    <button class="tab" data-mode="two">Two-way — no replication</button>
+    <button class="tab" data-mode="tworep">Two-way — with replication</button>
+  </div>
+
+  <div class="card">
+    <div id="hint"></div>
+    <textarea id="data" spellcheck="false" placeholder="Paste your table here (tab-separated, straight from Excel)…"></textarea>
+
+    <div class="row">
+      <button class="act" id="run">Analyze</button>
+      <span id="examples"></span>
+      <button class="ghost" id="clear">Clear</button>
+      <span class="alpha">α&nbsp;<input id="alpha" value="0.05"></span>
+    </div>
+    <div class="row" id="extraOpts"></div>
+    <div id="errbox"></div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================ statistics ============================ */
+function gammaln(xx){
+  var cof=[76.18009172947146,-86.50532032941677,24.01409824083091,
+           -1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  var x=xx,y=xx,tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp);
+  var ser=1.000000000190015;
+  for(var j=0;j<6;j++){y++; ser+=cof[j]/y;}
+  return -tmp+Math.log(2.5066282746310005*ser/x);
+}
+function betacf(a,b,x){
+  var MAXIT=300, EPS=3e-14, FPMIN=1e-300;
+  var qab=a+b, qap=a+1, qam=a-1;
+  var c=1, d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN) d=FPMIN;
+  d=1/d; var h=d;
+  for(var m=1;m<=MAXIT;m++){
+    var m2=2*m;
+    var aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d; var del=d*c; h*=del;
+    if(Math.abs(del-1)<EPS) break;
+  }
+  return h;
+}
+function betai(a,b,x){
+  if(x<=0) return 0; if(x>=1) return 1;
+  var bt=Math.exp(gammaln(a+b)-gammaln(a)-gammaln(b)+a*Math.log(x)+b*Math.log(1-x));
+  if(x < (a+1)/(a+b+2)) return bt*betacf(a,b,x)/a;
+  return 1-bt*betacf(b,a,1-x)/b;
+}
+// P(F <= x) for F(d1,d2)
+function fCDF(x,d1,d2){ if(x<=0) return 0; return betai(d1/2,d2/2, d1*x/(d1*x+d2)); }
+// right-tail p-value  (Excel F.DIST.RT)
+function fPValue(x,d1,d2){ return 1 - fCDF(x,d1,d2); }
+// inverse right tail  (Excel F.INV.RT) — critical F
+function fInvRT(p,d1,d2){
+  if(p<=0) return Infinity; if(p>=1) return 0;
+  var lo=0, hi=2;
+  while(fPValue(hi,d1,d2) > p && hi < 1e9) hi*=2;
+  for(var i=0;i<300;i++){ var mid=(lo+hi)/2; if(fPValue(mid,d1,d2) > p) lo=mid; else hi=mid; }
+  return (lo+hi)/2;
+}
+
+/* ============================ helpers ============================ */
+function num(s){
+  if(s===undefined||s===null) return NaN;
+  s=(''+s).trim();
+  if(s==='') return NaN;
+  if(s.indexOf(',')>=0 && s.indexOf('.')>=0) s=s.replace(/,/g,'');  // comma = thousands sep
+  else s=s.replace(',','.');                                        // comma = decimal
+  var v=parseFloat(s);
+  return v;
+}
+function mean(a){ var s=0; for(var i=0;i<a.length;i++) s+=a[i]; return s/a.length; }
+function devsq(a){ var m=mean(a), s=0; for(var i=0;i<a.length;i++){ var d=a[i]-m; s+=d*d; } return s; }
+function variance(a){ return a.length>1 ? devsq(a)/(a.length-1) : 0; }
+function fmt(x,d){ if(!isFinite(x)) return '—'; return x.toFixed(d===undefined?3:d); }
+function fmtP(p){ if(!isFinite(p)) return '—'; if(p<1e-4) return p.toExponential(2); return p.toFixed(4); }
+function esc(s){ return (''+s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+function parseGrid(text){
+  var lines=text.replace(/\r/g,'').split('\n');
+  while(lines.length && lines[lines.length-1].trim()==='') lines.pop();
+  while(lines.length && lines[0].trim()==='') lines.shift();
+  if(!lines.length) return [];
+  var useTab=lines.some(function(l){return l.indexOf('\t')>=0;});
+  return lines.map(function(l){
+    var cells;
+    if(useTab) cells=l.split('\t');
+    else{ cells=l.split(/\s{2,}/); if(cells.length<2) cells=l.split(/\s+/); }
+    return cells.map(function(c){return c.trim();});
+  });
+}
+
+/* ============================ ANOVA models ============================ */
+// One-way: columns are groups, first row = labels
+function anovaOneWay(grid, alpha){
+  if(grid.length<2) throw "Need a header row of group labels plus at least one row of data.";
+  var ncol=0; grid.forEach(function(r){ ncol=Math.max(ncol,r.length); });
+  if(ncol<2) throw "Need at least 2 groups (2 columns).";
+  var groups=[];
+  for(var c=0;c<ncol;c++){
+    var label=(grid[0][c]||('Group '+(c+1))).trim() || ('Group '+(c+1));
+    var vals=[];
+    for(var r=1;r<grid.length;r++){
+      var v=num(grid[r][c]);
+      if(!isNaN(v)) vals.push(v);
+    }
+    if(vals.length>0) groups.push({label:label, vals:vals});
+  }
+  if(groups.length<2) throw "Need at least 2 non-empty groups.";
+  var all=[]; groups.forEach(function(g){ all=all.concat(g.vals); });
+  var N=all.length, k=groups.length, grand=mean(all);
+  if(N-k<1) throw "Not enough data: total observations must exceed the number of groups.";
+
+  var SSb=0; groups.forEach(function(g){ var d=mean(g.vals)-grand; SSb+=g.vals.length*d*d; });
+  var SSw=0; groups.forEach(function(g){ SSw+=devsq(g.vals); });
+  var SSt=devsq(all);
+  var dfb=k-1, dfw=N-k, dft=N-1;
+  var MSb=SSb/dfb, MSw=SSw/dfw;
+  var F=MSb/MSw, p=fPValue(F,dfb,dfw), Fc=fInvRT(alpha,dfb,dfw);
+
+  var summary='<h3>Group statistics</h3><div class="scroll"><table><tr>'+
+    '<th class="lab">Group</th><th>n</th><th>Mean</th><th>Variance</th><th>SS within</th></tr>';
+  groups.forEach(function(g){
+    summary+='<tr><td class="lab">'+esc(g.label)+'</td><td>'+g.vals.length+'</td><td>'+
+      fmt(mean(g.vals))+'</td><td>'+fmt(variance(g.vals))+'</td><td>'+fmt(devsq(g.vals))+'</td></tr>';
+  });
+  summary+='<tr><td class="lab">All</td><td>'+N+'</td><td>'+fmt(grand)+'</td><td></td><td></td></tr></table></div>';
+
+  var table=[
+    {src:'Between groups (effect)', SS:SSb, df:dfb, MS:MSb, F:F, p:p, Fc:Fc},
+    {src:'Within groups (error)',   SS:SSw, df:dfw, MS:MSw},
+    {src:'Total',                   SS:SSt, df:dft}
+  ];
+  var sig=p<alpha;
+  var interp='<div class="interp"><b>Between-group differences:</b> F('+dfb+','+dfw+') = '+fmt(F,2)+
+    ', p = '+fmtP(p)+'. '+
+    (sig
+      ? 'Because p &lt; α ('+alpha+') and F &gt; F<sub>crit</sub> ('+fmt(Fc,3)+'), the group means are <b>significantly different</b> — the factor genuinely affects the response; the spread <i>between</i> groups is far larger than the random noise <i>within</i> groups.'
+      : 'Because p ≥ α ('+alpha+'), the differences are <b>not significant</b> — the between-group spread is no bigger than what random noise would produce, so there is no evidence the factor matters.')+
+    '</div>';
+
+  return {summary:summary, table:table, alpha:alpha, interp:interp,
+          tests:[{name:'Between groups', sig:sig}]};
+}
+
+// Two-way, no replication: header row = column labels, first column = row labels, one value/cell
+function anovaTwoWay(grid, alpha, rowName, colName){
+  if(grid.length<3) throw "Need a header row plus at least 2 data rows.";
+  var colLabels=grid[0].slice(1).map(function(x,i){return (x||('Col '+(i+1))).trim()||('Col '+(i+1));});
+  var b=colLabels.length;
+  if(b<2) throw "Need at least 2 columns of data.";
+  var rowLabels=[], M=[];
+  for(var r=1;r<grid.length;r++){
+    if(grid[r].every(function(c){return c.trim()==='';})) continue;
+    rowLabels.push((grid[r][0]||('Row '+r)).trim()||('Row '+r));
+    var vals=[];
+    for(var c=1;c<=b;c++){
+      var v=num(grid[r][c]);
+      if(isNaN(v)) throw "Missing/invalid value in row \""+rowLabels[rowLabels.length-1]+"\", column \""+colLabels[c-1]+"\". A two-way ANOVA without replication needs exactly one number in every cell.";
+      vals.push(v);
+    }
+    M.push(vals);
+  }
+  var a=M.length;
+  if(a<2) throw "Need at least 2 data rows.";
+
+  var all=[]; M.forEach(function(row){ all=all.concat(row); });
+  var grand=mean(all);
+  var rowMeans=M.map(function(row){return mean(row);});
+  var colMeans=[]; for(var c=0;c<b;c++){ var col=[]; for(var i=0;i<a;i++) col.push(M[i][c]); colMeans.push(mean(col)); }
+
+  var SSrow=0; rowMeans.forEach(function(m){ var d=m-grand; SSrow+=b*d*d; });
+  var SScol=0; colMeans.forEach(function(m){ var d=m-grand; SScol+=a*d*d; });
+  var SSt=devsq(all);
+  var SSe=SSt-SSrow-SScol;
+  var dfr=a-1, dfc=b-1, dfe=(a-1)*(b-1), dft=a*b-1;
+  var MSr=SSrow/dfr, MSc=SScol/dfc, MSe=SSe/dfe;
+  var Fr=MSr/MSe, Fc_=MSc/MSe;
+  var pr=fPValue(Fr,dfr,dfe), pc=fPValue(Fc_,dfc,dfe);
+  var Fcr=fInvRT(alpha,dfr,dfe), Fcc=fInvRT(alpha,dfc,dfe);
+
+  // matrix display with marginals
+  var summary='<h3>Data with marginal means</h3><div class="scroll"><table><tr><th class="lab">'+
+    esc(rowName)+' \\ '+esc(colName)+'</th>';
+  colLabels.forEach(function(cl){ summary+='<th>'+esc(cl)+'</th>'; });
+  summary+='<th>Row mean</th></tr>';
+  for(var i=0;i<a;i++){
+    summary+='<tr><td class="lab">'+esc(rowLabels[i])+'</td>';
+    for(var c=0;c<b;c++) summary+='<td>'+fmt(M[i][c])+'</td>';
+    summary+='<td><b>'+fmt(rowMeans[i])+'</b></td></tr>';
+  }
+  summary+='<tr><td class="lab">Col mean</td>';
+  colMeans.forEach(function(m){ summary+='<td><b>'+fmt(m)+'</b></td>'; });
+  summary+='<td><b>'+fmt(grand)+'</b></td></tr></table></div>';
+
+  var table=[
+    {src:rowName+' (rows)',    SS:SSrow, df:dfr, MS:MSr, F:Fr,  p:pr, Fc:Fcr},
+    {src:colName+' (columns)', SS:SScol, df:dfc, MS:MSc, F:Fc_, p:pc, Fc:Fcc},
+    {src:'Error',              SS:SSe,   df:dfe, MS:MSe},
+    {src:'Total',              SS:SSt,   df:dft}
+  ];
+  function line(name,F,df1,df2,p,Fc,sig){
+    return '<div class="interp"><b>'+esc(name)+':</b> F('+df1+','+df2+') = '+fmt(F,2)+', p = '+fmtP(p)+'. '+
+      (sig ? 'p &lt; α — the '+esc(name.toLowerCase())+' levels <b>differ significantly</b>.'
+           : 'p ≥ α — <b>no significant difference</b> between the '+esc(name.toLowerCase())+' levels.')+'</div>';
+  }
+  var interp='<p class="muted">Without replication only the two main effects can be tested; any interaction is inseparable from the error term.</p>'+
+    line(rowName, Fr, dfr, dfe, pr, Fcr, pr<alpha)+
+    line(colName, Fc_, dfc, dfe, pc, Fcc, pc<alpha);
+
+  return {summary:summary, table:table, alpha:alpha, interp:interp,
+          tests:[{name:rowName,sig:pr<alpha},{name:colName,sig:pc<alpha}]};
+}
+
+// Two-way with replication: header row = column labels; each row-group starts on a labelled row,
+// continues on rows with an empty first cell. n = replicates per cell.
+function anovaTwoWayRep(grid, alpha, rowName, colName){
+  if(grid.length<3) throw "Need a header row plus data.";
+  var colLabels=grid[0].slice(1).map(function(x,i){return (x||('Col '+(i+1))).trim()||('Col '+(i+1));});
+  var b=colLabels.length;
+  if(b<2) throw "Need at least 2 columns.";
+
+  var groups=[]; // {label, rows:[[..b..],..]}
+  for(var r=1;r<grid.length;r++){
+    var first=(grid[r][0]||'').trim();
+    var hasData=false; for(var c=1;c<=b;c++){ if((grid[r][c]||'').trim()!=='') hasData=true; }
+    if(!hasData && first==='') continue;
+    if(first!==''){ groups.push({label:first, rows:[]}); }
+    if(groups.length===0) throw "The first data row must carry a row label (e.g. the factor level).";
+    var vals=[];
+    for(var c2=1;c2<=b;c2++){
+      var v=num(grid[r][c2]);
+      if(isNaN(v)) throw "Missing/invalid value in group \""+groups[groups.length-1].label+"\", column \""+colLabels[c2-1]+"\".";
+      vals.push(v);
+    }
+    groups[groups.length-1].rows.push(vals);
+  }
+  var a=groups.length;
+  if(a<2) throw "Need at least 2 row-factor levels.";
+  var n=groups[0].rows.length;
+  groups.forEach(function(g){ if(g.rows.length!==n) throw "Every cell needs the same number of replicates. \""+g.label+"\" has "+g.rows.length+", expected "+n+"."; });
+  if(n<2) throw "With-replication needs ≥2 measurements per cell (found "+n+"). Use the “no replication” design instead.";
+
+  // cell values grouped by (i row-level, j column)
+  var cell=[]; // cell[i][j] = array of n values
+  for(var i=0;i<a;i++){ cell[i]=[]; for(var j=0;j<b;j++){ cell[i][j]=[]; for(var k=0;k<n;k++) cell[i][j].push(groups[i].rows[k][j]); } }
+
+  var all=[]; for(i=0;i<a;i++) for(j=0;j<b;j++) all=all.concat(cell[i][j]);
+  var grand=mean(all);
+  var cellMean=[]; for(i=0;i<a;i++){ cellMean[i]=[]; for(j=0;j<b;j++) cellMean[i][j]=mean(cell[i][j]); }
+  var rowMean=[]; for(i=0;i<a;i++){ var rv=[]; for(j=0;j<b;j++) rv=rv.concat(cell[i][j]); rowMean[i]=mean(rv); }
+  var colMean=[]; for(j=0;j<b;j++){ var cv=[]; for(i=0;i<a;i++) cv=cv.concat(cell[i][j]); colMean[j]=mean(cv); }
+
+  var SSrow=0; for(i=0;i<a;i++){ var d=rowMean[i]-grand; SSrow+=b*n*d*d; }
+  var SScol=0; for(j=0;j<b;j++){ var d2=colMean[j]-grand; SScol+=a*n*d2*d2; }
+  var SScells=0; for(i=0;i<a;i++) for(j=0;j<b;j++){ var d3=cellMean[i][j]-grand; SScells+=n*d3*d3; }
+  var SSint=SScells-SSrow-SScol;
+  var SSt=devsq(all);
+  var SSe=SSt-SScells;
+  var dfr=a-1, dfc=b-1, dfi=(a-1)*(b-1), dfe=a*b*(n-1), dft=a*b*n-1;
+  var MSr=SSrow/dfr, MSc=SScol/dfc, MSi=SSint/dfi, MSe=SSe/dfe;
+  var Fr=MSr/MSe, Fc_=MSc/MSe, Fi=MSi/MSe;
+  var pr=fPValue(Fr,dfr,dfe), pc=fPValue(Fc_,dfc,dfe), pi=fPValue(Fi,dfi,dfe);
+  var Fcr=fInvRT(alpha,dfr,dfe), Fcc=fInvRT(alpha,dfc,dfe), Fci=fInvRT(alpha,dfi,dfe);
+
+  var summary='<h3>Cell means (n = '+n+' per cell)</h3><div class="scroll"><table><tr><th class="lab">'+
+    esc(rowName)+' \\ '+esc(colName)+'</th>';
+  colLabels.forEach(function(cl){ summary+='<th>'+esc(cl)+'</th>'; });
+  summary+='<th>Row mean</th></tr>';
+  for(i=0;i<a;i++){
+    summary+='<tr><td class="lab">'+esc(groups[i].label)+'</td>';
+    for(j=0;j<b;j++) summary+='<td>'+fmt(cellMean[i][j])+'</td>';
+    summary+='<td><b>'+fmt(rowMean[i])+'</b></td></tr>';
+  }
+  summary+='<tr><td class="lab">Col mean</td>';
+  for(j=0;j<b;j++) summary+='<td><b>'+fmt(colMean[j])+'</b></td>';
+  summary+='<td><b>'+fmt(grand)+'</b></td></tr></table></div>';
+
+  var table=[
+    {src:rowName+' (rows)',      SS:SSrow,   df:dfr, MS:MSr, F:Fr,  p:pr, Fc:Fcr},
+    {src:colName+' (columns)',   SS:SScol,   df:dfc, MS:MSc, F:Fc_, p:pc, Fc:Fcc},
+    {src:'Interaction '+rowName+' × '+colName, SS:SSint, df:dfi, MS:MSi, F:Fi, p:pi, Fc:Fci},
+    {src:'Error (within)',       SS:SSe,     df:dfe, MS:MSe},
+    {src:'Total',                SS:SSt,     df:dft}
+  ];
+  function line(name,F,df1,df2,p,extraSig,extraNo){
+    var sig=p<alpha;
+    return '<div class="interp"><b>'+esc(name)+':</b> F('+df1+','+df2+') = '+fmt(F,2)+', p = '+fmtP(p)+'. '+
+      (sig ? (extraSig||'p &lt; α — <b>significant effect</b>.') : (extraNo||'p ≥ α — <b>no significant effect</b>.'))+'</div>';
+  }
+  var interp=
+    line(rowName, Fr, dfr, dfe, pr)+
+    line(colName, Fc_, dfc, dfe, pc)+
+    line('Interaction '+rowName+' × '+colName, Fi, dfi, dfe, pi,
+      'p &lt; α — the effect of one factor <b>depends on the level of the other</b> (non-additive); interpret main effects with care.',
+      'p ≥ α — <b>no interaction</b>; the two factors act independently (their effects simply add up).');
+
+  return {summary:summary, table:table, alpha:alpha, interp:interp,
+          tests:[{name:rowName,sig:pr<alpha},{name:colName,sig:pc<alpha},{name:'Interaction',sig:pi<alpha}],
+          grr:{a:a,b:b,n:n,MSr:MSr,MSc:MSc,MSe:MSe}};
+}
+
+/* ============================ Gauge R&R (ANOVA method) ============================ */
+function gaugeRR(grr, swap){
+  // rows = parts, columns = operators  (swap flips this)
+  var parts   = swap ? grr.b : grr.a;
+  var opers   = swap ? grr.a : grr.b;
+  var MSpart  = swap ? grr.MSc : grr.MSr;
+  var MSoper  = swap ? grr.MSr : grr.MSc;
+  var trials  = grr.n;
+  var MSe     = grr.MSe;
+
+  var EV2 = MSe;                                                     // repeatability (equipment)
+  var AV2 = Math.max(0, (MSoper - MSe)/(parts*trials));              // reproducibility (appraiser)
+  var PV2 = Math.max(0, (MSpart - MSe)/(opers*trials));             // part variation
+  var GRR2= EV2+AV2;
+  var TV2 = GRR2+PV2;
+  var EV=Math.sqrt(EV2), AV=Math.sqrt(AV2), PV=Math.sqrt(PV2), GRR=Math.sqrt(GRR2), TV=Math.sqrt(TV2);
+  var pctGRR = TV>0 ? GRR/TV*100 : 0;
+  var pctPV  = TV>0 ? PV/TV*100  : 0;
+  var ndc = GRR>0 ? Math.floor(1.41*PV/GRR) : 0;
+
+  var verdict, vclass;
+  if(pctGRR<10){ verdict='Acceptable measurement system (%GRR &lt; 10%).'; vclass='good'; }
+  else if(pctGRR<=30){ verdict='Marginal — acceptable depending on application (10% ≤ %GRR ≤ 30%).'; vclass='warn'; }
+  else { verdict='Not acceptable — the gauge is unsuitable (%GRR &gt; 30%).'; vclass='bad'; }
+
+  return {parts:parts,opers:opers,trials:trials,
+    rows:[
+      ['Repeatability — Equipment Variation (EV)', EV2, EV, pctOf(EV,TV)],
+      ['Reproducibility — Appraiser Variation (AV)', AV2, AV, pctOf(AV,TV)],
+      ['Gauge R&R (EV+AV)', GRR2, GRR, pctGRR],
+      ['Part Variation (PV)', PV2, PV, pctPV],
+      ['Total Variation (TV)', TV2, TV, 100]
+    ],
+    pctGRR:pctGRR, ndc:ndc, verdict:verdict, vclass:vclass};
+}
+function pctOf(x,tv){ return tv>0 ? x/tv*100 : 0; }
+
+/* ============================ rendering ============================ */
+function anovaTableHTML(res){
+  var h='<div class="flexhead"><h3 style="margin:0">ANOVA table</h3>'+
+        '<button class="ghost" onclick="copyAnova()">Copy for Excel</button></div>'+
+        '<div class="scroll"><table id="anovaTable"><tr>'+
+        '<th class="lab">Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p-value</th><th>F crit (α='+res.alpha+')</th><th class="lab">Sig.</th></tr>';
+  res.table.forEach(function(row){
+    var isSig = (row.p!==undefined) && (row.p<res.alpha);
+    h+='<tr'+(isSig?' class="sig"':'')+'>'+
+      '<td class="lab">'+esc(row.src)+'</td>'+
+      '<td>'+fmt(row.SS)+'</td>'+
+      '<td>'+row.df+'</td>'+
+      '<td>'+(row.MS!==undefined?fmt(row.MS):'')+'</td>'+
+      '<td>'+(row.F!==undefined?fmt(row.F,3):'')+'</td>'+
+      '<td>'+(row.p!==undefined?fmtP(row.p):'')+'</td>'+
+      '<td>'+(row.Fc!==undefined?fmt(row.Fc,3):'')+'</td>'+
+      '<td class="lab">'+(row.p!==undefined?('<span class="tag '+(isSig?'yes">significant':'no">n.s.')+'</span>'):'')+'</td>'+
+      '</tr>';
+  });
+  h+='</table></div>';
+  return h;
+}
+
+function grrHTML(g){
+  var h='<h3>Gauge R&R — ANOVA method</h3>'+
+    '<p class="muted">Assuming <b>'+g.parts+' parts</b> (rows) × <b>'+g.opers+' operators</b> (columns) × <b>'+g.trials+' trials</b>. '+
+    'Toggle “Swap parts/operators” above if that mapping is reversed.</p>'+
+    '<div class="scroll"><table><tr><th class="lab">Source</th><th>Variance (σ²)</th><th>Std dev (σ)</th><th>% of Total Var</th></tr>';
+  g.rows.forEach(function(r){
+    h+='<tr><td class="lab">'+r[0]+'</td><td>'+fmt(r[1])+'</td><td>'+fmt(r[2])+'</td><td>'+fmt(r[3],1)+'%</td></tr>';
+  });
+  h+='</table></div>'+
+    '<div class="interp"><b>%GRR = '+fmt(g.pctGRR,1)+'%</b> &nbsp;·&nbsp; <b>ndc = '+g.ndc+'</b> distinct categories.<br>'+
+    '<span class="verdict '+g.vclass+'">'+g.verdict+'</span><br>'+
+    '<span class="muted">Rule of thumb: %GRR &lt;10% good, 10–30% marginal, &gt;30% unacceptable. ndc should be ≥ 5.</span></div>';
+  return h;
+}
+
+var LAST=null; // last ANOVA result, for copy
+function render(res, grr){
+  LAST=res;
+  var html='<div class="card">'+res.summary+
+    anovaTableHTML(res)+
+    '<h3>What it means</h3>'+res.interp;
+  if(grr) html+=grrHTML(grr);
+  html+='</div>';
+  document.getElementById('out').innerHTML=html;
+}
+
+function copyAnova(){
+  if(!LAST) return;
+  var lines=[['Source','SS','df','MS','F','p-value','F crit'].join('\t')];
+  LAST.table.forEach(function(r){
+    lines.push([r.src,
+      isFinite(r.SS)?r.SS.toFixed(4):'',
+      r.df,
+      r.MS!==undefined?r.MS.toFixed(4):'',
+      r.F!==undefined?r.F.toFixed(4):'',
+      r.p!==undefined?r.p.toExponential(6):'',
+      r.Fc!==undefined?r.Fc.toFixed(4):''
+    ].join('\t'));
+  });
+  copyText(lines.join('\n'), event && event.target);
+}
+function copyText(text, btn){
+  function done(){ if(btn){ var s=document.createElement('span'); s.className='copied'; s.textContent='copied ✓'; btn.after(s); setTimeout(function(){s.remove();},1600); } }
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done, function(){fallback(text,done);});
+  } else fallback(text,done);
+}
+function fallback(text,done){
+  var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta); done();
+}
+
+/* ============================ UI wiring ============================ */
+var MODE='one';
+var HINTS={
+  one:'<div class="hint"><b>One-way ANOVA.</b> Each <b>column is one group</b>; the <b>first row holds the group labels</b>; the numbers below are the measurements. Groups may have different sample sizes (leave cells blank). Tests whether the group means differ.</div>',
+  two:'<div class="hint"><b>Two-way ANOVA, no replication.</b> A grid with <b>column labels in the first row</b> and <b>row labels in the first column</b> (top-left cell is the factor names or blank), and <b>exactly one value per cell</b>. Tests the two main effects — no interaction is estimable.</div>',
+  tworep:'<div class="hint"><b>Two-way ANOVA with replication.</b> <b>Column labels in the first row.</b> Each row-factor level starts on a <b>labelled row</b>, then its extra replicates sit on rows with a <b>blank first cell</b> (exactly as Excel lays it out). Same number of replicates in every cell. Tests both main effects <b>plus their interaction</b>.</div>'
+};
+var EXAMPLES={
+  one:{one:['Cotton % (tensile strength)',
+    '15\t20\t25\t30\t35\n7\t12\t14\t19\t7\n7\t17\t18\t25\t10\n15\t12\t18\t22\t11\n11\t18\t19\t19\t15\n9\t18\t19\t23\t11']},
+  two:{two:['Machines × operators',
+    '\tMilling\tTurning\tPainting\tCutting\nPeter\t46\t56\t55\t47\nPaul\t54\t55\t51\t56\nMary\t48\t56\t50\t58\nDonald\t46\t60\t51\t59\nHillary\t51\t53\t53\t55']},
+  tworep:{
+    plant:['Plant growth (water × sun)',
+      'Water\tNone\tLow\tMedium\tHigh\nDaily\t4.8\t5\t6.4\t6.3\n\t4.4\t5.2\t6.2\t6.4\n\t3.2\t5.6\t4.7\t5.6\n\t3.9\t4.3\t5.5\t4.8\n\t4.4\t4.8\t5.8\t5.8\nWeekly\t4.4\t4.9\t5.8\t6\n\t4.2\t5.3\t6.2\t4.9\n\t3.8\t5.7\t6.3\t4.6\n\t3.7\t5.4\t6.5\t5.6\n\t3.9\t4.8\t5.5\t5.5'],
+    grr:['Gauge R&R (parts × appraisers)',
+      '\tA\tB\tC\nP1\t20\t20\t20\n\t15\t20\t15\nP2\t20\t15\t20\n\t25\t10\t20\nP3\t25\t15\t25\n\t25\t10\t25\nP4\t50\t45\t45\n\t50\t20\t50\nP5\t45\t35\t40\n\t40\t40\t40']}
+};
+
+function refreshUI(){
+  document.getElementById('hint').innerHTML=HINTS[MODE];
+  // examples
+  var ex=EXAMPLES[MODE], eh='';
+  for(var key in ex){ eh+='<button class="ghost" data-ex="'+key+'">Load example: '+ex[key][0]+'</button> '; }
+  document.getElementById('examples').innerHTML=eh;
+  Array.prototype.forEach.call(document.querySelectorAll('#examples [data-ex]'), function(btn){
+    btn.onclick=function(){
+      var k=btn.getAttribute('data-ex');
+      document.getElementById('data').value=ex[k][1];
+      var grrBox=document.getElementById('grrChk');
+      if(grrBox) grrBox.checked=(k==='grr');
+      run();
+    };
+  });
+  // extra options (GRR toggle only for tworep)
+  var extra=document.getElementById('extraOpts');
+  if(MODE==='tworep'){
+    extra.innerHTML='<label class="opt"><input type="checkbox" id="grrChk"> Also compute Gauge R&R</label>'+
+      '<label class="opt"><input type="checkbox" id="swapChk"> Swap parts / operators</label>';
+    document.getElementById('grrChk').onchange=run;
+    document.getElementById('swapChk').onchange=run;
+  } else extra.innerHTML='';
+}
+
+function currentNames(){
+  // derive factor names from the top-left cell (row factor) when present
+  var grid=parseGrid(document.getElementById('data').value);
+  var rowName = (grid[0] && grid[0][0] && grid[0][0].trim()) ? grid[0][0].trim() : 'Rows';
+  var colName = 'Columns';
+  return {rowName:rowName, colName:colName};
+}
+
+function run(){
+  var errbox=document.getElementById('errbox'); errbox.innerHTML='';
+  document.getElementById('out').innerHTML='';
+  var text=document.getElementById('data').value;
+  if(!text.trim()){ return; }
+  var alpha=num(document.getElementById('alpha').value); if(isNaN(alpha)||alpha<=0||alpha>=1) alpha=0.05;
+  try{
+    var grid=parseGrid(text);
+    var res, grr=null;
+    if(MODE==='one') res=anovaOneWay(grid, alpha);
+    else{
+      var nm=currentNames();
+      if(MODE==='two') res=anovaTwoWay(grid, alpha, nm.rowName, nm.colName);
+      else{
+        var grrOn=document.getElementById('grrChk') && document.getElementById('grrChk').checked;
+        var swap =document.getElementById('swapChk') && document.getElementById('swapChk').checked;
+        var rn = grrOn ? 'Parts' : nm.rowName;
+        var cn = grrOn ? 'Operators' : nm.colName;
+        res=anovaTwoWayRep(grid, alpha, rn, cn);
+        if(grrOn && res.grr) grr=gaugeRR(res.grr, swap);
+      }
+    }
+    render(res, grr);
+  }catch(e){
+    errbox.innerHTML='<div class="err">'+esc(typeof e==='string'?e:(e && e.message)||'Could not parse the data.')+'</div>';
+  }
+}
+
+Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(tab){
+  tab.onclick=function(){
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(t){t.classList.remove('active');});
+    tab.classList.add('active');
+    MODE=tab.getAttribute('data-mode');
+    refreshUI();
+    document.getElementById('out').innerHTML='';
+    document.getElementById('errbox').innerHTML='';
+  };
+});
+document.getElementById('run').onclick=run;
+document.getElementById('clear').onclick=function(){ document.getElementById('data').value=''; document.getElementById('out').innerHTML=''; document.getElementById('errbox').innerHTML=''; };
+document.getElementById('alpha').onchange=run;
+
+refreshUI();
+</script>

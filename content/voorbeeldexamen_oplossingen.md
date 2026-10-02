@@ -20,11 +20,11 @@ dus de breedte van het CI $2z_{1-\alpha/2}\sigma/\sqrt{n}$ kan zo klein gemaakt 
 **d. "Cluster sampling zal nooit non-response bias vertonen."** - **Niet correct.**
 Non-response ontstaat **na** de selectie: geselecteerde elementen die niet antwoorden, niet gemeten kunnen worden of ontbreken. Dat kan bij elke steekproefmethode gebeuren, ook als volledige clusters gekozen worden (bv. een filiaal dat niet meewerkt, ontbrekende stuks in een doos). Als de non-respondenten systematisch verschillen, is de schatting vertekend.
 
-**e. "Om een hypothese te testen bij een significantie van 1% dient een 99%-betrouwbaarheidsinterval te worden berekend."** - **Niet correct (te absoluut).**
-- Een toets kan ook zonder CI uitgevoerd worden, via de kritieke waarde of de p-waarde ("dient" is fout).
-- Als je de toets via een CI uitvoert, hangt het juiste interval af van de zijdigheid: een **tweezijdige** toets op 1% hoort bij een **tweezijdig** 99%-CI; een **eenzijdige** toets op 1% hoort bij een **eenzijdige** 99%-grens (equivalent: een grens van een tweezijdig 98%-CI).
+**e. "Om een hypothese te testen bij een significantie van 1% dient een 99%-betrouwbaarheidsinterval te worden berekend."** - **Correct** (in de standaardlezing, tweezijdig), met nuance.
+- Dualiteit: een **tweezijdige** toets op significantieniveau $\alpha$ komt exact overeen met een $(1-\alpha)$-betrouwbaarheidsinterval: $\alpha=1\%\Rightarrow 99\%$-BI. Ligt de hypothesewaarde buiten het 99%-BI, dan verwerp je $H_0$ op 1%.
+- Nuance: een **eenzijdige** toets op 1% hoort bij een **eenzijdige** 99%-grens (equivalent: een grens van een tweezijdig 98%-BI). De toets kan uiteraard ook rechtstreeks via de kritieke waarde of de p-waarde.
 
-**Examenantwoord:** a niet correct: significantie zegt niets over de grootte van het effect, een kosten-batenanalyse is nodig. b correct: het hele 95%-interval ligt boven 1%, dus het huidige proces haalt geen < 1% (wat niet uitsluit dat het na verbetering wel kan). c correct in theorie, want $SE=\sigma/\sqrt{n}\to0$ (in de praktijk beperkt door kost en bias); d niet correct, want non-response ontstaat na de selectie en kan bij elke methode optreden; e niet correct, want een toets kan ook via de p-waarde, en een eenzijdige 1%-toets hoort bij een eenzijdige 99%-grens (tweezijdig 98%-CI).
+**Examenantwoord:** a niet correct: significantie zegt niets over de grootte van het effect, een kosten-batenanalyse is nodig. b correct: het hele 95%-interval ligt boven 1%, dus het huidige proces haalt geen < 1% (wat niet uitsluit dat het na verbetering wel kan). c correct in theorie, want $SE=\sigma/\sqrt{n}\to0$ (in de praktijk beperkt door kost en bias); d niet correct, want non-response ontstaat na de selectie en kan bij elke methode optreden; e correct: een tweezijdige toets op 1% is equivalent met nagaan of de hypothesewaarde in het 99%-BI ligt (nuance: een eenzijdige 1%-toets hoort bij een eenzijdige 99%-grens).
 
 ## Vraag 2
 
@@ -171,16 +171,16 @@ Excel: `=(820-720)/NORM.S.INV(0,95)` = 60,80; `=100*0,05*0,95` = 4,75.
 **Opgave [3]**: fictieve gezamenlijke verdeling van gloeitemperatuur T (°C, horizontaal) en sterkte S (MPa, verticaal), twee scatterplots. Schetsen, beschreven in woorden.
 
 **a. Regressielijn $f(x)=E[S\mid T=x]$.**
-Teken een lijn (of vloeiende curve) die bij elke temperatuur $x$ door het **midden** (het gemiddelde) van de verticale strook punten loopt. Ze volgt de trend van de wolk (bv. stijgend als hogere T samengaat met hogere S), met ongeveer evenveel punten erboven als eronder bij elke $x$. Het is niet de lijn door de uiterste punten en ook niet de hoofdas van de ellips: het is de lijn van de **voorwaardelijke gemiddelden** ("seeing").
+Teken een lijn (of vloeiende curve) die bij elke temperatuur $x$ door het **midden** (het gemiddelde) van de verticale strook punten loopt. Ze volgt de trend van de wolk: in de examenfiguur is die **dalend**, van ongeveer 450 MPa bij 550 °C naar ongeveer 425 MPa bij 740 °C, met ongeveer evenveel punten erboven als eronder bij elke $x$. Het is niet de lijn door de uiterste punten en ook niet de hoofdas van de ellips: het is de lijn van de **voorwaardelijke gemiddelden** ("seeing").
 
 **b. Causaal diagram $S\to T$, interventie $do(T=730)$: bolletjes (eerste figuur).**
 Als S de oorzaak is van T, dan knipt de interventie de pijl $S\to T$ door: T wordt van buitenaf op 730 °C gezet, maar dat heeft **geen invloed op S**. S behoudt zijn **marginale verdeling**:
 $$P(S\mid do(T=730))=P(S)$$
-Schets: ~10 bolletjes op een **verticale lijn bij T = 730**, verspreid over het **volledige bereik van S** van de hele wolk (rond het totale gemiddelde van S, met de totale spreiding), dus niet geconcentreerd rond de regressielijn bij 730.
+Schets: ~10 bolletjes op een **verticale lijn bij T = 730**, verspreid over het **volledige bereik van S** van de hele wolk (in de figuur ongeveer 390 tot 480 MPa, rond het totale gemiddelde van ongeveer 440 MPa), dus niet geconcentreerd rond de regressielijn bij 730.
 
 **c. Causaal diagram $T\to S$, zelfde interventie: kruisjes (tweede figuur).**
 Als T de oorzaak is van S (en er is geen confounder), dan is ingrijpen hetzelfde als observeren:
 $$P(S\mid do(T=730))=P(S\mid T=730)$$
-Schets: ~10 kruisjes op de verticale lijn bij T = 730, **gegroepeerd rond de waarde van de regressielijn** $E[S\mid T=730]$, met de (kleinere) voorwaardelijke spreiding van de strook rond 730.
+Schets: ~10 kruisjes op de verticale lijn bij T = 730, **gegroepeerd rond de waarde van de regressielijn** $E[S\mid T=730]$ (in de figuur ongeveer 425 MPa), met de (kleinere) voorwaardelijke spreiding van de strook rond 730.
 
 **Examenantwoord:** De regressielijn $E[S\mid T=x]$ loopt bij elke temperatuur door het gemiddelde van de punten en volgt zo de trend van de wolk. Bij $S\to T$ verandert het vastzetten van T op 730 °C niets aan S: de bolletjes liggen op een verticale lijn bij 730 maar verspreid over het volledige (marginale) bereik van S. Bij $T\to S$ geldt $P(S\mid do(T=730))=P(S\mid T=730)$: de kruisjes liggen bij 730 dicht rond de waarde van de regressielijn. Het verschil illustreert "seeing" versus "doing": een correlatie zegt niet welke kant de causale pijl uitgaat.

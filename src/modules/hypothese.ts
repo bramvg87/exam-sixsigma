@@ -1,6 +1,6 @@
 // M2 Hypothesetoetsen & betrouwbaarheidsintervallen.
 import { h, fmt, tx, xl, nl, pctNl, pct } from '../ui/core.ts';
-import { Form, row, card, note, type Field } from '../ui/form.ts';
+import { Form, row, card, note, exampleRow, type Field } from '../ui/form.ts';
 import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
 import { densityPlot, chartBox } from '../components/charts.ts';
@@ -63,7 +63,7 @@ function zTab(el: HTMLElement) {
   const mu0 = f.num('mu0', '\u03bc\u2080', 10);
   const alpha = f.num('alpha', '\u03b1', 0.02);
   const side = f.seg('side', 'H\u2090', SIDES, 'left');
-  el.append(card('Z-toets voor het gemiddelde (\u03c3 gekend)', ...inp.els, row(sigma.el, mu0.el, alpha.el), row(side.el)), out);
+  el.append(card('Z-toets voor het gemiddelde (\u03c3 gekend)', exampleRow(f, [['Voorbeeld Hypothesetester (x\u0304 10,1; \u03c3 0,3; n 36)', { mode: 'sum', xbar: 10.1, sigma: 0.3, n: 36, mu0: 10, alpha: 0.05, side: 'two' }]]), ...inp.els, row(sigma.el, mu0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
     inp.sync();
     const d = inp.get();
@@ -101,7 +101,7 @@ function tTab(el: HTMLElement) {
   const mu0 = f.num('mu0', '\u03bc\u2080', 10);
   const alpha = f.num('alpha', '\u03b1', 0.02);
   const side = f.seg('side', 'H\u2090', SIDES, 'left');
-  el.append(card('t-toets voor het gemiddelde (\u03c3 onbekend)', h('p', { class: 'muted' }, 'Voorbeeld (Ottoy): 20 stukken, H\u2080: \u03bc = 10 tegen H\u2090: \u03bc < 10, \u03b1 = 2%. Kies "Ruwe data" en klik "Voorbeeld laden".'), ...inp.els, row(mu0.el, alpha.el), row(side.el)), out);
+  el.append(card('t-toets voor het gemiddelde (\u03c3 onbekend)', h('p', { class: 'muted' }, 'Voorbeeld (Ottoy): 20 stukken, H\u2080: \u03bc = 10 tegen H\u2090: \u03bc < 10, \u03b1 = 2%. Kies "Ruwe data" en klik "Voorbeeld laden".'), exampleRow(f, [['Voorbeeld slide / Hypothesetester (x\u0304 9,928; s 0,109; n 20)', { mode: 'sum', xbar: 9.928, s: 0.109, n: 20, mu0: 10, alpha: 0.02, side: 'left' }]]), ...inp.els, row(mu0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
     inp.sync();
     const d = inp.get();
@@ -144,7 +144,7 @@ function chiTab(el: HTMLElement) {
   const s0 = f.num('sigma0', '\u03c3\u2080', 0.01);
   const alpha = f.num('alpha', '\u03b1', 0.02);
   const side = f.seg('side', 'H\u2090 (voor \u03c3)', SIDES, 'right');
-  el.append(card('\u03c7\u00b2-toets voor de variantie / standaardafwijking', h('p', { class: 'muted' }, 'Voorbeeld (Ottoy): 20 stukken, H\u2080: \u03c3 = 0,01 tegen H\u2090: \u03c3 > 0,01, \u03b1 = 2%. Gemiddelde x\u0304 wordt niet gebruikt.'), ...inp.els, row(s0.el, alpha.el), row(side.el)), out);
+  el.append(card('\u03c7\u00b2-toets voor de variantie / standaardafwijking', h('p', { class: 'muted' }, 'Voorbeeld (Ottoy): 20 stukken, H\u2080: \u03c3 = 0,01 tegen H\u2090: \u03c3 > 0,01, \u03b1 = 2%. Gemiddelde x\u0304 wordt niet gebruikt.'), exampleRow(f, [['Voorbeeld Hypothesetester (s 0,13; \u03c3\u2080 0,10; n 25)', { mode: 'sum', s: 0.13, n: 25, sigma0: 0.1, alpha: 0.05, side: 'right' }]]), ...inp.els, row(s0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
     inp.sync();
     const d = inp.get();
@@ -191,7 +191,7 @@ function fTab(el: HTMLElement) {
   const grid = new DataGrid({ key: 'hf', cols: 2, headers: ['M1', 'M2'], onChange: () => run(), example: () => ({ headers: ['A', 'B'], rows: (G as any).two_sample.B.map((b: number, i: number) => [(G as any).two_sample.A[i] ?? '', b]) }) });
   const sumRow = h('div', null, row(nm1.el, nm2.el), row(kind.el, v1.el, n1.el, v2.el, n2.el));
   el.append(
-    card('F-toets twee varianties en BI voor de verhouding', h('p', { class: 'muted' }, 'Examen vraag 2: M1 n\u2081 = 10, s\u2081\u00b2 = 0,004; M2 n\u2082 = 15, s\u2082\u00b2 = 0,015; vermoeden: M1 nauwkeuriger (H\u2090: \u03c3\u2081 < \u03c3\u2082), eenzijdig 95%.'), row(mode.el), sumRow, grid.el, row(alpha.el), row(side.el)),
+    card('F-toets twee varianties en BI voor de verhouding', h('p', { class: 'muted' }, 'Examen vraag 2: M1 n\u2081 = 10, s\u2081\u00b2 = 0,004; M2 n\u2082 = 15, s\u2082\u00b2 = 0,015; vermoeden: M1 nauwkeuriger (H\u2090: \u03c3\u2081 < \u03c3\u2082), eenzijdig 95%.'), exampleRow(f, [['Examen vraag 2', { mode: 'sum', nm1: 'M1', nm2: 'M2', kind: 'var', v1: 0.004, n1: 10, v2: 0.015, n2: 15, alpha: 0.05, side: 'left' }], ['Voorbeeld Hypothesetester (s\u2081 0,12247; n\u2081 15; s\u2082 0,06325; n\u2082 10)', { mode: 'sum', nm1: '1', nm2: '2', kind: 'sd', v1: 0.12247, n1: 15, v2: 0.06325, n2: 10, alpha: 0.05, side: 'right' }]]), row(mode.el), sumRow, grid.el, row(alpha.el), row(side.el)),
     out,
   );
   run = live(out, () => {
@@ -297,7 +297,7 @@ function propTab(el: HTMLElement) {
   const alpha = f.num('alpha', '\u03b1', 0.05);
   const side = f.seg('side', 'H\u2090', SIDES, 'right');
   const cc = f.check('cc', 'Continu\u00efteitscorrectie \u00b11/(2n) (Ottoy-recept)', true);
-  el.append(card('Z-toets voor een fractie (proportie) + exacte binomiale toets', row(d.el, n.el, pi0.el, alpha.el), row(side.el, cc.el)), out);
+  el.append(card('Z-toets voor een fractie (proportie) + exacte binomiale toets', exampleRow(f, [['Voorbeeld Hypothesetester (p 0,08 = 16/200; \u03c0\u2080 0,05)', { d: 16, n: 200, pi0: 0.05, alpha: 0.05, side: 'right' }]]), row(d.el, n.el, pi0.el, alpha.el), row(side.el, cc.el)), out);
   run = live(out, () => {
     const N = posInt(n.get(), 'n');
     const dd = posInt(d.get(), 'd', 0);
@@ -545,7 +545,7 @@ function dualTab(el: HTMLElement) {
           ['linkszijdig H\u2090: \u03b8 < \u03b8\u2080', 'eenzijdige bovengrens: \u03b8 \u2264 U', '\u03b8\u2080 > U'],
         ],
       ),
-      note('Examenvraag 1e: "Om te toetsen op 1% dient een 99%-BI berekend te worden" is enkel juist voor een TWEEZIJDIGE toets. Een eenzijdige toets op 1% hoort bij een eenzijdige 99%-grens (equivalent: de grens van een tweezijdig 98%-BI). Je kan ook rechtstreeks met de p-waarde werken.', 'info'),
+      note('Examenvraag 1e: "Om te toetsen op 1% dient een 99%-BI berekend te worden" is correct in de standaardlezing (tweezijdige toets <-> tweezijdig 99%-BI). Nuance: een eenzijdige toets op 1% hoort bij een eenzijdige 99%-grens (equivalent: de grens van een tweezijdig 98%-BI); je kan ook rechtstreeks met de p-waarde werken.', 'info'),
       note('Significant is niet hetzelfde als relevant: een klein (economisch onbelangrijk) effect kan significant zijn bij grote n. Beslis op basis van de grootte van het effect (BI) en kosten-baten.', 'warn'),
     ),
   );

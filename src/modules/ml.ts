@@ -9,6 +9,7 @@ import { chi2InvRt } from '../stats/dist.ts';
 import { live, need, moduleHead } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
 import G from '../../testdata/golden_values.json';
+import { exam } from '../generated/content.ts';
 
 const NAMES = ['A', 'B', 'C', 'D'];
 
@@ -156,25 +157,28 @@ function gauss(r: () => number) {
 
 function causalTab(el: HTMLElement) {
   const r = rng(7);
-  // observational data: T and S correlated (slope +), T in 650..800
+  // Mimics the exam figure (voorbeeldexamen vraag 7): T 550-750 degC, S falls from ~450 to ~425 MPa.
   const T: number[] = [];
   const S: number[] = [];
-  for (let i = 0; i < 120; i++) {
-    const t = 725 + 35 * gauss(r);
+  const regAt = (t: number) => 452 - 0.13 * (t - 550);
+  for (let i = 0; i < 110; i++) {
+    const t = 550 + 200 * r();
     T.push(t);
-    S.push(400 + 1.2 * (t - 725) + 25 * gauss(r));
+    S.push(regAt(t) + 13 * gauss(r));
   }
   const tx0 = 730;
-  const regAt = (t: number) => 400 + 1.2 * (t - 725);
+  const mS = S.reduce((x, y) => x + y, 0) / S.length;
+  const sdS = Math.sqrt(S.reduce((x, y) => x + (y - mS) ** 2, 0) / (S.length - 1));
   // b) S -> T: intervention on T does not change S: S keeps its marginal distribution
-  const dotsB: [number, number][] = Array.from({ length: 10 }, () => [tx0, 400 + Math.sqrt(1.2 ** 2 * 35 ** 2 + 25 ** 2) * gauss(r)]);
-  // c) T -> S: S | do(T=730) ~ regression value at 730 + noise
-  const dotsC: [number, number][] = Array.from({ length: 10 }, () => [tx0, regAt(tx0) + 25 * gauss(r)]);
-  const line: [number, number][] = [[640, regAt(640)], [810, regAt(810)]];
+  const dotsB: [number, number][] = Array.from({ length: 10 }, () => [tx0, mS + sdS * gauss(r)]);
+  // c) T -> S: S | do(T=730) ~ regression value at 730 + residual noise
+  const dotsC: [number, number][] = Array.from({ length: 10 }, () => [tx0, regAt(tx0) + 13 * gauss(r)]);
+  const line: [number, number][] = [[545, regAt(545)], [755, regAt(755)]];
   const base = { pts: T.map((t, i) => [t, S[i]] as [number, number]), dots: true, cls: 'obs' };
   el.append(
     card('Zien versus doen (seeing vs doing) - voorbeeldexamen vraag 7',
-      h('p', null, 'Observeren: E[S | T = x] is de regressielijn door het midden van de puntenwolk. Ingrijpen (do-operator): T vastzetten op 730 °C. Wat er dan met S gebeurt hangt af van de causale richting, niet van de correlatie.'),
+      exam.figures['7'] ? h('img', { src: exam.figures['7'], alt: 'Examenfiguur vraag 7', class: 'examfig' }) : '',
+      h('p', null, 'Observeren: E[S | T = x] is de regressielijn door het midden van de puntenwolk (in de examenfiguur dalend: ongeveer 450 MPa bij 550 °C tot 425 MPa bij 740 °C). Ingrijpen (do-operator): T vastzetten op 730 °C. Wat er dan met S gebeurt hangt af van de causale richting, niet van de correlatie.'),
       h('div', { class: 'grid2' },
         h('div', null, h('b', null, 'a) Regressielijn E[S | T = x]'), chartBox(lineChart({ series: [base, { pts: line, cls: 'fit' }], xlabel: 'T (°C)', ylabel: 'S (MPa)' }, 520, 300))),
         h('div', null, h('b', null, 'b) S -> T: do(T = 730): S verandert niet (bolletjes, marginale spreiding van S)'), chartBox(lineChart({ series: [base, { pts: line, cls: 'fit' }, { pts: dotsB, dots: true, flags: dotsB.map(() => true) }], vlines: [{ x: tx0, label: 'T = 730' }], xlabel: 'T (°C)', ylabel: 'S (MPa)' }, 520, 300))),
