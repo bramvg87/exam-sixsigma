@@ -84,6 +84,54 @@ Het resultaat van een meting is een interval: $\text{waarde}\pm U$ met $U=k\cdot
 - **Functie** $y=f(x)$: $u(y)\approx|f'(x)|\,u(x)$; bv. $y=x^2$: de relatieve onzekerheid verdubbelt.
 - **Conformiteit:** aanvaard een stuk pas zeker als waarde $\pm U$ volledig binnen de specificatie valt (guard band).
 
-### Voorbeeld (AIAG-handboek: 10 stukken, 3 operatoren, 3 herhalingen)
+### Voorbeeld stap voor stap (AIAG-handboek: 10 stukken, 3 operatoren, 3 herhalingen)
 
-$\bar{\bar R}=0{,}342\Rightarrow EV=0{,}342\cdot0{,}5908=0{,}202$. $\bar X_{diff}=0{,}445\Rightarrow AV=\sqrt{(0{,}445\cdot0{,}5231)^2-0{,}202^2/30}=0{,}230$. $GRR=\sqrt{0{,}202^2+0{,}230^2}=0{,}306$. $R_p=3{,}51\Rightarrow PV=3{,}51\cdot0{,}3146=1{,}105$. $TV=\sqrt{0{,}306^2+1{,}105^2}=1{,}146$. **%GRR = 26,7%** (voorwaardelijk aanvaardbaar) en $ndc=\lfloor1{,}41\cdot1{,}105/0{,}306\rfloor=5$ (net voldoende). Herhaalbaarheid en reproduceerbaarheid dragen ongeveer even veel bij, dus zowel instrument als operatoren verdienen aandacht.
+**De studie.** 10 stukken die de spreiding van het proces dekken, worden elk 3 keer gemeten door 3 operatoren (A, B, C), in willekeurige volgorde: $10\times3\times3=90$ metingen. De waarden zijn afwijkingen t.o.v. een nominale maat. Kolom A1 = eerste meting van operator A, A2 = tweede, A3 = derde. $R_A$ = range (grootste min kleinste) van de 3 metingen van operator A op dat stuk.
+
+| stuk | A1 | A2 | A3 | **R_A** | B1 | B2 | B3 | **R_B** | C1 | C2 | C3 | **R_C** | **stukgem.** |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 0,29 | 0,41 | 0,64 | **0,35** | 0,08 | 0,25 | 0,07 | **0,18** | 0,04 | −0,11 | −0,15 | **0,19** | **0,169** |
+| 2 | −0,56 | −0,68 | −0,58 | **0,12** | −0,47 | −1,22 | −0,68 | **0,75** | −1,38 | −1,13 | −0,96 | **0,42** | **−0,851** |
+| 3 | 1,34 | 1,17 | 1,27 | **0,17** | 1,19 | 0,94 | 1,34 | **0,40** | 0,88 | 1,09 | 0,67 | **0,42** | **1,099** |
+| 4 | 0,47 | 0,50 | 0,64 | **0,17** | 0,01 | 1,03 | 0,20 | **1,02** | 0,14 | 0,20 | 0,11 | **0,09** | **0,367** |
+| 5 | −0,80 | −0,92 | −0,84 | **0,12** | −0,56 | −1,20 | −1,28 | **0,72** | −1,46 | −1,07 | −1,45 | **0,39** | **−1,064** |
+| 6 | 0,02 | −0,11 | −0,21 | **0,23** | −0,20 | 0,22 | 0,06 | **0,42** | −0,29 | −0,67 | −0,49 | **0,38** | **−0,186** |
+| 7 | 0,59 | 0,75 | 0,66 | **0,16** | 0,47 | 0,55 | 0,83 | **0,36** | 0,02 | 0,01 | 0,21 | **0,20** | **0,454** |
+| 8 | −0,31 | −0,20 | −0,17 | **0,14** | −0,63 | 0,08 | −0,34 | **0,71** | −0,46 | −0,56 | −0,49 | **0,10** | **−0,342** |
+| 9 | 2,26 | 1,99 | 2,01 | **0,27** | 1,80 | 2,12 | 2,19 | **0,39** | 1,77 | 1,45 | 1,87 | **0,42** | **1,940** |
+| 10 | −1,36 | −1,25 | −1,31 | **0,11** | −1,68 | −1,62 | −1,50 | **0,18** | −1,49 | −1,77 | −2,16 | **0,67** | **−1,571** |
+| **R̄ per operator** | | | | **0,184** | | | | **0,513** | | | | **0,328** | |
+| **gemiddelde operator** | | | | **0,190** | | | | **0,068** | | | | **−0,254** | |
+
+**Stap 1 - ranges per stuk en per operator.** Voor elk stuk en elke operator: grootste min kleinste van de 3 herhalingen. Bv. stuk 1, operator A: metingen 0,29 ; 0,41 ; 0,64, dus $R=0{,}64-0{,}29=0{,}35$. Een range meet hoeveel **dezelfde operator op hetzelfde stuk** verschilt: dat is zuivere herhaalbaarheid.
+
+**Stap 2 - $\bar R$ per operator en $\bar{\bar R}$.** Gemiddelde van de 10 ranges per operator: $\bar R_A=0{,}184$, $\bar R_B=0{,}513$, $\bar R_C=0{,}328$. Hun gemiddelde: $\bar{\bar R}=(0{,}184+0{,}513+0{,}328)/3=0{,}342$. Operator B herhaalt duidelijk het slechtst (grootste ranges).
+
+**Stap 3 - EV (herhaalbaarheid).** De range omzetten naar een standaardafwijking met $K_1$ (3 herhalingen: $K_1=0{,}5908=1/1{,}693$): $EV=0{,}342\cdot0{,}5908=0{,}202$.
+
+**Stap 4 - $\bar X_{diff}$ en AV (reproduceerbaarheid).** Gemiddelde per operator over alle 30 metingen: A $=0{,}190$, B $=0{,}068$, C $=-0{,}254$. Het verschil grootste min kleinste: $\bar X_{diff}=0{,}190-(-0{,}254)=0{,}445$: operator A meet gemiddeld 0,445 hoger dan operator C. Omzetten met $K_2$ (3 operatoren: 0,5231) en corrigeren voor het stukje herhaalbaarheid dat in elk operatorgemiddelde zit ($n=10$ stukken, $r=3$ herhalingen):
+$$AV=\sqrt{(0{,}445\cdot0{,}5231)^2-\frac{0{,}202^2}{10\cdot3}}=\sqrt{0{,}05411-0{,}00136}=\sqrt{0{,}05275}=0{,}230$$
+
+**Stap 5 - GRR (meetsysteem totaal).** Standaardafwijkingen kwadratisch optellen: $GRR=\sqrt{0{,}202^2+0{,}230^2}=0{,}306$.
+
+**Stap 6 - $R_p$ en PV (stukvariatie).** Gemiddelde per stuk over alle 9 metingen (laatste kolom): van $-1{,}571$ (stuk 10) tot $1{,}940$ (stuk 9). $R_p=1{,}940-(-1{,}571)=3{,}511$. Omzetten met $K_3$ (10 stukken: 0,3146): $PV=3{,}511\cdot0{,}3146=1{,}105$.
+
+**Stap 7 - TV (totale variatie).** $TV=\sqrt{GRR^2+PV^2}=\sqrt{0{,}306^2+1{,}105^2}=1{,}146$.
+
+**Stap 8 - percentages en ndc.**
+
+| Grootheid | waarde | % van TV ($100\cdot x/TV$) | % contributie ($100\cdot x^2/TV^2$) |
+|---|---|---|---|
+| EV (herhaalbaarheid) | 0,202 | 17,6% | 3,1% |
+| AV (reproduceerbaarheid) | 0,230 | 20,0% | 4,0% |
+| **GRR** | **0,306** | **26,7%** | **7,1%** |
+| PV (stukken) | 1,105 | 96,4% | 92,9% |
+| TV | 1,146 | 100% | 100% |
+
+De percentages t.o.v. TV tellen niet op tot 100% (het zijn standaardafwijkingen); de contributies (varianties) wel: $7{,}1\%+92{,}9\%=100\%$. $ndc=\lfloor1{,}41\cdot1{,}105/0{,}306\rfloor=\lfloor5{,}09\rfloor=5$.
+
+**Interpretatie.**
+- **%GRR = 26,7%** ligt tussen 10% en 30%: het meetsysteem is **voorwaardelijk aanvaardbaar**, afhankelijk van het belang van de meting en de kost van verbetering.
+- **ndc = 5:** het systeem kan de stukken in 5 betrouwbare klassen indelen; net voldoende (minimum 5).
+- **Waar zit de meetfout?** EV (0,202) en AV (0,230) zijn ongeveer even groot, dus zowel het instrument als de operatoren dragen bij. Uit de tabel: operator B heeft de grootste herhalingsverschillen ($\bar R_B=0{,}513$), dus B meet minst consistent (opleiding, methode). Operator C meet systematisch lager dan A (0,445 verschil): een verschil in procedure of aflezing.
+- **Verbetering:** de meetprocedure standaardiseren en operator B opleiden (verlaagt AV en een deel van EV); daarna de studie herhalen.
