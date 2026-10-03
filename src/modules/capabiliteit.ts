@@ -1,5 +1,6 @@
 // M3 Capabiliteit: Cp/Cpk/Pp/Ppk, % out, sigma level, DPMO, discrete capability.
-import { h, fmt, tx, xl, nl, pctNl } from '../ui/core.ts';
+import { h, fmt, tx, xl, nl, pctNl, settings, onSettings, renderMath } from '../ui/core.ts';
+import { capTheorie } from '../generated/content.ts';
 import { Form, row, card, note } from '../ui/form.ts';
 import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
@@ -132,6 +133,33 @@ function contTab(el: HTMLElement) {
       decision: { text: c.Cpk >= 1.33 ? 'Capabel (Cpk ≥ 1,33)' : c.Cpk >= 1 ? 'Net capabel (1 ≤ Cpk < 1,33)' : 'Niet capabel (Cpk < 1)', kind: c.Cpk >= 1.33 ? 'accept' : 'reject' },
       warnings: [srcNote, both ? '' : 'Eenzijdige specificatie: enkel Cpk (en Ppk) zijn zinvol, geen Cp.', 'Capabiliteit heeft enkel zin voor een stabiel proces (onder statistische controle) en veronderstelt normaliteit.'].filter(Boolean),
       excel,
+      explain: {
+        question: [
+          'Capabiliteit vergelijkt de stem van de klant (specificatiegrenzen LSL en USL) met de stem van het proces (de natuurlijke spreiding \\(\\mu\\pm3\\sigma\\), die 99,73% van de stuks bevat). Voorwaarden: het proces is stabiel (regelkaart onder controle) en ongeveer normaal verdeeld.',
+          srcNote ? `Gebruikte \u03c3: ${m === 'direct' ? 'rechtstreeks ingegeven' : m === 'ind' ? 'standaardafwijking van alle losse waarden (overall, dus eigenlijk Pp/Ppk)' : 'binnen de subgroepen (korte termijn) voor Cp/Cpk en overall voor Pp/Ppk'}.` : '',
+        ].filter(Boolean),
+        formula: [
+          both ? `Cp = toegelaten breedte / natuurlijke breedte = (USL - LSL)/(6\u03c3): hoeveel keer de procesbreedte in de tolerantie past, los van waar het proces ligt (potentieel).` : 'Eenzijdige specificatie: er is geen tolerantiebreedte, dus geen Cp; enkel de afstand tot die ene grens telt (Cpk).',
+          'Cpk = afstand van het gemiddelde tot de DICHTSTBIJZIJNDE grens, gedeeld door een halve procesbreedte 3\u03c3 (werkelijk: houdt ook rekening met de ligging). Cpu kijkt naar USL, Cpl naar LSL; de kleinste is beperkend. Altijd Cpk \u2264 Cp.',
+          'De uitval volgt uit de normale verdeling: z = (grens - \u03bc)/\u03c3 geeft de oppervlakte buiten elke grens. Handig verband: z tot de dichtste grens = 3\u00b7Cpk.',
+        ],
+        substituted: [
+          both ? `Cp = ${nl(c.Cp)}: de tolerantie is ${nl(c.Cp)} keer de procesbreedte 6\u03c3 = ${nl(6 * SST)} (tolerantie ${nl(U! - L!)}).` : '',
+          `${U !== undefined ? `Cpu = ${nl(c.Cpu)} (USL ligt ${nl(c.zU)}\u03c3 boven \u03bc)` : ''}${U !== undefined && L !== undefined ? '; ' : ''}${L !== undefined ? `Cpl = ${nl(c.Cpl)} (LSL ligt ${nl(c.zL)}\u03c3 onder \u03bc)` : ''}. Cpk = ${nl(c.Cpk)}: ${c.limiting === 'beide' ? 'het proces staat perfect gecentreerd' : `de ${c.limiting === 'USL' ? 'bovengrens' : 'ondergrens'} is beperkend`}.`,
+        ].filter(Boolean),
+        result: [
+          both
+            ? c.Cp < 1
+              ? `Cp < 1: de spreiding is breder dan de tolerantie. Zelfs perfect gecentreerd blijft er uitval (${pctNl(c.centred!.pTotal)}): de spreiding moet omlaag (\u03c3 \u2264 ${nl((U! - L!) / (6 * tg))} voor Cp = ${nl(tg)}).`
+              : Math.abs(c.Cp - c.Cpk) > 0.05
+                ? `Cp = ${nl(c.Cp)} maar Cpk = ${nl(c.Cpk)}: de spreiding past, maar het proces is verschoven. Centreren (\u03bc naar ${nl(c.centred!.mu)}) brengt Cpk naar ${nl(c.Cp)} en de uitval van ${pctNl(c.pTotal)} naar ${pctNl(c.centred!.pTotal)}; dat is meestal de eenvoudigste verbetering.`
+                : `Cp \u2248 Cpk: het proces is goed gecentreerd; verbeteren kan enkel nog door de spreiding te verkleinen.`
+            : '',
+          `Beoordeling: Cpk < 1 niet capabel; 1 - 1,33 net capabel zonder marge; \u2265 1,33 capabel (gangbare eis); \u2265 1,67 zeer capabel; 2 = zes sigma. Hier: ${judgement(c.Cpk)}.`,
+          `Sigma-niveau op korte termijn Z = 3\u00b7Cpk = ${nl(zST)}; met de gebruikelijke 1,5\u03c3-shift op lange termijn geeft dat ${nl(dpmoLT)} DPMO. Zes sigma = Cp 2, Cpk 1,5 na shift = 3,4 ppm.`,
+          lt && SLT !== SST ? `Pp/Ppk gebruiken de overall \u03c3 (${nl(SLT!)}) in plaats van de korte-termijn \u03c3 (${nl(SST)}): ${lt.Cpk < c.Cpk - 0.05 ? 'Ppk ligt duidelijk lager, dus het proces verschuift tussen subgroepen (lange-termijn variatie): eerst stabiliseren.' : 'Ppk \u2248 Cpk, dus weinig extra variatie op lange termijn.'}` : '',
+        ].filter(Boolean),
+      },
       answer,
       extra: [
         chartBox(densityPlot({ pdf: (x) => normPdf(x, MU, SST), x0: lo, x1: hi, shade, vlines: lines as any })),
@@ -163,6 +191,11 @@ function discTab(el: HTMLElement) {
       substituted: [`DPU=\\frac{${tx(d)}}{${n}}=${tx(r.DPU)},\\quad DPO=\\frac{${tx(d)}}{${n}\\cdot ${o}}=${tx(r.DPO)},\\quad DPMO=${tx(r.DPMO)}`],
       result: [['DPU', fmt(r.DPU)], ['DPO', fmt(r.DPO)], ['DPMO', fmt(r.DPMO)], ['Yield (1 - DPO)', pctNl(r.yieldDPO)], ['First time yield e^(-DPU)', pctNl(r.yieldFTY)], ['Sigma-niveau (met 1,5σ-shift)', fmt(r.sigmaLevel)]],
       excel: [`DPMO: =${xl(d)}/(${n}*${o})*10^6`, `sigma-niveau: =NORM.S.INV(1-${xl(r.DPO)})+1,5`],
+      explain: {
+        question: ['Discrete capabiliteit gebruik je bij tellingen (defecten) in plaats van meetwaarden. Een eenheid (unit) kan meerdere defecten hebben; een kans op een defect (opportunity) is elke plek of elk kenmerk waar het mis kan gaan.'],
+        formula: ['DPU = defecten per eenheid. DPO = defecten per kans (DPU gedeeld door het aantal kansen per eenheid), zodat eenvoudige en complexe producten vergelijkbaar worden. DPMO = DPO \u00d7 1 000 000.', 'First time yield \u2248 e^(-DPU) (Poisson: kans op 0 defecten). Het sigma-niveau is de z-waarde die bij 1 - DPO hoort, plus de conventionele 1,5\u03c3-shift.'],
+        result: [`DPMO ${nl(r.DPMO)} \u2194 sigma-niveau ${nl(r.sigmaLevel)}. Ter vergelijking: 3\u03c3 = 66 807 DPMO, 4\u03c3 = 6 210, 6\u03c3 = 3,4.`],
+      },
       answer: `Met ${nl(d)} defecten op ${n} eenheden met elk ${o} kansen is DPO = ${nl(r.DPO)}, dus DPMO = ${nl(r.DPMO)}. Dit komt overeen met een sigma-niveau van ${nl(r.sigmaLevel)} (inclusief de conventionele 1,5 sigma-shift).`,
     });
   });
@@ -193,33 +226,29 @@ function dpmoTab(el: HTMLElement) {
     if (dir.get() === 's2d') {
       const L = lvl.get();
       const d = dpmoFromSigma(L, s);
-      return resultPanel({ question: `DPMO bij sigma-niveau ${fmt(L)}`, formula: [`DPMO = 10^6\\cdot\\left(1-\\Phi(Z-${tx(s)})\\right)`], substituted: [`DPMO = 10^6\\cdot(1-\\Phi(${tx(L - s)})) = ${tx(d)}`], result: [['DPMO', fmt(d)], ['% defect', pctNl(d / 1e6, 6)]], excel: [`=(1-NORM.S.DIST(${xl(L)}-${xl(s)};WAAR))*10^6`], answer: `Een proces op ${nl(L)} sigma (met ${nl(s)} sigma-shift) geeft ${nl(d)} DPMO.` });
+      return resultPanel({ explain: { formula: ['Sigma-niveau = aantal standaardafwijkingen tussen gemiddelde en dichtste grens op korte termijn (Z = 3\u00b7Cpk). Op lange termijn verschuift het gemiddelde tot 1,5\u03c3 (Motorola), dus de uitval op lange termijn reken je met Z - 1,5.', 'Daarom geeft zes sigma 3,4 DPMO (P(Z > 4,5)) en niet 0,002 ppm (dat is 2\u00b7P(Z > 6), gecentreerd en zonder shift).'] }, question: `DPMO bij sigma-niveau ${fmt(L)}`, formula: [`DPMO = 10^6\\cdot\\left(1-\\Phi(Z-${tx(s)})\\right)`], substituted: [`DPMO = 10^6\\cdot(1-\\Phi(${tx(L - s)})) = ${tx(d)}`], result: [['DPMO', fmt(d)], ['% defect', pctNl(d / 1e6, 6)]], excel: [`=(1-NORM.S.DIST(${xl(L)}-${xl(s)};WAAR))*10^6`], answer: `Een proces op ${nl(L)} sigma (met ${nl(s)} sigma-shift) geeft ${nl(d)} DPMO.` });
     }
     const d = pos(dp.get(), 'DPMO');
     need(d < 1e6, 'DPMO moet kleiner zijn dan 1 000 000.');
     const L = sigmaFromDpmo(d, s);
-    return resultPanel({ question: `Sigma-niveau bij ${fmt(d)} DPMO`, formula: [`Z = \\Phi^{-1}\\left(1-\\frac{DPMO}{10^6}\\right)+${tx(s)}`], substituted: [`Z = ${tx(L - s)} + ${tx(s)} = ${tx(L)}`], result: [['sigma-niveau', fmt(L)]], excel: [`=NORM.S.INV(1-${xl(d)}/10^6)+${xl(s)}`], answer: `${nl(d)} DPMO komt overeen met een sigma-niveau van ${nl(L)}.` });
+    return resultPanel({ explain: { formula: ['Sigma-niveau = aantal standaardafwijkingen tussen gemiddelde en dichtste grens op korte termijn (Z = 3\u00b7Cpk). Op lange termijn verschuift het gemiddelde tot 1,5\u03c3 (Motorola), dus de uitval op lange termijn reken je met Z - 1,5.', 'Daarom geeft zes sigma 3,4 DPMO (P(Z > 4,5)) en niet 0,002 ppm (dat is 2\u00b7P(Z > 6), gecentreerd en zonder shift).'] }, question: `Sigma-niveau bij ${fmt(d)} DPMO`, formula: [`Z = \\Phi^{-1}\\left(1-\\frac{DPMO}{10^6}\\right)+${tx(s)}`], substituted: [`Z = ${tx(L - s)} + ${tx(s)} = ${tx(L)}`], result: [['sigma-niveau', fmt(L)]], excel: [`=NORM.S.INV(1-${xl(d)}/10^6)+${xl(s)}`], answer: `${nl(d)} DPMO komt overeen met een sigma-niveau van ${nl(L)}.` });
   });
   run();
 }
 
-function judgeTab(el: HTMLElement) {
-  el.append(
-    card(
-      'Beoordeling Cp / Cpk',
-      table(
-        ['Cp / Cpk', 'Oordeel', 'uitval gecentreerd'],
-        [
-          ['< 1', 'niet capabel: spreiding groter dan tolerantie', '> 0,27%'],
-          ['1 - 1,33', 'net capabel, geen marge (sorteren / bewaken)', '0,27% - 63 ppm'],
-          ['1,33 - 1,67', 'capabel (gangbare minimumeis)', '63 - 0,6 ppm'],
-          ['≥ 1,67', 'zeer capabel (vaak eis voor nieuwe processen)', '< 0,6 ppm'],
-          ['2', 'zes sigma (Cp = 2, Cpk ≥ 1,5 op lange termijn)', '0,002 ppm (3,4 ppm met shift)'],
-        ],
-      ),
-      h('ul', null, h('li', null, 'Cp: potentieel (enkel spreiding). Cpk: werkelijk (houdt rekening met de ligging van het gemiddelde). Cpk ≤ Cp; gelijk als gecentreerd.'), h('li', null, 'Cp/Cpk met σ binnen subgroepen (korte termijn: R̄/d₂ of s̄/c₄); Pp/Ppk met σ overall (lange termijn).'), h('li', null, 'Capabiliteit pas berekenen als het proces stabiel is (regelkaart onder controle).')),
-    ),
-  );
+/** Four typical situations: how Cp and Cpk read together. */
+function situations(): HTMLElement {
+  const cases: [string, number, number, string][] = [
+    ['Cp 2,0 / Cpk 2,0: smal en gecentreerd', 0, 1 / 2, 'in orde'],
+    ['Cp 2,0 / Cpk 0,67: smal maar verschoven', 2, 1 / 2, 'centreren'],
+    ['Cp 0,67 / Cpk 0,67: te breed', 0, 1.5, 'spreiding verkleinen'],
+    ['Cp 1,0 / Cpk 0,67: examen vraag 3', 1, 1, 'centreren + spreiding'],
+  ];
+  return h('div', { class: 'grid2' }, cases.map(([title, mu, sg, act]) => {
+    const L = -3, U = 3;
+    const sh: [number, number][] = [[-1e9, L], [U, 1e9]];
+    return h('div', { class: 'chartbox' }, h('b', null, title), densityPlot({ pdf: (x) => normPdf(x, mu, sg), x0: -5, x1: 5, shade: sh, vlines: [{ x: L, label: 'LSL', cls: 'spec' }, { x: U, label: 'USL', cls: 'spec' }, { x: mu, label: '\u03bc', cls: 'mean' }] }, 360, 170), h('div', { class: 'muted' }, 'Actie: ' + act));
+  }));
 }
 
 export const capabiliteit: ModuleDef = {
@@ -231,16 +260,35 @@ export const capabiliteit: ModuleDef = {
     ['cont', 'Cp / Cpk / Pp / Ppk en % uitval', 'cp cpk uitval vraag 3'],
     ['disc', 'Discrete capabiliteit DPU DPO DPMO', 'dpu dpo dpmo yield'],
     ['dpmo', 'DPMO <-> sigma-niveau (1,5 sigma shift)', 'sigma niveau shift 3,4 ppm'],
-    ['oordeel', 'Beoordeling Cp/Cpk', 'oordeel capabel'],
+    ['theorie', 'Theorie capabiliteit: betekenis Cp en Cpk, beoordeling, sigma-niveau', 'theorie betekenis cp cpk beoordeling oordeel capabel stabiel specificatie'],
   ],
   mount(el) {
-    moduleHead(el, 'Capabiliteit (process capability)', 'Cp, Cpk, Pp, Ppk, uitval en sigma-niveau.');
+    moduleHead(el, 'Capabiliteit (process capability)', 'Op \u00e9\u00e9n pagina: 1. de theorie (wat Cp en Cpk betekenen, beoordeling, sigma-niveau), 2. de berekening met uitleg bij elk resultaat.');
+    const thBody = h('div', { class: 'md', html: capTheorie.html });
+    renderMath(thBody);
+    const firstH = thBody.querySelector('h3:nth-of-type(5)');
+    if (firstH) firstH.before(h('h3', null, 'Vier typische situaties (zelfde tolerantie)'), situations());
+    const theory = h('details', { class: 'card section' }, h('summary', null, h('span', { class: 'secnum' }, '1'), 'Theorie: wat betekenen Cp en Cpk?'), thBody) as HTMLDetailsElement;
+    theory.open = settings.explain;
+    let last = settings.explain;
+    onSettings(() => {
+      if (settings.explain !== last) theory.open = last = settings.explain;
+    });
+    const head = h('h3', { class: 'sechead' }, h('span', { class: 'secnum' }, '2'), 'Berekenen');
+    const box = h('div');
+    el.append(theory, head, box);
     const t = tabs('capabiliteit', [
-      { id: 'cont', label: 'Cp / Cpk', build: contTab },
+      { id: 'cont', label: 'Cp / Cpk / Pp / Ppk', build: contTab },
       { id: 'disc', label: 'Discreet (DPMO)', build: discTab },
       { id: 'dpmo', label: 'DPMO <-> sigma', build: dpmoTab },
-      { id: 'oordeel', label: 'Beoordeling', build: judgeTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+    ], box);
+    return {
+      route: (sub, params) => {
+        if (sub === 'theorie' || sub === 'oordeel') {
+          theory.open = true;
+          theory.scrollIntoView();
+        } else if (sub) t.show(sub, params);
+      },
+    };
   },
 };
