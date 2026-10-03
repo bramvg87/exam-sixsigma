@@ -45,6 +45,9 @@ const GRR_EXAMPLES = [
 ];
 const GRR_HELP = 'Twee formaten. (1) Excel-blokformaat zoals in de ANOVA-tool: kopregel = operatoren, elk stuk begint op een rij met label in de eerste kolom, volgende herhalingen op rijen met een lege eerste cel. (2) Lang formaat (long format), één rij per meting: kolom 1 = stuk (part), kolom 2 = operator (appraiser), kolom 3 = herhaling (trial, optioneel), laatste kolom = meting. Met 3 kolommen is kolom 3 de meting. Labels mogen tekst of getallen zijn. Elke combinatie stuk x operator moet even veel herhalingen hebben.';
 
+/** TeX number, in parentheses when negative (for "a - (b)" substitutions). */
+const par = (v: number) => (v < 0 ? `(${tx(v)})` : tx(v));
+
 function grrData(grid: DataGrid) {
   let raw = grid.getRaw();
   need(raw.length > 0, 'Vul de meetdata in (lang formaat of Excel-blokformaat) of laad een voorbeeld.');
@@ -112,6 +115,10 @@ function arTab(el: HTMLElement) {
         `PV=R_p\\cdot K_3,\\quad TV=\\sqrt{GRR^2+PV^2},\\quad \\%GRR=100\\frac{GRR}{TV},\\quad ndc=\\left\\lfloor 1{,}41\\frac{PV}{GRR}\\right\\rfloor`,
       ],
       substituted: [
+        `\\text{Invoer: } ${p}\\text{ stukken } (p),\\ ${o}\\text{ operatoren } (o),\\ ${r}\\text{ herhalingen } (r)\\ \\Rightarrow\\ K_1=${tx(g.K1)}\\ (r=${r}),\\ K_2=${tx(g.K2)}\\ (o=${o}),\\ K_3=${tx(g.K3)}\\ (p=${p})`,
+        `\\bar R\\text{ per operator (gemiddelde van de ranges per stuk)}: ${d.ops.map((op, j) => `\\bar R_{\\text{${op}}}=${tx(g.opRbar[j])}`).join(',\\ ')}\\ \\Rightarrow\\ \\bar{\\bar R}=\\frac{${g.opRbar.map((v) => tx(v)).join('+')}}{${o}}=${tx(g.Rbarbar)}`,
+        `\\text{operatorgemiddelden}: ${d.ops.map((op, j) => `\\bar X_{\\text{${op}}}=${tx(g.opMeans[j])}`).join(',\\ ')}\\ \\Rightarrow\\ \\bar X_{diff}=\\max-\\min=${tx(Math.max(...g.opMeans))}-${par(Math.min(...g.opMeans))}=${tx(g.Xdiff)}`,
+        `\\text{stukgemiddelden van } ${tx(Math.min(...g.partMeans))}\\text{ tot } ${tx(Math.max(...g.partMeans))}\\ \\Rightarrow\\ R_p=${tx(Math.max(...g.partMeans))}-${par(Math.min(...g.partMeans))}=${tx(g.Rp)}`,
         `EV=${tx(g.Rbarbar)}\\cdot ${tx(g.K1)}=${tx(g.EV)},\\quad AV=\\sqrt{(${tx(g.Xdiff)}\\cdot ${tx(g.K2)})^2-\\frac{${tx(g.EV)}^2}{${p}\\cdot ${r}}}=${tx(g.AV)}`,
         `GRR=\\sqrt{${tx(g.EV)}^2+${tx(g.AV)}^2}=${tx(g.GRR)},\\quad PV=${tx(g.Rp)}\\cdot ${tx(g.K3)}=${tx(g.PV)},\\quad TV=${tx(g.TV)}`,
         `\\%GRR=100\\cdot\\frac{${tx(g.GRR)}}{${tx(g.TV)}}=${tx(g.pctGRR)}\\%${hasT ? `,\\quad \\%GRR_{tol}=100\\cdot\\frac{6\\cdot ${tx(g.GRR)}}{${tx(T!)}}=${tx(g.pctTol)}\\%` : ''},\\quad ndc=\\lfloor 1{,}41\\cdot ${tx(g.PV)}/${tx(g.GRR)}\\rfloor=${g.ndc}`,

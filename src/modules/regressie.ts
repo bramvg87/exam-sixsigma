@@ -194,9 +194,12 @@ function regTab(el: HTMLElement) {
         'H_0:\\beta_1=0:\\quad t=\\frac{b_1}{SE(b_1)},\\ SE(b_1)=\\frac{s}{\\sqrt{S_{xx}}},\\ df=n-2;\\qquad F=\\frac{MS_R}{MS_E}=t^2',
       ];
       substituted = [
+        `n=${n},\\quad \\bar x=${tx(xb)},\\quad \\bar y=${tx(yb)},\\quad S_{xx}=\\sum(x_i-\\bar x)^2=${tx(Sxx)},\\quad S_{xy}=\\sum(x_i-\\bar x)(y_i-\\bar y)=${tx(Sxy)}`,
         `b_1=\\frac{${tx(Sxy)}}{${tx(Sxx)}}=${tx(fit.beta[1])},\\qquad b_0=${tx(yb)}-${tx(fit.beta[1])}\\cdot ${tx(xb)}=${tx(fit.beta[0])}`,
-        `R^2=\\frac{${tx(fit.SSR)}}{${tx(fit.SST)}}=${tx(fit.R2)},\\quad R^2_{adj}=1-\\frac{(1-${tx(fit.R2)})(${n - 1})}{${dfE}}=${tx(fit.R2adj)},\\quad s=\\sqrt{\\frac{${tx(fit.SSE)}}{${dfE}}}=${tx(fit.s)}`,
-        `t=\\frac{${tx(fit.beta[1])}}{${tx(fit.se[1])}}=${tx(fit.t[1])},\\quad p=${tx(fit.p[1])},\\quad F=${tx(fit.F)}`,
+        `SS_T=\\sum(y_i-\\bar y)^2=${tx(fit.SST)},\\quad SS_E=\\sum(y_i-\\hat y_i)^2=${tx(fit.SSE)},\\quad SS_R=SS_T-SS_E=${tx(fit.SST)}-${tx(fit.SSE)}=${tx(fit.SSR)}`,
+        `df_R=k=${fit.dfR},\\quad df_E=n-k-1=${dfE};\\quad MS_R=\\frac{${tx(fit.SSR)}}{${fit.dfR}}=${tx(fit.MSR)},\\quad MS_E=\\frac{${tx(fit.SSE)}}{${dfE}}=${tx(fit.MSE)},\\quad s=\\sqrt{MS_E}=${tx(fit.s)}`,
+        `R^2=\\frac{SS_R}{SS_T}=\\frac{${tx(fit.SSR)}}{${tx(fit.SST)}}=${tx(fit.R2)},\\quad R^2_{adj}=1-\\frac{(1-${tx(fit.R2)})(${n - 1})}{${dfE}}=${tx(fit.R2adj)}`,
+        `SE(b_1)=\\frac{s}{\\sqrt{S_{xx}}}=\\frac{${tx(fit.s)}}{\\sqrt{${tx(Sxx)}}}=${tx(fit.se[1])},\\quad t=\\frac{${tx(fit.beta[1])}}{${tx(fit.se[1])}}=${tx(fit.t[1])}\\ (p=${tx(fit.p[1])}),\\quad F=\\frac{MS_R}{MS_E}=\\frac{${tx(fit.MSR)}}{${tx(fit.MSE)}}=${tx(fit.F)}`,
       ];
       excel = [
         `helling b1: =SLOPE(${yR};${xRs[0]})`,
@@ -239,7 +242,9 @@ function regTab(el: HTMLElement) {
         'F=\\frac{SS_R/k}{SS_E/(n-k-1)},\\quad R^2=\\frac{SS_R}{SS_T},\\quad R^2_{adj}=1-\\frac{(1-R^2)(n-1)}{n-k-1},\\quad s=\\sqrt{MSE}',
       ];
       substituted = [
-        `F=\\frac{${tx(fit.SSR)}/${k}}{${tx(fit.SSE)}/${dfE}}=${tx(fit.F)},\\quad p=${tx(fit.pF)}`,
+        `SS_T=\\sum(y_i-\\bar y)^2=${tx(fit.SST)},\\quad SS_E=\\sum(y_i-\\hat y_i)^2=${tx(fit.SSE)},\\quad SS_R=SS_T-SS_E=${tx(fit.SSR)}`,
+        `df_R=k=${k},\\quad df_E=n-k-1=${n}-${k}-1=${dfE};\\quad MS_R=\\frac{${tx(fit.SSR)}}{${k}}=${tx(fit.MSR)},\\quad MS_E=\\frac{${tx(fit.SSE)}}{${dfE}}=${tx(fit.MSE)}`,
+        `F=\\frac{MS_R}{MS_E}=\\frac{${tx(fit.MSR)}}{${tx(fit.MSE)}}=${tx(fit.F)},\\quad p=${tx(fit.pF)}`,
         `R^2=\\frac{${tx(fit.SSR)}}{${tx(fit.SST)}}=${tx(fit.R2)},\\quad R^2_{adj}=1-\\frac{(1-${tx(fit.R2)})(${n - 1})}{${dfE}}=${tx(fit.R2adj)},\\quad s=${tx(fit.s)}`,
         ...fit.beta.slice(1).map((b, i) => `t_{${i + 1}}=\\frac{${tx(b)}}{${tx(fit.se[i + 1])}}=${tx(fit.t[i + 1])}\\ (p=${tx(fit.p[i + 1])})`),
       ];
