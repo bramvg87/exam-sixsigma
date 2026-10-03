@@ -1,10 +1,10 @@
 # Decisions log
 
-Choices made while building, so Bram can check them. Newest at the bottom.
+Choices made while building, so the student can check them. Newest at the bottom.
 
 ## Drive files (added 2026-10-03)
 The Drive export is now in `reference/drive/` (also kept in `instructions/drive export/`). What was done with each file:
-- **formularium.md:** Task 0 redone properly. `content/formularium.md` = Bram's original with A1-A9 applied in place and B1-B11 inserted (see `content/MERGE_LOG.md`). This replaces the stand-in written earlier. Extra fixes: DPMO at 2σ 308.537 -> 308.538; three formulas with a stray `\ ` that did not compile; `=NORM.S.INV(yield)` now notes the +1,5 shift; "λ ≥ 1" -> "λ ≥ μ" in the discrete-time queue remark; note under B2 on the slide values (hypergeometric N = 10000).
+- **formularium.md:** Task 0 redone properly. `content/formularium.md` = the student's original with A1-A9 applied in place and B1-B11 inserted (see `content/MERGE_LOG.md`). This replaces the stand-in written earlier. Extra fixes: DPMO at 2σ 308.537 -> 308.538; three formulas with a stray `\ ` that did not compile; `=NORM.S.INV(yield)` now notes the +1,5 shift; "λ ≥ 1" -> "λ ≥ μ" in the discrete-time queue remark; note under B2 on the slide values (hypergeometric N = 10000).
 - **ANOVA Tool:** its four examples (cotton one-way, machines two-way, plant two-way with replication, Gauge R&R) are load buttons in the ANOVA and MSA modules and regression tests (`tests/drive.test.ts`, references in `testdata/drive_examples.json`). Running the tool itself in Chrome gives the same numbers as scipy and as this toolkit.
   - **Gauge R&R method.** The tool (and therefore the course) uses EV² = MS_E, AV² = (MS_O - MS_E)/(p·r), PV² = (MS_P - MS_E)/(o·r), all F against MS_E, interaction not a separate component. This is now the **default** ("cursusmethode") in MSA > ANOVA; the AIAG variant (interaction in reproducibility, pooling if p > 0,25) stays available. Example: %GRR 48,21%, ndc 2.
   - The Excel block layout (labelled row + replicate rows with an empty first cell) is accepted for two-way ANOVA with replication and for both GRR tabs; two-way without replication accepts a text row-label column.
@@ -14,7 +14,7 @@ The Drive export is now in `reference/drive/` (also kept in `instructions/drive 
 - **BB_SIM_demo.xlsx:** the "Pi" Monte Carlo and "3 Lightbulbs" (min of exponentials, MTTF = m/k, max bulbs for a promised MTTF) examples are in Simulatie & wachtrijen > "Lampen in serie / π".
 - **Six-probability-distributions-handout.pdf:** consistent with the "Welke verdeling?" table; its quick discriminators were added there.
 - **link naert training info.docx:** only a URL (https://ugain.naert.net/), nothing to build.
-- PDF export of the formularium: still no pandoc; Bram's own `formularium.pdf` is the unmerged original. Print the Formularium page to PDF for the merged version.
+- PDF export of the formularium: still no pandoc; the student's own `formularium.pdf` is the unmerged original. Print the Formularium page to PDF for the merged version.
 
 ## Numerics
 - Normal CDF via erfc = Q(1/2, x²) (regularised incomplete gamma, Lentz continued fraction), not Abramowitz-Stegun. Inverse normal: Acklam + 3 Halley steps. All t/χ²/F/beta inverses by bisection on the CDF (lower tail) or survival function (upper tail), so tail quantiles keep full precision. Noncentral t: Lenth's AS 243 series. Checked against scipy: relative errors 1e-14 to 1e-16 (hypergeometric 2e-12).
@@ -25,12 +25,12 @@ The Drive export is now in `reference/drive/` (also kept in `instructions/drive 
 - GRR ANOVA: default = course method (see Drive files). AIAG option: interaction pooled into the error term when its p > 0,25. %GRR uses standard deviations (study variation), with % contribution (variances) also shown.
 
 ## Exam answers and wording
-- Exam Q1b correct (met nuance); Q1e correct in the standard two-sided reading (aligned with Bram's worked solutions).
+- Exam Q1b correct (met nuance); Q1e correct in the standard two-sided reading (aligned with the student's worked solutions).
 - Q6: X = 1 means conform, so E[X] = 0,95.
 - Model diagnosis (Q5): best test score with gap < 20 points = optimal; train accuracy < 80% = high bias; gap > 20 points = high variance.
 
 ## UI and build
-- **Excel function names.** The course and spec write English names with Dutch separators (`=F.INV(0,05;9;14)`, `WAAR`). A Dutch-language Excel uses translated names (T.DIST = T.VERD, CHISQ.INV.RT = CHIKW.INV.RECHTS, ...). The top bar has a toggle "Excel: EN-namen / NL-namen"; default English as in the course. The Dutch names come from memory: verify a few in Bram's Excel.
+- **Excel function names.** The course and spec write English names with Dutch separators (`=F.INV(0,05;9;14)`, `WAAR`). A Dutch-language Excel uses translated names (T.DIST = T.VERD, CHISQ.INV.RT = CHIKW.INV.RECHTS, ...). The top bar has a toggle "Excel: EN-namen / NL-namen"; default English as in the course. The Dutch names come from memory: verify a few in the student's Excel.
 - **Formula rendering.** Pre-rendering all ~1100 formularium formulas to KaTeX HTML made the file 2,7 MB. Formulas are now validated with KaTeX at build time (the build warns on errors) and rendered at runtime by the bundled KaTeX, with fonts embedded as base64 woff2. Still fully offline; file ~0,9 MB.
 - Result-panel formulas are rendered at runtime with the same bundled KaTeX.
 - Persistence: all inputs and grids are stored in localStorage (wrapped in try/catch); if storage is blocked (some file:// setups) the app still works for the session.

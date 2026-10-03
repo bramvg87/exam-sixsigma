@@ -6,7 +6,7 @@ import { formularium, spiekbrief, exam } from '../generated/content.ts';
 import { buildChecks, passes } from '../selftest/checks.ts';
 import { BUILD } from '../generated/buildinfo.ts';
 import { moduleHead } from './util.ts';
-import { tabs, type ModuleDef, type Ctx } from './types.ts';
+import { tabs, type ModuleDef, type Ctx, REPO_URL, DOWNLOAD_URL } from './types.ts';
 import G from '../../testdata/golden_values.json';
 
 // ---------- Start ----------
@@ -38,6 +38,12 @@ export const start: ModuleDef = {
         tile('examen', 'Voorbeeldexamen', '7 vragen met oplossing en "Laad in tool"'),
         tile('selftest', 'Zelftest', 'controle tegen scipy-referentiewaarden'),
       )),
+      card('Downloaden en delen',
+        h('p', null, 'Deze toolkit is één HTML-bestand dat volledig offline werkt. De nieuwste versie en de broncode staan op GitHub:'),
+        h('p', null, h('a', { href: REPO_URL, target: '_blank', rel: 'noopener' }, REPO_URL)),
+        h('p', null, 'Rechtstreeks het bestand: ', h('a', { href: DOWNLOAD_URL, target: '_blank', rel: 'noopener' }, 'release/sixsigma-toolkit.html'), '. Sla het op (bv. op het bureaublad) en open het met dubbelklik in Edge of Chrome; internet is daarna niet meer nodig.'),
+        h('p', { class: 'muted' }, 'Op het examen zelf is er geen internet: download het bestand vooraf en controleer de Zelftest.'),
+      ),
       card('Tips voor het examen',
         h('ul', null,
           h('li', null, 'Ctrl+K: zoek een module, toets of formule (bv. "uitval", "verhouding varianties", "OC-curve", "regelkaart").'),

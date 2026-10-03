@@ -2,6 +2,10 @@
 
 One self-contained HTML file for the UGAIN Lean Six Sigma Black Belt Module 3 exam (open book, no internet).
 
+## Download
+Latest version (one file, works offline): **[release/sixsigma-toolkit.html](https://github.com/bramvg87/exam-sixsigma/raw/main/release/sixsigma-toolkit.html)** (source: https://github.com/bramvg87/exam-sixsigma).
+Download it before the exam (there is no internet during the exam), save it locally and double-click it.
+
 ## How to open
 1. Download `release/sixsigma-toolkit.html` (no build needed).
 2. Double-click it. It works from the desktop (`file://`) in Edge and Chrome with Wi-Fi off: all JavaScript, CSS, fonts and formula rendering are inside the file, and a Content-Security-Policy blocks every network request.
@@ -17,7 +21,7 @@ The footer shows the build date and git commit.
 | Verdelingen | normal, Z, t, χ², F, binomial, Poisson, hypergeometric, Bernoulli, exponential, uniform: P(X ≤ x), P(X ≥ x), P(a ≤ X ≤ b), inverses, E/Var, plot; σ from a tail probability; "which distribution" table |
 | Toetsen & BI | Z, t, χ², F (+ CI for the variance ratio, both orientations), Z for a proportion + exact binomial, CI for a proportion (exact / Wilson / Wald / hypergeometric), two samples (pooled and Welch + F pre-check), paired t, sample size and power, duality |
 | Capabiliteit | Cp, Cpk, Pp, Ppk from μ/σ or data (individuals or subgroups; R̄/d₂, s̄/c₄, overall s), % and ppm out, centred what-if, σ for a target Cpk, sigma level, DPMO, discrete capability, DPMO ↔ sigma table |
-| Formularium | Bram's formularium merged with the October 2026 addendum (corrections A1-A9, sections B1-B11; see `content/MERGE_LOG.md`) (search with highlighting, table of contents, print), "Open in tool" links, one-page spiekbrief |
+| Formularium | The student's formularium merged with the October 2026 addendum (corrections A1-A9, sections B1-B11; see `content/MERGE_LOG.md`) (search with highlighting, table of contents, print), "Open in tool" links, one-page spiekbrief |
 | Voorbeeldexamen | the 7 questions with worked solutions and "Laad in tool" buttons |
 | SPC | X̄-R / X̄-s charts, Western Electric rules, revise limits, other subgroup size and shift detection (β, ARL), constants table, I-MR |
 | ANOVA | one-way, two-way with and without replication |

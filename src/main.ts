@@ -4,6 +4,7 @@ import { h, settings, setSetting, store } from './ui/core.ts';
 import { BUILD } from './generated/buildinfo.ts';
 import { formularium } from './generated/content.ts';
 import { MODULES } from './modules/registry.ts';
+import { REPO_URL } from './modules/types.ts';
 import type { Ctx, Instance, ModuleDef } from './modules/types.ts';
 
 const app = document.getElementById('app')!;
@@ -40,7 +41,8 @@ const header = h(
 const footer = h(
   'footer',
   { class: 'footer' },
-  `Build ${BUILD.date} - commit ${BUILD.commit} - volledig offline`,
+  `Build ${BUILD.date} - commit ${BUILD.commit} - volledig offline - nieuwste versie: `,
+  h('a', { href: REPO_URL, target: '_blank', rel: 'noopener' }, REPO_URL.replace('https://', '')),
   store.available ? '' : ' - lokale opslag niet beschikbaar (invoer blijft enkel tijdens deze sessie bewaard)',
 );
 app.append(header, h('div', { class: 'layout' }, nav, main), footer);

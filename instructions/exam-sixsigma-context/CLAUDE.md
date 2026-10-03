@@ -3,7 +3,7 @@
 Read `BUILD_SPEC.md` first; it is the source of truth for scope, priorities and acceptance tests.
 
 ## Context
-- Bram studies for the UGAIN Lean Six Sigma Black Belt, Module 3 exam (open book, own PC, no internet).
+- The student studies for the UGAIN Lean Six Sigma Black Belt, Module 3 exam (open book, own PC, no internet).
 - This repo builds ONE offline HTML toolkit (`dist/index.html`, copied to `release/sixsigma-toolkit.html`).
 - Course language is Dutch: UI and exam-answer texts in Dutch; code, comments and commit messages in English.
 

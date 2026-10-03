@@ -1,5 +1,8 @@
 import { h, store } from '../ui/core.ts';
 
+export const REPO_URL = 'https://github.com/bramvg87/exam-sixsigma';
+export const DOWNLOAD_URL = 'https://github.com/bramvg87/exam-sixsigma/raw/main/release/sixsigma-toolkit.html';
+
 export interface Ctx {
   go(id: string, sub?: string, params?: any): void;
 }

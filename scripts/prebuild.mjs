@@ -82,7 +82,7 @@ function splitQuestions(md) {
   while ((m = re.exec(md))) parts[m[1]] = renderMd(m[2]).html;
   return parts;
 }
-// Bram's original worked solutions (English), split per "## Question N"; dashes normalised to "-".
+// the student's original worked solutions (English), split per "## Question N"; dashes normalised to "-".
 const origMd = load('reference/drive/Six_Sigma_BB_Module3_Worked_Solutions.md', '').replace(/[–—]/g, '-');
 const original = {};
 for (const m of origMd.matchAll(/^##\s+Question\s+(\d+)[^\n]*\n([\s\S]*?)(?=^##\s+Question\s+\d+|^###\s+One-line recap|(?![\s\S]))/gm)) original[m[1]] = renderMd(m[2].replace(/\n---\s*$/, '')).html;
