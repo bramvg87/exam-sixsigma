@@ -66,6 +66,15 @@ const ex = await p.textContent('.module[data-module="examen"]');
 if (!ex.includes('e correct')) fails.push('exam: Q1e not marked correct');
 if ((await p.$$('.module[data-module="examen"] img.examfig')).length < 1) fails.push('exam: Q7 figure missing');
 if (!ex.includes('Originele uitwerking')) fails.push('exam: original solutions missing');
+
+// independence module: formularium example line x quality
+await p.goto(file + '#/onafhankelijkheid/kruistabel');
+await p.waitForTimeout(200);
+await p.click('.module[data-module="onafhankelijkheid"] .pane:not([hidden]) .seg-btn:has-text("Kruistabel")');
+await p.click('.module[data-module="onafhankelijkheid"] .pane:not([hidden]) button:has-text("Formularium: lijn x kwaliteit")');
+await p.waitForTimeout(300);
+const oa = await p.textContent('.module[data-module="onafhankelijkheid"] .pane:not([hidden]) .result');
+for (const e of ['11,8', '0,002745', 'Rejected']) if (!oa.includes(e)) fails.push(`independence: missing ${e}`);
 console.log(fails.length || errs.length ? 'E2E FAIL\n' + [...fails, ...errs].join('\n') : 'e2e ok');
 await b.close();
 process.exit(fails.length || errs.length ? 1 : 0);

@@ -103,7 +103,7 @@ Naast de normale verdeling zijn er nog enkele kernverdelingen. De vraag die alle
 De kansverdeling en de (oneindige) zee aan data zijn wiskundig één en hetzelfde. Inference laat ook **voorspelling** toe (bv. uit $\lambda=2{,}96$ klanten/min volgt: $<2\%$ kans op $>7$ klanten/min).
 
 ### Marginale & voorwaardelijke kans, onafhankelijkheid
-<!-- tool: ml -->
+<!-- tool: onafhankelijkheid -->
 Bij twee variabelen heb je de **gezamenlijke (joint) verdeling** $P(X,Y)$. *Associatie* = de joint bevat informatie die je **niet** kan achterhalen door $X$ en $Y$ apart te bestuderen.
 
 | Begrip | Formule | Intuïtie |

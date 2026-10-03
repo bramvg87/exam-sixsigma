@@ -10,12 +10,13 @@ import { regressie } from './regressie.ts';
 import { doe } from './doe.ts';
 import { steekproeven } from './steekproeven.ts';
 import { ml } from './ml.ts';
+import { onafhankelijkheid } from './onafhankelijkheid.ts';
 import { nonparam } from './nonparam.ts';
 import { wachtrij } from './wachtrij.ts';
 
 export const MODULES: ModuleDef[] = [
   start, wizard, selftest,
   verdelingen, hypothese, capabiliteit, formulariumMod, examen,
-  spc, anova, msa, regressie, doe, steekproeven, ml,
+  spc, anova, msa, regressie, doe, steekproeven, onafhankelijkheid, ml,
   nonparam, wachtrij,
 ];

@@ -29,6 +29,7 @@ The footer shows the build date and git commit.
 | Regressie | simple and multiple regression, ANOVA table, CI/PI, plots |
 | DOE 2^k | k = 2..5 with replicates, effects, ANOVA, pooling, Pareto/normal plot, half fractions with aliases |
 | Aanvaardingssteekproeven | single plan + OC curve (binomial/hypergeometric/Poisson), plan designer, double plan + ASN, variables plan (n, k), lot defects from Cpk, stratification |
+| Onafhankelijkheid | contingency table (counts or raw category pairs): chi-square test, Yates, Fisher exact (2x2), Cramer's V, standardized residuals, joint/marginal/conditional probabilities (formularium example line x quality); independence of two events; correlation (Pearson t-test, Spearman) |
 | ML, kansen & causaliteit | confusion matrices (bias vs variance), contingency tables + χ², bias-variance, seeing vs doing |
 | Niet-parametrisch & GOF | χ² goodness of fit, Mann-Whitney, Wilcoxon signed ranks, runs test |
 | Simulatie & wachtrijen | M/M/1, M/M/1/K, Poisson process, Monte Carlo CI, Little's law |

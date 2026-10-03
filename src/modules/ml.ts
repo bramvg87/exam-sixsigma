@@ -95,7 +95,7 @@ function contTab(el: HTMLElement) {
     ],
     onChange: () => run(),
   });
-  el.append(card('Contingentietabel: kansen en χ²-toets op onafhankelijkheid', h('p', { class: 'muted' }, 'Rijen = categorieën van X, kolommen = categorieën van Y (aantallen). Een eerste kolom met tekst wordt als rijlabel gebruikt.'), grid.el, row(alpha.el, yates.el)), out);
+  el.append(card('Contingentietabel: kansen en χ²-toets op onafhankelijkheid', h('p', { class: 'muted' }, 'Rijen = categorieën van X, kolommen = categorieën van Y (aantallen). Een eerste kolom met tekst wordt als rijlabel gebruikt. Uitgebreide versie met Fisher exact, Cramér V, residuen, ruwe data en correlatie: module Onafhankelijkheid.'), grid.el, row(alpha.el, yates.el)), out);
   run = live(out, () => {
     const raw = grid.getRaw();
     need(raw.length >= 2, 'Minstens 2 rijen nodig.');
