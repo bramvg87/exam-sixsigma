@@ -3,7 +3,7 @@ import { h, fmt, tx, xl, nl, pctNl, pct, settings, onSettings, renderMath } from
 import { Form, row, card, note, exampleRow, type Field } from '../ui/form.ts';
 import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
-import { densityPlot, chartBox } from '../components/charts.ts';
+import { densityPlot, lineChart, chartBox } from '../components/charts.ts';
 import * as D from '../stats/dist.ts';
 import * as H from '../calc/hypo.ts';
 import { mean, sdS, varS } from '../stats/desc.ts';
@@ -417,7 +417,7 @@ function propCiTab(el: HTMLElement) {
       formula: [`\\pi_L = \\text{BETA.INV}\\left(\\tfrac{\\alpha}{2};\\,d;\\,n-d+1\\right),\\quad \\pi_U = \\text{BETA.INV}\\left(1-\\tfrac{\\alpha}{2};\\,d+1;\\,n-d\\right)`, `\\text{Wilson: } \\frac{p+\\frac{z^2}{2n}\\pm z\\sqrt{\\frac{p(1-p)}{n}+\\frac{z^2}{4n^2}}}{1+\\frac{z^2}{n}},\\qquad \\text{Wald: } p\\pm z\\sqrt{\\frac{p(1-p)}{n}}`],
       substituted: [`p = ${dd}/${nn} = ${tx(dd / nn)}`],
       result: [['p = d/n', pctNl(dd / nn)], ['Exact (cursus)', f2(cp)], ['Wilson', f2(wi)], ['Wald', dd === 0 ? '-' : f2(wa)], ...(hy ? [[`Hypergeometrisch N=${NN}`, f2(hy)] as [string, string]] : [])],
-      extra: table(['Methode', 'Interval', 'Excel'], rows),
+      extra: [table(['Methode', 'Interval', 'Excel'], rows), ...propCiVisuals(dd, nn, a, k, cp, wi, wa, hy)],
       warnings: [
         'De cursus (Ottoy, Confidence Intervals) gebruikt de EXACTE methode. De slidewaarden (bv. [0,3% ; 7,0%] bij d = 2) komen overeen met het exacte hypergeometrische interval voor een lot van N = 10000; binomiaal exact geeft [0,24% ; 7,04%].',
         dd < 5 ? `Slechts ${dd} defect(en): de normale benadering (Wald) is hier NIET aanvaardbaar (vuistregel: minstens ~5 defecten).` : 'Minstens 5 defecten: de normale benadering is aanvaardbaar, maar exact blijft beter.',
@@ -429,6 +429,74 @@ function propCiTab(el: HTMLElement) {
   });
   run();
   return { prefill: (v: any) => f.setValues(v) };
+}
+
+/** Charts for the proportion CI: intervals side by side, binomial distributions at the exact bounds, bounds versus d. */
+function propCiVisuals(dd: number, nn: number, a: number, k: 'two' | 'lower' | 'upper', cp: [number, number], wi: [number, number], wa: [number, number], hy: [number, number] | null) {
+  const p0 = dd / nn;
+  const aa = k === 'two' ? a / 2 : a;
+  const two = H.clopperPearson(dd, nn, a, 'two');
+  const xmax = 100 * Math.min(1, Math.max(two[1], wa[1] < 1 ? wa[1] : 0, wi[1] < 1 ? wi[1] : 0) * 1.15 + 0.005);
+  const xmin = Math.min(0, k !== 'upper' && dd > 0 ? 100 * wa[0] : 0);
+  const clip = (x: number) => Math.min(100 * x, xmax);
+  const ivs: [string, [number, number] | null, string][] = [
+    ['Exact', cp, ''],
+    ['Wilson', wi, 'alt'],
+    ['Wald', dd === 0 ? null : wa, 'alt2'],
+  ];
+  if (hy) ivs.push(['Hypergeom.', hy, 'fit']);
+  const yOf = (i: number) => ivs.length - i;
+  const forest = lineChart({
+    series: ivs.flatMap(([, ci, cls], i) => (ci ? [{ pts: [[Math.max(100 * ci[0], xmin), yOf(i)], [clip(ci[1]), yOf(i)]] as [number, number][], dots: true, cls: 'connect ' + cls }] : [])),
+    hlines: ivs.map(([lab, ci], i) => ({ y: yOf(i), label: ci ? lab : lab + ' (-)', cls: 'zone' })),
+    vlines: [{ x: 100 * p0, label: 'p = d/n = ' + pctNl(p0), cls: 'mean' }, ...(xmin < 0 ? [{ x: 0, label: '0%', cls: 'spec' }] : [])],
+    xlabel: 'π (%)  -  elk interval als lijnstuk',
+    x0: xmin,
+    x1: xmax,
+    y0: 0.3,
+    y1: ivs.length + 0.7,
+  }, 640, 200);
+  const out: HTMLElement[] = [
+    card(
+      'Visueel: de intervallen naast elkaar',
+      chartBox(forest),
+      h('div', { class: 'muted' }, `Blauw = exact (Clopper-Pearson), groen = Wilson, oranje = Wald (normale benadering)${hy ? ', rood = exact hypergeometrisch' : ''}. Verticale stippellijn: de puntschatting p = d/n. Het exacte interval is niet symmetrisch rond p: bij een kleine fractie is er meer ruimte naar boven dan naar onder (π kan niet onder 0).${xmin < 0 ? ' Wald gaat hier onder 0%: een onmogelijke fractie, het teken dat de normale benadering faalt.' : ''}${k !== 'two' ? ' Eenzijdig: de open kant loopt door tot de rand (0% of 100%).' : ''}`),
+    ),
+  ];
+  // Binomial distributions at the exact bounds.
+  const piL = dd === 0 ? 0 : D.betaInv(aa, dd, nn - dd + 1);
+  const piU = dd === nn ? 1 : D.betaInv(1 - aa, dd + 1, nn - dd);
+  const sdU = Math.sqrt(nn * piU * (1 - piU));
+  const k1 = Math.min(nn, Math.ceil(Math.max(dd, nn * piU) + 4 * sdU + 3));
+  const bounds: HTMLElement[] = [];
+  if (k !== 'upper' && dd > 0) {
+    const k1L = Math.min(nn, Math.ceil(Math.max(dd, nn * piL) + 4 * Math.sqrt(nn * piL * (1 - piL)) + 3));
+    const tail = D.binomSf(dd - 1, nn, piL);
+    bounds.push(chartBox(densityPlot({ pdf: (x) => D.binomPmf(x, nn, piL), x0: -0.5, x1: k1L + 0.5, discrete: { k0: 0, k1: k1L, shadeK: (x) => x >= dd }, vlines: [{ x: dd, label: 'd = ' + dd }], xlabel: `aantal defecten D bij π = π_L = ${pctNl(piL)}` }, 420, 200), h('div', { class: 'muted' }, `Ondergrens: bij π = ${pctNl(piL)} is de kans op ${dd} of meer defecten P(D ≥ ${dd}) = ${nl(tail)} = ${k === 'two' ? 'α/2' : 'α'}. Een nog kleinere π maakt ${dd} defecten te onwaarschijnlijk: die π-waarden vallen buiten het BI.`)));
+  }
+  if (k !== 'lower' && dd < nn) {
+    const tail = D.binomCdf(dd, nn, piU);
+    bounds.push(chartBox(densityPlot({ pdf: (x) => D.binomPmf(x, nn, piU), x0: -0.5, x1: k1 + 0.5, discrete: { k0: 0, k1, shadeK: (x) => x <= dd }, vlines: [{ x: dd, label: 'd = ' + dd }], xlabel: `aantal defecten D bij π = π_U = ${pctNl(piU)}` }, 420, 200), h('div', { class: 'muted' }, `Bovengrens: bij π = ${pctNl(piU)} is de kans op ${dd} of minder defecten P(D ≤ ${dd}) = ${nl(tail)} = ${k === 'two' ? 'α/2' : 'α'}. Een nog grotere π maakt zo weinig defecten te onwaarschijnlijk.`)));
+  }
+  if (bounds.length)
+    out.push(card('Visueel: waarom de exacte grenzen daar liggen', h('p', { class: 'muted' }, 'Het exacte BI bevat alle π waarvoor het waargenomen aantal defecten d nog "aannemelijk" is. Aan de grenzen is de staartkans (blauw gearceerd) precies ' + (k === 'two' ? 'α/2' : 'α') + '.'), h('div', { class: 'grid2' }, ...bounds)));
+  // Bounds versus d for the three methods.
+  const dTop = Math.min(nn, Math.max(2 * dd + 6, 10));
+  const ds = Array.from({ length: dTop + 1 }, (_, i) => i);
+  const lin = (fn: (x: number) => [number, number], j: 0 | 1, cls: string) => ({ pts: ds.map((x) => [x, 100 * fn(x)[j]] as [number, number]), cls });
+  const sers = [] as { pts: [number, number][]; cls: string }[];
+  const meth: [(x: number) => [number, number], string][] = [
+    [(x) => H.clopperPearson(x, nn, a, k), ''],
+    [(x) => H.wilson(x, nn, a, k), 'alt'],
+    [(x) => H.wald(x, nn, a, k), 'alt2'],
+  ];
+  for (const [fn, cls] of meth) {
+    if (k !== 'upper') sers.push(lin(fn, 0, cls));
+    if (k !== 'lower') sers.push(lin(fn, 1, cls));
+  }
+  const band = lineChart({ series: sers, vlines: [{ x: dd, label: 'jouw d = ' + dd, cls: 'mean' }], hlines: [{ y: 0, label: '0%', cls: 'zone' }], xlabel: `aantal defecten d in n = ${nn}`, ylabel: 'π (%)', x0: 0, x1: dTop }, 640, 240);
+  out.push(card('Visueel: de grenzen voor elk mogelijk aantal defecten', chartBox(band), h('div', { class: 'muted' }, 'Zelfde kleuren. Lees verticaal af: bij elk d geven de twee lijnen van een methode het interval. Bij weinig defecten wijken de methoden het sterkst af en zakt Wald onder 0%; bij meer defecten (vuistregel d ≥ 5) liggen ze dicht bij elkaar.')));
+  return out;
 }
 
 // ---------- 7. Two independent samples ----------

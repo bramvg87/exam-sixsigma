@@ -4,7 +4,7 @@ import { Form, row, card, note } from '../ui/form.ts';
 import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
 import { lineChart, densityPlot, chartBox } from '../components/charts.ts';
-import { binomPmf, nctCdf, normInv } from '../stats/dist.ts';
+import { binomPmf, binomCdf, binomSf, betaInv, nctCdf, normInv } from '../stats/dist.ts';
 import { pAccept, singlePlan, ocCurve, designPlan, doublePlan, variablesK, lotDefects, stratification, type OcModel } from '../calc/sampling.ts';
 import { live, need, moduleHead, posInt, prob, pos } from './util.ts';
 import { theoryPage, type ModuleDef } from './types.ts';
@@ -58,7 +58,8 @@ function singleTab(el: HTMLElement) {
     ),
     out,
   );
-  run = live(out, () => {
+  const ci = ciEquivalence(el, () => ({ n: n.get(), c: c.get() }), (v) => f.setValues(v));
+  const mainRun = live(out, () => {
     const m = model.get();
     N.el.hidden = m !== 'hyper';
     const nn = posInt(n.get(), 'n');
@@ -122,10 +123,165 @@ function singleTab(el: HTMLElement) {
       ],
     });
   });
+  run = () => {
+    mainRun();
+    ci.run();
+  };
   run();
   return { prefill: (v: any) => f.setValues(v) };
 }
 const fa_ = (n: number, c: number, pi: number, m: OcModel, N?: number) => pAccept(n, c, pi, m, N);
+
+// ---------- 1b. Acceptance probability at a chosen pi, CI versus classical test ----------
+/** pi where the OC curve of (n, c) has P_acc = g (= lower bound of the one-sided g-CI at d = c + 1). */
+const piAt = (n: number, c: number, g: number) => betaInv(1 - g, c + 1, n - c);
+/** Clopper-Pearson one-sided lower bound (confidence g) for d defects in n. */
+const lowerCP = (d: number, n: number, g: number) => (d === 0 ? 0 : betaInv(1 - g, d, n - d + 1));
+const pctTex = (x: number) => tx(100 * x) + '\\%';
+const SER_CLS = ['', 'alt', 'alt2', 'fit'];
+
+function ciEquivalence(el: HTMLElement, plan: () => { n: number; c: number }, setPlan: (v: Record<string, any>) => void) {
+  const out = h('div');
+  let run = () => {};
+  const f = new Form('ss1ci', () => run());
+  const pi0 = f.num('pi0', 'π van het lot (fractie, bv. 0,0245)', 0.0245, { hint: 'welke aanvaardingskans hoort bij deze π?' });
+  const gIn = f.num('g', 'Aanvaardingskans P_acc (bv. 0,90)', 0.9, { hint: 'bij welke π hoort deze kans?' });
+  el.append(
+    card(
+      'π invullen: aanvaardingskans, en de link met een betrouwbaarheidsinterval',
+      h('p', { class: 'muted' }, 'Gebruikt n en c van het plan hierboven (binomiaal model, groot lot). Vul een π in om de aanvaardingskans te zien, of een aanvaardingskans om de bijhorende π te vinden. Daaronder: waarom keuren met (n, c) precies hetzelfde is als toetsen met een eenzijdig betrouwbaarheidsinterval (BI).'),
+      row(
+        exBtn('Cursusvoorbeeld (100, 4), π = 2,45%', () => {
+          setPlan({ n: 100, c: 4, model: 'binom' });
+          f.setValues({ pi0: 0.0245, g: 0.9 });
+        }),
+        exBtn('π = 1,30% (P_acc 99%)', () => f.setValues({ pi0: 0.013, g: 0.99 })),
+        exBtn('π = 7,85% (P_acc 10%)', () => f.setValues({ pi0: 0.0785, g: 0.1 })),
+      ),
+      row(pi0.el, gIn.el),
+    ),
+    out,
+  );
+  run = live(out, () => {
+    const p = plan();
+    const nn = posInt(p.n, 'n');
+    const cc = posInt(p.c, 'c', 0);
+    need(cc < nn, 'c moet kleiner zijn dan n.');
+    const P0 = prob(pi0.get(), 'π');
+    const G = prob(gIn.get(), 'P_acc');
+    need(P0 > 0 && P0 < 1 && G > 0 && G < 1, 'π en P_acc moeten strikt tussen 0 en 1 liggen.');
+    const fa = (pi: number) => binomCdf(cc, nn, pi);
+    const pa = fa(P0);
+    const alpha = 1 - pa;
+    const piG = piAt(nn, cc, G);
+    // Table: one-sided pa-CI per number of defects d.
+    const dMax = Math.min(nn, cc + 3);
+    const rows: string[][] = [];
+    for (let d = 0; d <= dMax; d++) {
+      const pv = d === 0 ? 1 : binomSf(d - 1, nn, P0);
+      const L = lowerCP(d, nn, pa);
+      const rejCI = pv <= alpha * (1 + 1e-9);
+      const edge = d === cc + 1;
+      rows.push([
+        String(d),
+        pct(d / nn),
+        fmt(pv),
+        `[${pct(L)} ; 100%]`,
+        rejCI ? (edge ? 'nee, π valt op de grens (p = α)' : 'nee') : 'ja',
+        rejCI ? 'afkeuren' : 'aanvaarden',
+        d <= cc ? `aanvaarden (d ≤ ${cc})` : `afkeuren (d > ${cc})`,
+      ]);
+    }
+    const tbl = table(['d (defecten)', 'P = d/n', `p = P(D ≥ d | π = ${pct(P0)})`, `eenzijdig ${pct(pa)}-BI voor π`, `π = ${pct(P0)} in BI?`, 'besluit via BI', 'besluit plan (n, c)'], rows);
+    // OC points for a set of acceptance probabilities.
+    const gs = [...new Set([0.99, 0.95, 0.9, 0.5, 0.1, 0.05, G])].sort((a, b) => b - a);
+    const tbl2 = table(
+      ['P_acc (= BI-niveau)', 'π', 'Excel', 'betekenis'],
+      gs.map((gg) => {
+        const pp = piAt(nn, cc, gg);
+        return [pct(gg), `${fmt(pp)} (${pct(pp)})`, `=BETA.INV(${xl(1 - gg)};${cc + 1};${nn - cc})`, `een lot met ${pct(pp)} defecten wordt in ${pct(gg)} van de gevallen aanvaard`];
+      }),
+    );
+    // Chart 1: OC curve with the chosen point and the 99/90/10% points.
+    const gLines = [...new Set([0.99, 0.9, 0.1])];
+    const pmax = Math.max(piAt(nn, cc, 0.003), P0 * 1.15, piG * 1.15);
+    const curve = ocCurve(fa, pmax, 160).map(([x, y]) => [100 * x, y] as [number, number]);
+    const ocPts = gLines.map((gg) => [100 * piAt(nn, cc, gg), gg] as [number, number]);
+    const oc = lineChart({
+      series: [{ pts: curve }, { pts: ocPts, dots: true }, { pts: [[100 * P0, pa]], dots: true, marker: 'ring', cls: 'fit' }],
+      vlines: [{ x: 100 * P0, label: 'π ' + pct(P0), cls: 'spec' }],
+      hlines: [{ y: pa, label: 'P_acc ' + fmt(pa, 3), cls: 'ucl' }],
+      xlabel: 'π (% defect in lot)  -  OC-curve',
+      ylabel: 'P_acc',
+      x0: 0,
+      x1: 100 * pmax,
+      y0: 0,
+      y1: 1.02,
+    });
+    // Chart 2: lower CI bounds versus d for several confidence levels; at d = c+1 they hit the OC points.
+    const levels = [...new Set([0.99, 0.9, 0.1, pa])];
+    const dTop = Math.min(nn, Math.max(2 * cc + 4, cc + 4));
+    const ser = levels.map((gg, i) => ({ pts: Array.from({ length: dTop + 1 }, (_, d) => [d, 100 * lowerCP(d, nn, gg)] as [number, number]), dots: true, cls: 'connect ' + SER_CLS[Math.min(i, 3)] }));
+    const ciChart = lineChart({
+      series: ser,
+      vlines: [{ x: cc + 1, label: 'd = c+1 = ' + (cc + 1), cls: 'spec' }],
+      hlines: levels.map((gg) => ({ y: 100 * piAt(nn, cc, gg), label: `${pct(gg, 3)}: ${pct(piAt(nn, cc, gg), 3)}`, cls: gg === pa ? 'ucl' : 'zone' })),
+      xlabel: `aantal defecten d in de steekproef (P = d/${nn})  -  ondergrens BI per niveau`,
+      ylabel: 'π (%)',
+      x0: 0,
+      x1: dTop,
+      y0: 0,
+    });
+    const legend = `Rechts: de ondergrens L(d) van het eenzijdige BI voor π, per aantal defecten d. Blauw = 99%-BI, groen = 90%-BI, oranje = 10%-BI, rood = ${pct(pa)}-BI (hoort bij jouw π). Lees af op de rode lijn d = c+1 = ${cc + 1}: elke curve snijdt daar op precies de π van het OC-punt met die aanvaardingskans (links).`;
+    const Lc = lowerCP(cc, nn, pa);
+    const Lc1 = lowerCP(cc + 1, nn, pa);
+    return resultPanel({
+      question: [`Plan \\((n,c)=(${nn},${cc})\\): aanvaardingskans bij \\(\\pi=${tx(P0)}\\), de \\(\\pi\\) waarbij \\(P_{acc}=${tx(G)}\\), en dezelfde beslissing via een betrouwbaarheidsinterval`],
+      formula: [
+        'P_{acc}(\\pi)=P(D\\le c\\mid\\pi)=\\sum_{d=0}^{c}\\binom{n}{d}\\pi^d(1-\\pi)^{n-d}',
+        '\\pi\\ \\text{bij}\\ P_{acc}=\\gamma:\\quad \\pi=\\text{BETA.INV}(1-\\gamma;\\ c+1;\\ n-c)',
+        'H_0:\\ \\pi\\le\\pi_0\\ (\\text{lot OK}),\\quad H_A:\\ \\pi>\\pi_0,\\quad \\alpha=1-P_{acc}(\\pi_0)',
+        '\\text{eenzijdig }(1-\\alpha)\\text{-BI: }[L(d);\\ 100\\%],\\quad L(d)=\\text{BETA.INV}(\\alpha;\\ d;\\ n-d+1),\\quad \\text{aanvaard} \\iff \\pi_0\\ \\text{ligt in het BI}',
+      ],
+      substituted: [
+        `P_{acc}(${tx(P0)})=P(D\\le ${cc}\\mid\\pi=${tx(P0)})=${tx(pa)},\\qquad P_{rej}=1-${tx(pa)}=${tx(alpha)}`,
+        `\\pi\\ \\text{bij}\\ P_{acc}=${tx(G)}:\\quad \\text{BETA.INV}(${tx(1 - G)};\\ ${cc + 1};\\ ${nn - cc})=${tx(piG)}=${pctTex(piG)}`,
+        `\\alpha=1-${tx(pa)}=${tx(alpha)}\\ \\Rightarrow\\ \\text{eenzijdig } ${pctTex(pa)}\\text{-BI}`,
+        `d=${cc}:\\ L=\\text{BETA.INV}(${tx(alpha)};\\ ${cc};\\ ${nn - cc + 1})=${pctTex(Lc)}<${pctTex(P0)}\\ \\Rightarrow\\ \\pi_0\\ \\text{in BI: aanvaard}`,
+        `d=${cc + 1}:\\ L=\\text{BETA.INV}(${tx(alpha)};\\ ${cc + 1};\\ ${nn - cc})=${pctTex(Lc1)}=\\pi_0\\ \\Rightarrow\\ \\text{grensgeval } p=\\alpha\\text{: afkeur}`,
+      ],
+      result: [
+        [`P_acc(π = ${pct(P0)})`, `${fmt(pa)} (${pct(pa)})`],
+        ['P_rej = 1 - P_acc', `${fmt(alpha)} (${pct(alpha)})`],
+        [`π waarbij P_acc = ${pct(G)}`, `${fmt(piG)} (${pct(piG)})`],
+        ['Gelijkwaardige toets', `H0: π ≤ ${pct(P0)} met α = ${pct(alpha)}, eenzijdig ${pct(pa)}-BI`],
+      ],
+      excel: [
+        `P_acc: =BINOM.DIST(${cc};${nn};${xl(P0)};WAAR)`,
+        `π bij P_acc = ${xl(G)}: =BETA.INV(${xl(1 - G)};${cc + 1};${nn - cc})`,
+        `ondergrens BI bij d defecten: =BETA.INV(${xl(alpha)};d;${nn}-d+1)`,
+        `p-waarde bij d defecten: =1-BINOM.DIST(d-1;${nn};${xl(P0)};WAAR)`,
+      ],
+      explain: {
+        question: 'De OC-curve en een betrouwbaarheidsinterval zijn twee kanten van dezelfde binomiale kansberekening. Het plan (n, c) keurt een lot af als d > c; een BI-toets keurt af als de veronderstelde kwaliteit π0 buiten het BI valt. Beide geven exact dezelfde beslissing.',
+        formula: [
+          'Waarom BETA.INV? De kans op hoogstens c defecten, als functie van π, is een beta-verdeling: P(D ≤ c | π) = 1 - BETA.DIST(π; c+1; n-c). De π waar P_acc = γ is dus BETA.INV(1-γ; c+1; n-c). Zo lees je een OC-punt af zonder te zoeken.',
+          'De ondergrens L(d) van het eenzijdige BI is de kleinste π waarbij d of meer defecten nog niet "te veel" zijn: P(D ≥ d | π = L) = α.',
+        ],
+        substituted: `Bij d = c+1 = ${cc + 1} geldt P(D ≥ ${cc + 1} | π0) = 1 - P_acc(π0) = α: de ondergrens valt exact op π0 (het grensgeval van de cursus, p = α). Bij d ≤ ${cc} ligt L lager, π0 zit in het BI en het lot wordt aanvaard. Bij d ≥ ${cc + 2} ligt L hoger, π0 valt buiten het BI en het lot wordt afgekeurd: precies de regel d ≤ c.`,
+        result: `Lees de OC-curve als een reeks hypothesetoetsen: kies je π0 = ${pct(P0)} als "AQL", dan is het plan (${nn}, ${cc}) een toets van H0: π ≤ ${pct(P0)} met significantie α = ${pct(alpha)}. Een lot met minder defecten wordt minder vaak onterecht afgekeurd, een lot met meer defecten wordt soms onterecht aanvaard (dat is β).`,
+      },
+      answer: `Bij het plan (n = ${nn}, c = ${cc}) wordt een lot met π = ${pctNl(P0)} defecten aanvaard met kans ${pctNl(pa)} (afgekeurd met kans ${pctNl(alpha)}). Een aanvaardingskans van ${pctNl(G)} hoort bij π = ${pctNl(piG)}. Neem π0 = ${pctNl(P0)} als AQL, dan is het plan gelijkwaardig aan de toets H0: π ≤ ${pctNl(P0)} met α = ${pctNl(alpha)}: het eenzijdige ${pctNl(pa)}-betrouwbaarheidsinterval voor π bevat π0 precies wanneer d ≤ ${cc}, dus precies wanneer het plan het lot aanvaardt.`,
+      extra: [
+        h('div', { class: 'grid2' }, chartBox(oc), chartBox(ciChart)),
+        note(legend, 'info'),
+        card(`BI-toets per aantal defecten d (π0 = ${pct(P0)}, α = ${pct(alpha)})`, tbl),
+        card('OC-punten: welke π hoort bij welke aanvaardingskans?', tbl2),
+      ],
+    });
+  });
+  return { run: () => run() };
+}
 
 // ---------- 2. Designer ----------
 function designTab(el: HTMLElement) {

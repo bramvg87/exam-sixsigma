@@ -66,6 +66,40 @@ Een **grotere steekproef** maakt de curve **steiler**: beide risico's dalen same
 
 **Welke verdeling?** Binomiaal voor grote lots (of $n/N<10\%$). **Hypergeometrisch** is exact bij een klein lot (trekken zonder teruglegging): `HYPGEOM.DIST(d;n;D;N;WAAR)` met $D=\pi N$ defecten in het lot. **Poisson** met $\lambda=n\pi$ is een benadering voor grote $n$ en kleine $\pi$ (handig voor tabellen).
 
+### Betrouwbaarheidsinterval versus klassieke toets: dezelfde beslissing
+
+Een steekproefplan is een **hypothesetoets**, en elke toets kan je ook uitvoeren met een **betrouwbaarheidsinterval (BI)**. De cursus bevestigt dat met drie punten van de OC-curve van $(100, 4)$:
+
+| $P_{acc}$ | $\pi$ in het lot | betekenis |
+|---|---|---|
+| 99% | 1,30% | goed lot: maar 1% kans op onterecht afkeuren |
+| 90% | 2,45% | grensgeval als AQL: 10% kans op onterecht afkeuren |
+| 10% | 7,85% | slecht lot: 10% kans op onterecht aanvaarden |
+
+**Stap 1 - het plan als toets.** Kies AQL $=2{,}45\%$:
+- $H_0$: lot OK $\iff \pi\le AQL=2{,}45\%$; $H_A$: lot NOK $\iff \pi>2{,}45\%$.
+- Een lot met precies $\pi=2{,}45\%$ wordt met 90% kans aanvaard, dus met 10% kans onterecht afgekeurd: de **significantie is $\alpha=10\%$**. Een lot met minder defecten (bv. 1,30%) heeft nog minder kans om onterecht afgekeurd te worden (1%). Een lot met meer defecten (bv. 7,85%) wordt soms onterecht aanvaard (10%): dat is $\beta$.
+
+**Stap 2 - dezelfde toets met een BI.** Trek $n=100$ stuks en tel $d$ defecten ($P=d/100$). Bereken het **eenzijdige 90%-BI** voor $\pi$: $[L(d);\ 100\%]$. Aanvaard $H_0$ als AQL in het BI ligt.
+
+| $d$ | $P$ | ondergrens $L(d)$ (exact) | 2,45% in BI? | plan $(100,4)$ |
+|---|---|---|---|---|
+| 0 | 0% | 0% | ja | aanvaarden |
+| 2 | 2% | 0,53% | ja | aanvaarden |
+| 4 | 4% | 1,75% | ja | aanvaarden ($d\le4$) |
+| 5 | 5% | 2,45% | grens: nee | afkeuren ($d>4$) |
+| 6 | 6% | 3,18% | nee | afkeuren |
+
+Het BI bevat de AQL precies voor $P=0\%$ tot $4\%$, dus precies voor $d\le c$: **dezelfde beslissing als het plan**. (De cursustabel toont iets andere grenzen, bv. 2,10% bij $P=4\%$, omdat ze een benaderend BI gebruikt; de conclusie is dezelfde.)
+
+**Waarom is dat zo?** De ondergrens $L(d)$ is de $\pi$ waarbij $d$ of meer defecten precies kans $\alpha$ hebben: $P(D\ge d\mid\pi=L)=\alpha$. Bij $d=c+1=5$ is dat $P(D\ge5\mid\pi)=1-P_{acc}(\pi)=10\%$, en dat gebeurt precies bij $\pi=2{,}45\%$. In Excel:
+
+$$\pi\ \text{bij}\ P_{acc}=\gamma:\quad \pi=\texttt{BETA.INV}(1-\gamma;\ c+1;\ n-c)$$
+
+bv. $\texttt{BETA.INV}(0{,}1;\ 5;\ 96)=2{,}45\%$, $\texttt{BETA.INV}(0{,}01;\ 5;\ 96)=1{,}30\%$ en $\texttt{BETA.INV}(0{,}9;\ 5;\ 96)=7{,}83\%$. Zo lees je elk punt van de OC-curve af zonder te zoeken. Doe je dit voor verschillende BI-niveaus (99%, 90%, 10%), dan krijg je de drie curves van de cursusfiguur: bij $d=c+1$ snijden ze op 1,30%, 2,45% en 7,85%.
+
+**Samengevat:** keuren met $(n,c)$ $\iff$ toetsen van $H_0:\pi\le\pi_0$ met $\alpha=1-P_{acc}(\pi_0)$ $\iff$ nagaan of $\pi_0$ in het eenzijdige $(1-\alpha)$-BI ligt. In het tabblad **Enkelvoudig plan** kan je onderaan zelf een $\pi$ invullen en dit voor elk plan bekijken.
+
 ### Een plan ontwerpen
 
 Je kiest vooraf AQL, LQL, het toegelaten $\alpha$ en $\beta$, en zoekt het **kleinste** $n$ met een $c$ waarvoor beide eisen kloppen. Voorbeeld AQL 2%, LQL 8%, $\alpha\le5\%$, $\beta\le5\%$:
