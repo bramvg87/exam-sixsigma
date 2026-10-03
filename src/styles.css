@@ -163,6 +163,18 @@ svg.chart .hline.ucl { stroke: var(--bad); stroke-dasharray: 6 3; }
 svg.chart .hline.cl { stroke: var(--ok); }
 svg.chart .hline.zone { stroke: var(--line); stroke-dasharray: 2 4; }
 svg.chart .band { fill: var(--shade); opacity: 0.5; }
+svg.chart .dot.obs { fill: var(--muted); opacity: 0.45; }
+svg.chart .ring { fill: none; stroke: var(--bad); stroke-width: 2.2; }
+svg.chart .xmark { fill: none; stroke: var(--bad); stroke-width: 2.6; stroke-linecap: round; }
+svg.chart .band.marg { fill: #e8a33d; opacity: 0.22; }
+svg.chart .band.cond { fill: var(--bad); opacity: 0.15; }
+.dag { width: 100%; max-width: 360px; height: auto; display: block; }
+.dag text { font: 600 18px var(--font); fill: var(--text); }
+.dag .node { fill: var(--panel2); stroke: var(--text); stroke-width: 1.5; }
+.dag .arrow { stroke: var(--text); stroke-width: 2; fill: none; }
+.dag .cut { stroke: var(--bad); stroke-width: 3; }
+.dag .do { fill: var(--bad); font-size: 13px; }
+.dag .ah { fill: var(--text); }
 svg.chart .band.pi { opacity: 0.22; }
 svg.chart .axlabel { fill: var(--text); font-size: 12px; }
 /* markdown pages */

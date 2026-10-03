@@ -5,7 +5,7 @@ import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
 import { lineChart, chartBox } from '../components/charts.ts';
 import { confusion, diagnose, contingency } from '../calc/misc.ts';
-import { chi2InvRt } from '../stats/dist.ts';
+import { chi2InvRt, normInv } from '../stats/dist.ts';
 import { live, need, moduleHead } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
 import G from '../../testdata/golden_values.json';
@@ -155,35 +155,82 @@ function gauss(r: () => number) {
   return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r());
 }
 
-function causalTab(el: HTMLElement) {
+/** Small causal diagram (DAG) with the intervention do(T = 730). */
+function dag(dir: 'ST' | 'TS'): HTMLElement {
+  const arrow = dir === 'ST' ? 'M60,60 L232,60' : 'M232,60 L60,60';
+  const head = dir === 'ST' ? 'M232,60 l-12,-7 l0,14 z' : 'M60,60 l12,-7 l0,14 z';
+  // S -> T: the intervention on T cuts the incoming arrow S -> T (T is now set from outside).
+  const cut = dir === 'ST' ? '<line class="cut" x1="136" y1="44" x2="156" y2="76"/><line class="cut" x1="156" y1="44" x2="136" y2="76"/>' : '';
+  const box = document.createElement('div');
+  box.innerHTML = `<svg class="dag" viewBox="0 0 300 150" role="img"><title>${dir === 'ST' ? 'S naar T' : 'T naar S'}</title>
+    <circle class="node" cx="38" cy="60" r="24"/><text x="38" y="66" text-anchor="middle">${dir === 'ST' ? 'S' : 'S'}</text>
+    <circle class="node" cx="254" cy="60" r="24"/><text x="254" y="66" text-anchor="middle">T</text>
+    <path class="arrow" d="${arrow}"/><path class="ah" d="${head}"/>${cut}
+    <path class="arrow" d="M254,128 L254,90" style="stroke:var(--bad)"/><path d="M254,86 l-7,12 l14,0 z" style="fill:var(--bad)"/>
+    <text class="do" x="254" y="145" text-anchor="middle">do(T = 730)</text></svg>`;
+  return box.firstElementChild as HTMLElement;
+}
+
+/** Figures for exam question 7: regression line, S -> T (dots) and T -> S (crosses) after do(T = 730). */
+export function causalFigures(): HTMLElement {
   const r = rng(7);
   // Mimics the exam figure (voorbeeldexamen vraag 7): T 550-750 degC, S falls from ~450 to ~425 MPa.
   const T: number[] = [];
   const S: number[] = [];
   const regAt = (t: number) => 452 - 0.13 * (t - 550);
+  const sdRes = 13;
   for (let i = 0; i < 110; i++) {
     const t = 550 + 200 * r();
     T.push(t);
-    S.push(regAt(t) + 13 * gauss(r));
+    S.push(regAt(t) + sdRes * gauss(r));
   }
   const tx0 = 730;
   const mS = S.reduce((x, y) => x + y, 0) / S.length;
   const sdS = Math.sqrt(S.reduce((x, y) => x + (y - mS) ** 2, 0) / (S.length - 1));
   // b) S -> T: intervention on T does not change S: S keeps its marginal distribution
-  const dotsB: [number, number][] = Array.from({ length: 10 }, () => [tx0, mS + sdS * gauss(r)]);
+  // 10 evenly spread points (quantiles) instead of random draws, so the picture shows the distributions honestly
+  const zq = Array.from({ length: 10 }, (_, i) => normInv((i + 0.5) / 10));
+  const dotsB: [number, number][] = zq.map((z) => [tx0, mS + sdS * z]);
   // c) T -> S: S | do(T=730) ~ regression value at 730 + residual noise
-  const dotsC: [number, number][] = Array.from({ length: 10 }, () => [tx0, regAt(tx0) + 13 * gauss(r)]);
-  const line: [number, number][] = [[545, regAt(545)], [755, regAt(755)]];
+  const dotsC: [number, number][] = zq.map((z) => [tx0, regAt(tx0) + sdRes * z]);
+  const xs: [number, number] = [545, 755];
+  const line: [number, number][] = xs.map((x) => [x, regAt(x)]);
   const base = { pts: T.map((t, i) => [t, S[i]] as [number, number]), dots: true, cls: 'obs' };
+  const margBand = { lo: xs.map((x) => [x, mS - 2 * sdS] as [number, number]), hi: xs.map((x) => [x, mS + 2 * sdS] as [number, number]), cls: 'marg' };
+  const condBand = { lo: xs.map((x) => [x, regAt(x) - 2 * sdRes] as [number, number]), hi: xs.map((x) => [x, regAt(x) + 2 * sdRes] as [number, number]), cls: 'cond' };
+  const yr = { y0: 380, y1: 500 };
+  const ch = (extra: any) => chartBox(lineChart({ xlabel: 'T: gloeitemperatuur (°C)', ylabel: 'S: sterkte (MPa)', ...yr, ...extra }, 560, 320));
+  const capt = (t: string) => h('p', { class: 'muted' }, t);
+  return h('div', null,
+    h('h4', null, 'a) Regressielijn f(x) = E[S | T = x] (zien, observeren)'),
+    ch({ series: [base, { pts: line, cls: 'fit' }] }),
+    capt('Grijze punten = de waargenomen wolk. De rode lijn loopt bij elke temperatuur door het gemiddelde van de punten (de voorwaardelijke verwachting). In de examenfiguur daalt ze: ongeveer 450 MPa bij 550 °C naar 425 MPa bij 740 °C.'),
+    h('div', { class: 'grid2' },
+      h('div', null,
+        h('h4', null, 'b) Causaal diagram S → T, ingreep do(T = 730): BOLLETJES'),
+        dag('ST'),
+        ch({ series: [base, { pts: line, cls: 'fit' }, { pts: dotsB, dots: true, marker: 'ring' }], bands: [margBand], vlines: [{ x: tx0, label: 'T = 730' }] }),
+        capt('S is de oorzaak van T. Als je T van buitenaf op 730 zet, knip je de pijl S → T door: de temperatuur wordt niet meer door de sterkte bepaald, en de sterkte verandert niet. De ~10 bolletjes staan op de verticale lijn T = 730 en zijn verspreid over het VOLLEDIGE bereik van S (oranje band: gemiddelde ± 2 standaardafwijkingen van alle S-waarden, de marginale verdeling; in de examenfiguur ligt S tussen ongeveer 390 en 480 MPa), net zoals de hele wolk, niet geconcentreerd rond de rode lijn.'),
+      ),
+      h('div', null,
+        h('h4', null, 'c) Causaal diagram T → S, ingreep do(T = 730): KRUISJES'),
+        dag('TS'),
+        ch({ series: [base, { pts: line, cls: 'fit' }, { pts: dotsC, dots: true, marker: 'cross' }], bands: [condBand], vlines: [{ x: tx0, label: 'T = 730' }] }),
+        capt('T is de oorzaak van S. De ingreep op T werkt door op S: S volgt dezelfde verdeling als de waargenomen stukken met T = 730, dus P(S | do(T = 730)) = P(S | T = 730). De ~10 kruisjes liggen op T = 730 dicht rond de waarde van de regressielijn (ongeveer 428 MPa), binnen de smalle rode band (spreiding rond de lijn).'),
+      ),
+    ),
+    h('h4', null, 'b en c samen: zelfde data, zelfde ingreep, ander beeld'),
+    ch({ series: [base, { pts: line, cls: 'fit' }, { pts: dotsB.map(([x, y]) => [x - 4, y] as [number, number]), dots: true, marker: 'ring' }, { pts: dotsC.map(([x, y]) => [x + 4, y] as [number, number]), dots: true, marker: 'cross' }], bands: [margBand, condBand], vlines: [{ x: tx0, label: 'T = 730' }] }),
+    capt(`Twee verschillen: (1) het CENTRUM: de bolletjes liggen rond het gemiddelde van alle S-waarden (${Math.round(mS)} MPa), de kruisjes rond de regressielijn bij 730 (${Math.round(regAt(tx0))} MPa); (2) de SPREIDING: de bolletjes volgen de volledige spreiding van S, de kruisjes enkel de spreiding rond de lijn. Omdat de trend in deze figuur zwak is ten opzichte van de ruis, is het breedteverschil bescheiden; bij een sterkere trend wordt het groot. De puntenwolk alleen kan niet tonen welk beeld juist is: daarvoor heb je het causale diagram nodig ("correlatie is geen causaliteit").`),
+  );
+}
+
+function causalTab(el: HTMLElement) {
   el.append(
     card('Zien versus doen (seeing vs doing) - voorbeeldexamen vraag 7',
       exam.figures['7'] ? h('img', { src: exam.figures['7'], alt: 'Examenfiguur vraag 7', class: 'examfig' }) : '',
-      h('p', null, 'Observeren: E[S | T = x] is de regressielijn door het midden van de puntenwolk (in de examenfiguur dalend: ongeveer 450 MPa bij 550 °C tot 425 MPa bij 740 °C). Ingrijpen (do-operator): T vastzetten op 730 °C. Wat er dan met S gebeurt hangt af van de causale richting, niet van de correlatie.'),
-      h('div', { class: 'grid2' },
-        h('div', null, h('b', null, 'a) Regressielijn E[S | T = x]'), chartBox(lineChart({ series: [base, { pts: line, cls: 'fit' }], xlabel: 'T (°C)', ylabel: 'S (MPa)' }, 520, 300))),
-        h('div', null, h('b', null, 'b) S -> T: do(T = 730): S verandert niet (bolletjes, marginale spreiding van S)'), chartBox(lineChart({ series: [base, { pts: line, cls: 'fit' }, { pts: dotsB, dots: true, flags: dotsB.map(() => true) }], vlines: [{ x: tx0, label: 'T = 730' }], xlabel: 'T (°C)', ylabel: 'S (MPa)' }, 520, 300))),
-        h('div', null, h('b', null, 'c) T -> S: do(T = 730): S volgt S | T = 730 (kruisjes rond de regressielijn bij 730)'), chartBox(lineChart({ series: [base, { pts: line, cls: 'fit' }, { pts: dotsC, dots: true, flags: dotsC.map(() => true) }], vlines: [{ x: tx0, label: 'T = 730' }], xlabel: 'T (°C)', ylabel: 'S (MPa)' }, 520, 300))),
-      ),
+      h('p', null, 'Observeren: E[S | T = x] is de regressielijn door het midden van de puntenwolk. Ingrijpen (do-operator): T vastzetten op 730 °C. Wat er dan met S gebeurt hangt af van de causale richting, niet van de correlatie.'),
+      causalFigures(),
       note('Tekenhulp: (a) trek de lijn door de "gemiddelde" S per T-waarde. (b) S -> T: alle ~10 bolletjes op de verticale lijn T = 730, verspreid over het volledige bereik van S (zoals de marginale verdeling van S). (c) T -> S: ~10 kruisjes op T = 730, dicht rond de waarde van de regressielijn bij 730, met de spreiding van S rond de lijn.', 'ok'),
     ),
     card('Causaliteit: kernbegrippen',

@@ -111,7 +111,7 @@ export function densityPlot(o: DensityOpts, W = 640, H = 240): SVGElement {
   return svg;
 }
 
-export interface Series { pts: [number, number][]; cls?: string; label?: string; dots?: boolean; flags?: boolean[] }
+export interface Series { pts: [number, number][]; cls?: string; label?: string; dots?: boolean; flags?: boolean[]; marker?: 'dot' | 'ring' | 'cross' }
 export interface LineOpts {
   series: Series[];
   hlines?: { y: number; label: string; cls?: string }[];
@@ -163,7 +163,12 @@ export function lineChart(o: LineOpts, W = 640, H = 260): SVGElement {
     if (se.dots)
       se.pts.forEach(([x, y], i) => {
         if (!isFinite(x) || !isFinite(y)) return;
-        svg.appendChild(s('circle', { cx: X(f, x), cy: Y(f, y), r: 3.6, class: 'dot ' + (se.flags?.[i] ? 'flag ' : '') + (se.cls ?? '') }));
+        const cx = X(f, x), cy = Y(f, y);
+        if (se.marker === 'cross') {
+          const d = 5;
+          svg.appendChild(s('path', { d: `M${cx - d},${cy - d}L${cx + d},${cy + d}M${cx - d},${cy + d}L${cx + d},${cy - d}`, class: 'xmark ' + (se.cls ?? '') }));
+        } else if (se.marker === 'ring') svg.appendChild(s('circle', { cx, cy, r: 5, class: 'ring ' + (se.cls ?? '') }));
+        else svg.appendChild(s('circle', { cx, cy, r: 3.6, class: 'dot ' + (se.flags?.[i] ? 'flag ' : '') + (se.cls ?? '') }));
       });
   }
   return svg;

@@ -5,6 +5,7 @@ import { table } from '../components/result.ts';
 import { formularium, spiekbrief, exam } from '../generated/content.ts';
 import { buildChecks, passes } from '../selftest/checks.ts';
 import { BUILD } from '../generated/buildinfo.ts';
+import { causalFigures } from './ml.ts';
 import { moduleHead } from './util.ts';
 import { tabs, type ModuleDef, type Ctx, REPO_URL, DOWNLOAD_URL } from './types.ts';
 import G from '../../testdata/golden_values.json';
@@ -306,6 +307,7 @@ export const examen: ModuleDef = {
           h('h3', null, `Vraag ${i}`),
           h('div', { class: 'md', html: q }),
           exam.figures[k] ? h('img', { src: exam.figures[k], alt: `Figuur vraag ${i}`, class: 'examfig' }) : '',
+          k === '7' ? h('details', { class: 'sol', open: true }, h('summary', null, 'Visualisatie: hoe zien de schetsen eruit? (a: regressielijn, b: S \u2192 T met bolletjes, c: T \u2192 S met kruisjes)'), causalFigures()) : '',
           h('div', { class: 'row' }, btns),
           h('details', { class: 'sol' }, h('summary', null, 'Uitgewerkte oplossing (Nederlands, examenantwoord)'), h('div', { class: 'md', html: s })),
           exam.original[k] ? h('details', { class: 'sol' }, h('summary', null, 'Originele uitwerking (Worked Solutions, Engels)'), h('div', { class: 'md', html: exam.original[k] })) : '',
