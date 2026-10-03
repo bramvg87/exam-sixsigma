@@ -588,15 +588,58 @@ Verwerp $H_0$ ($\mu_1=\dots=\mu_a$) als $F>F_{1-\alpha,\,a-1,\,a(n-1)}$. Rekenvo
 
 **Vrijheidsgraden lezen.** $a-1$ voor de factor: $a$ groepsgemiddelden, waarvan er één "vastligt" door het grootgemiddelde. $N-a$ voor de fout: $N$ waarnemingen min de $a$ geschatte groepsgemiddelden. $MS=SS/df$ maakt van een som een gemiddelde kwadratische afwijking, dus een variantieschatting; daardoor zijn teller en noemer van F vergelijkbaar.
 
-**De ANOVA-tabel lezen (voorbeeld, 3 groepen van 4).** Groepsgemiddelden 12,10 / 13,05 / 12,30, grootgemiddelde 12,48.
+**Uitgewerkt voorbeeld stap voor stap: van metingen naar ANOVA-tabel.**
+
+**De vraag.** Drie leveranciers leveren dezelfde as. Van elke leverancier meet je de diameter (mm) van 4 willekeurige stuks. Leveren ze gemiddeld dezelfde diameter? $H_0:\mu_1=\mu_2=\mu_3$, $\alpha=5\%$.
+
+**Stap 0 - de metingen.** Elke kolom is een groep (leverancier), elke cel één gemeten stuk. $a=3$ groepen, $n=4$ per groep, $N=12$ metingen.
+
+| | Leverancier 1 | Leverancier 2 | Leverancier 3 |
+|---|---|---|---|
+| stuk 1 | 12,1 | 13,0 | 12,2 |
+| stuk 2 | 11,8 | 12,7 | 12,6 |
+| stuk 3 | 12,5 | 13,4 | 12,4 |
+| stuk 4 | 12,0 | 13,1 | 12,0 |
+| **groepsgemiddelde $\bar y_i$** | **12,10** | **13,05** | **12,30** |
+
+**Stap 1 - gemiddelden.** Groepsgemiddelde = gemiddelde van een kolom, bv. $\bar y_1=(12{,}1+11{,}8+12{,}5+12{,}0)/4=48{,}4/4=12{,}10$. Grootgemiddelde = gemiddelde van alle 12 metingen: $\bar y=149{,}8/12=12{,}483$.
+
+**Stap 2 - $SS_B$ (tussen groepen): hoe ver liggen de groepsgemiddelden van het grootgemiddelde?** Per groep: afwijking van het groepsgemiddelde, in het kwadraat, maal het aantal metingen in die groep (want elk van de 4 stuks "draagt" dat verschil).
+
+| groep | $\bar y_i-\bar y$ | $(\bar y_i-\bar y)^2$ | $\times n=4$ |
+|---|---|---|---|
+| 1 | $12{,}10-12{,}483=-0{,}383$ | 0,1469 | 0,588 |
+| 2 | $13{,}05-12{,}483=+0{,}567$ | 0,3211 | 1,284 |
+| 3 | $12{,}30-12{,}483=-0{,}183$ | 0,0336 | 0,134 |
+| | | **$SS_B$** | **2,007** |
+
+**Stap 3 - $SS_W$ (binnen groepen): hoe ver liggen de stuks van hun eigen groepsgemiddelde?** Per meting: $y-\bar y_i$, in het kwadraat, en alles optellen.
+
+| | Leverancier 1 ($\bar y_1=12{,}10$) | Leverancier 2 ($\bar y_2=13{,}05$) | Leverancier 3 ($\bar y_3=12{,}30$) |
+|---|---|---|---|
+| afwijkingen $y-\bar y_i$ | 0 ; $-0{,}3$ ; $+0{,}4$ ; $-0{,}1$ | $-0{,}05$ ; $-0{,}35$ ; $+0{,}35$ ; $+0{,}05$ | $-0{,}1$ ; $+0{,}3$ ; $+0{,}1$ ; $-0{,}3$ |
+| kwadraten | 0 ; 0,09 ; 0,16 ; 0,01 | 0,0025 ; 0,1225 ; 0,1225 ; 0,0025 | 0,01 ; 0,09 ; 0,01 ; 0,09 |
+| som per groep | 0,26 | 0,25 | 0,20 |
+
+$SS_W=0{,}26+0{,}25+0{,}20=$ **0,710**. (Excel: `=DEVSQ(kolom)` per groep en optellen.)
+
+**Stap 4 - controle met $SS_T$.** Alle 12 metingen t.o.v. het grootgemiddelde: $SS_T=\sum(y-12{,}483)^2=2{,}717$ (`=DEVSQ(alle data)`), en inderdaad $2{,}007+0{,}710=2{,}717$.
+
+**Stap 5 - vrijheidsgraden.** Tussen: $a-1=3-1=2$ (3 groepsgemiddelden, één ligt vast door het grootgemiddelde). Binnen: $N-a=12-3=9$ (12 metingen, 3 groepsgemiddelden geschat; per groep $n-1=3$, dus $3\cdot3=9$). Totaal: $N-1=11=2+9$.
+
+**Stap 6 - mean squares (variantieschattingen).** $MS_B=SS_B/df_B=2{,}007/2=1{,}003$. $MS_W=SS_W/df_W=0{,}710/9=0{,}0789$. $MS_W$ is de geschatte ruisvariantie, dus de stuks van eenzelfde leverancier schommelen typisch $\sqrt{0{,}0789}=0{,}28$ mm.
+
+**Stap 7 - F en p.** $F=MS_B/MS_W=1{,}003/0{,}0789=12{,}72$. Als de leveranciers gelijk waren, zou F rond 1 liggen. Kritieke waarde $F_{0{,}95}(2;9)=4{,}26$ (`=F.INV.RT(0,05;2;9)`); p-waarde `=F.DIST.RT(12,72;2;9)` $=0{,}0024$.
+
+**De ANOVA-tabel** vat stap 2 tot 7 samen:
 
 | Bron | SS | df | MS | F | p |
 |---|---|---|---|---|---|
-| Tussen | 2,007 | 2 | 1,003 | 12,72 | 0,0024 |
-| Binnen | 0,710 | 9 | 0,0789 | | |
-| Totaal | 2,717 | 11 | | | |
+| Tussen groepen | 2,007 (stap 2) | 2 | 1,003 | 12,72 | 0,0024 |
+| Binnen groepen | 0,710 (stap 3) | 9 | 0,0789 | | |
+| Totaal | 2,717 (stap 4) | 11 | | | |
 
-$MS_E=0{,}0789$ is de schatting van $\sigma^2$ (ruis); $MS_{Tr}=1{,}003$ is 12,7 keer zo groot, wat onder $H_0$ hoogst ongewoon is: $F_{krit}=F_{0{,}05;2;9}=4{,}26$ (`=F.INV.RT(0,05;2;9)`), $p=0{,}0024$ (`=F.DIST.RT(12,72;2;9)`). Verwerp $H_0$: minstens één gemiddelde verschilt (hier vooral groep 2). $R^2=SS_{Tr}/SS_T=0{,}74$: 74% van de variatie komt van de factor. De toets is altijd rechtszijdig, want enkel een grote F is bewijs tegen $H_0$.
+**Besluit.** $F=12{,}72>4{,}26$ (en $p=0{,}0024<0{,}05$): verwerp $H_0$. De leveranciers leveren niet allemaal dezelfde gemiddelde diameter. $R^2=SS_B/SS_T=2{,}007/2{,}717=0{,}74$: 74% van de spreiding in diameter komt door de leverancier. Welke verschilt? LSD $=t_{0{,}975;9}\sqrt{2\cdot0{,}0789/4}=2{,}262\cdot0{,}199=0{,}45$ mm: leverancier 2 wijkt af van 1 (verschil 0,95) en van 3 (0,75); 1 en 3 verschillen niet (0,20).
 
 **Aannames.** Onafhankelijke waarnemingen (randomiseer de volgorde), normale residuen, gelijke varianties per groep (vuistregel: grootste/kleinste $s$ niet meer dan ongeveer 2). Bij gelijke groepsgroottes is ANOVA vrij robuust.
 

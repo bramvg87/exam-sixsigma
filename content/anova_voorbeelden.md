@@ -15,6 +15,33 @@
 
 De sterkte stijgt van 15% naar 30% en zakt dan sterk bij 35%. Binnen een groep schommelen de metingen ongeveer 2 tot 3 eenheden (toeval tussen proefstukken). De vraag van ANOVA: zijn de verschillen **tussen** de gemiddelden (van 9,8 tot 21,6) groot vergeleken met die schommeling **binnen** de groepen?
 
+**Alle metingen (treksterkte, psi):**
+
+| proefstuk | 15% | 20% | 25% | 30% | 35% |
+|---|---|---|---|---|---|
+| 1 | 7 | 12 | 14 | 19 | 7 |
+| 2 | 7 | 17 | 18 | 25 | 10 |
+| 3 | 15 | 12 | 18 | 22 | 11 |
+| 4 | 11 | 18 | 19 | 19 | 15 |
+| 5 | 9 | 18 | 19 | 23 | 11 |
+| **som** | 49 | 77 | 88 | 108 | 54 |
+| **gemiddelde** | **9,8** | **15,4** | **17,6** | **21,6** | **10,8** |
+
+Grootgemiddelde: $376/25=15{,}04$.
+
+**Hoe komen de getallen in de ANOVA-tabel tot stand?**
+
+| groep | $\bar y_i-\bar y$ | $(\bar y_i-\bar y)^2$ | $\times5$ (bijdrage $SS_B$) | $\sum(y-\bar y_i)^2$ (bijdrage $SS_W$) |
+|---|---|---|---|---|
+| 15% | $9{,}8-15{,}04=-5{,}24$ | 27,46 | 137,29 | 44,8 |
+| 20% | $+0{,}36$ | 0,13 | 0,65 | 39,2 |
+| 25% | $+2{,}56$ | 6,55 | 32,77 | 17,2 |
+| 30% | $+6{,}56$ | 43,03 | 215,17 | 27,2 |
+| 35% | $-4{,}24$ | 17,98 | 89,89 | 32,8 |
+| **som** | | | **$SS_B=475{,}76$** | **$SS_W=161{,}20$** |
+
+Bv. de bijdrage van 15% aan $SS_W$: afwijkingen van 9,8 zijn $-2{,}8;\ -2{,}8;\ +5{,}2;\ +1{,}2;\ -0{,}8$, kwadraten $7{,}84+7{,}84+27{,}04+1{,}44+0{,}64=44{,}8$. Dan $MS_B=475{,}76/4=118{,}94$, $MS_W=161{,}20/20=8{,}06$, $F=118{,}94/8{,}06=14{,}76$.
+
 **De ANOVA-tabel gelezen.**
 
 | Bron | SS | df | MS | F | p |
@@ -110,6 +137,23 @@ De operatoren liggen dicht bij elkaar (51 tot 54). De machines verschillen meer:
 
 **Hoe staan de getallen in het grid (blokformaat)?** De kopregel bevat de zonniveaus. De rij met label "Daily" en de 4 rijen eronder (met lege eerste cel) zijn de 5 planten die dagelijks water kregen; elke kolom is een zonniveau. Dus de eerste kolom onder "None" bevat 4,8 - 4,4 - 3,2 - 3,9 - 4,4: de groei van de 5 planten zonder zon en met dagelijks water. Daarna volgt het blok "Weekly" op dezelfde manier. Dit is het formaat van Excel "Anova: twee factoren met herhaling".
 
+**Alle metingen (groei), in blokformaat:**
+
+| water | plant | None | Low | Medium | High |
+|---|---|---|---|---|---|
+| Daily | 1 | 4,8 | 5,0 | 6,4 | 6,3 |
+| | 2 | 4,4 | 5,2 | 6,2 | 6,4 |
+| | 3 | 3,2 | 5,6 | 4,7 | 5,6 |
+| | 4 | 3,9 | 4,3 | 5,5 | 4,8 |
+| | 5 | 4,4 | 4,8 | 5,8 | 5,8 |
+| Weekly | 1 | 4,4 | 4,9 | 5,8 | 6,0 |
+| | 2 | 4,2 | 5,3 | 6,2 | 4,9 |
+| | 3 | 3,8 | 5,7 | 6,3 | 4,6 |
+| | 4 | 3,7 | 5,4 | 6,5 | 5,6 |
+| | 5 | 3,9 | 4,8 | 5,5 | 5,5 |
+
+Een **cel** = één combinatie (bv. Daily + None) met 5 planten; het celgemiddelde is het gemiddelde van die 5 getallen, bv. Daily-None: $(4{,}8+4{,}4+3{,}2+3{,}9+4{,}4)/5=4{,}14$. Grootgemiddelde van alle 40: $5{,}1525$.
+
 **Eerst zelf kijken: de celgemiddelden.**
 
 | | None | Low | Medium | High | rijgemiddelde |
@@ -136,6 +180,13 @@ De operatoren liggen dicht bij elkaar (51 tot 54). De machines verschillen meer:
 - **Interactie** (lees je eerst): $F=1{,}24$, $p=0{,}31$: **niet significant**. Het effect van de zon hangt niet af van hoe vaak je water geeft. Daardoor mag je de hoofdeffecten apart interpreteren.
 - **Zon:** $F=6{,}25/0{,}27=23{,}05$, $p<0{,}0001$: **zeer significant**. De kolomgemiddelden verschillen veel meer dan toeval verklaart.
 - **Water:** $F=0{,}001$, $p=0{,}98$: **geen effect**; de twee rijgemiddelden zijn praktisch gelijk.
+
+**Hoe komen de SS tot stand?**
+- $SS_{\text{zon}}$: kolomgemiddelden (4,07 / 5,10 / 5,89 / 5,55) min 5,1525, in het kwadraat, maal 10 (elke kolom bevat $2\cdot5=10$ planten): $10\cdot(1{,}172+0{,}003+0{,}544+0{,}158)=18{,}76$.
+- $SS_{\text{water}}$: rijgemiddelden (5,155 / 5,150) min 5,1525, in het kwadraat, maal 20 (elke rij $4\cdot5$ planten): $20\cdot(0{,}0025^2+0{,}0025^2)=0{,}0003$.
+- $SS_{\text{cellen}}$: celgemiddelden min 5,1525, in het kwadraat, maal 5: $19{,}78$. Daarvan is $SS_{\text{interactie}}=19{,}78-18{,}76-0{,}0003=1{,}01$: het deel van de celverschillen dat niet uit zon en water afzonderlijk volgt.
+- $SS_E$: per cel de afwijkingen van de 5 planten t.o.v. hun celgemiddelde, in het kwadraat: 1,512 + 0,928 + 1,788 + 1,648 (Daily) + 0,340 + 0,548 + 0,652 + 1,268 (Weekly) $=8{,}684$.
+- Elke $MS=SS/df$ en $F=MS/MS_E$; bv. zon: $18{,}76/3=6{,}255$ en $6{,}255/0{,}2714=23{,}05$.
 
 **Conclusie in gewone taal.** De hoeveelheid **zonlicht** bepaalt de groei (meest groei bij middel tot veel zon, weinig zonder zon). Of je dagelijks of wekelijks water geeft, maakt **geen verschil**, en dat geldt bij elk zonniveau (geen interactie). Praktisch: water geven kan wekelijks (goedkoper), investeer in licht.
 
