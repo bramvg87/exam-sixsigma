@@ -8,7 +8,8 @@ import { regress, predict } from '../calc/regression.ts';
 import { mean } from '../stats/desc.ts';
 import { normInv } from '../stats/dist.ts';
 import { live, need, moduleHead, prob } from './util.ts';
-import { tabs, type ModuleDef } from './types.ts';
+import { theoryPage, type ModuleDef } from './types.ts';
+import { regTheorie } from '../generated/content.ts';
 import G from '../../testdata/golden_values.json';
 
 const g = G as any;
@@ -290,6 +291,25 @@ function regTab(el: HTMLElement) {
             ? { text: k === 1 ? `Verwerp H0: helling significant (p < α = ${fmt(a)})` : `Verwerp H0: model significant (p < α = ${fmt(a)})`, kind: 'reject' }
             : { text: `H0 niet verwerpen (p ≥ α = ${fmt(a)})`, kind: 'accept' },
         warnings,
+        explain: {
+          question: [
+            `Regressie zoekt de rechte (of het vlak) die ${yName} zo goed mogelijk voorspelt uit ${xNames.join(', ')}. \u03b2 zijn de ware (onbekende) co\u00ebffici\u00ebnten, b hun schattingen. De toets vraagt of het verband groter is dan toeval.`,
+          ],
+          formula: [
+            'Kleinste kwadraten: b wordt zo gekozen dat de som van de gekwadrateerde residuen e = y - \u0177 minimaal is. Enkelvoudig: b\u2081 = S_xy/S_xx (samenhang gedeeld door de spreiding van x) en b\u2080 = \u0233 - b\u2081x\u0304 (de lijn gaat door het zwaartepunt).',
+            'De totale spreiding van y splitst in een verklaard en een onverklaard deel: SS_T = SS_R + SS_E. MS = SS/df maakt er variantieschattingen van; MS_E schat \u03c3\u00b2 (ruis rond de lijn) en s = \u221aMS_E is de typische afstand van een punt tot de lijn.',
+            'F = MS_R/MS_E: verklaarde spreiding per vrijheidsgraad gedeeld door de ruis (zelfde logica als ANOVA). t = b/se(b) toetst elke co\u00ebffici\u00ebnt apart; bij \u00e9\u00e9n X is F = t\u00b2.',
+          ],
+          substituted: [
+            `SS_T = ${nl(fit.SST)} (totale spreiding van ${yName} rond zijn gemiddelde ${nl(mean(y))}); daarvan verklaart het model SS_R = ${nl(fit.SSR)} en blijft SS_E = ${nl(fit.SSE)} over (residuen).`,
+            `MS_E = SS_E/(n - k - 1) = ${nl(fit.SSE)}/${dfE} = ${nl(fit.MSE)}, dus s = ${nl(fit.s)}: de punten liggen typisch ${nl(fit.s)} (eenheden van ${yName}) van de lijn.`,
+          ],
+          result: [
+            `R\u00b2 = SS_R/SS_T = ${nl(fit.SSR)}/${nl(fit.SST)} = ${pctNl(fit.R2)}: dat deel van de spreiding in ${yName} wordt verklaard. R\u00b2_adj = ${nl(fit.R2adj)} corrigeert voor het aantal variabelen (vergelijk modellen hiermee).`,
+            `F = ${nl(fit.F)} met p = ${nl(fit.pF)}: ${fit.pF < a ? 'het model verklaart significant meer dan toeval' : 'het model verklaart niet significant meer dan toeval'}.${k === 1 ? ` Helling b\u2081 = ${nl(fit.beta[1])} met se = ${nl(fit.se[1])}, t = ${nl(fit.t[1])}: per eenheid ${xNames[0]} verandert ${yName} gemiddeld met ${nl(fit.beta[1])}, met BI [${nl(fit.ci[1][0])} ; ${nl(fit.ci[1][1])}].` : ''}`,
+            'Controleer de residuen (geen patroon, constante spreiding, ongeveer normaal) en extrapoleer niet buiten het gemeten bereik. Een sterk verband bewijst geen oorzaak.',
+          ],
+        },
         excel,
         answer,
         extra,
@@ -354,6 +374,9 @@ function regTab(el: HTMLElement) {
               ? `halve breedte PI: =T.INV.2T(${xl(a)};${dfE})*STEYX(${yR};${xRs[0]})*SQRT(1+1/${n}+(${xl(x0[0])}-AVERAGE(${xRs[0]}))^2/DEVSQ(${xRs[0]}))`
               : `halve breedte PI: =T.INV.2T(${xl(a)};${dfE})*${xl(fit.s)}*SQRT(1+${xl(p.h)})`,
           ],
+          explain: {
+            formula: ['BI (confidence interval) = onzekerheid op de GEMIDDELDE respons bij x\u2080: enkel de onzekerheid op de lijn zelf. PI (prediction interval) = waar \u00e9\u00e9n NIEUWE meting valt: lijnonzekerheid plus de ruis \u03c3\u00b2 van die meting (de extra 1 onder de wortel). Daarom is PI altijd breder en wordt het niet smaller dan ongeveer \u00b1 t\u00b7s, hoeveel data je ook hebt.', 'h (leverage) = 1/n + (x\u2080 - x\u0304)\u00b2/S_xx bij \u00e9\u00e9n X: hoe verder x\u2080 van het gemiddelde, hoe breder beide intervallen.'],
+          },
           answer: `Bij ${x0txt} is de voorspelde waarde ${nl(p.yhat)}. Met ${nl(conf)}% betrouwbaarheid ligt de gemiddelde respons in ${ciNl(p.ci)}; een individuele nieuwe waarneming ligt met ${nl(conf)}% kans in het bredere voorspellingsinterval ${ciNl(p.pi)}. Het PI is breder omdat het naast de onzekerheid op de regressielijn ook de spreiding s van individuele waarnemingen bevat.${ext ? ' Let op: x0 ligt buiten het waargenomen bereik (extrapolatie).' : ''}`,
         }),
       );
@@ -375,48 +398,6 @@ function regTab(el: HTMLElement) {
   };
 }
 
-function theoryTab(el: HTMLElement) {
-  el.append(
-    card(
-      'Veronderstellingen van lineaire regressie',
-      h(
-        'ol',
-        null,
-        h('li', null, h('b', null, 'Lineariteit: '), 'het verband tussen X en het gemiddelde van Y is lineair. Controle: spreidingsdiagram, residuplot zonder boog.'),
-        h('li', null, h('b', null, 'Onafhankelijkheid: '), 'de fouten (residuen) zijn onafhankelijk, bv. geen autocorrelatie in de tijd. Controle: residuen in volgorde van meting.'),
-        h('li', null, h('b', null, 'Constante variantie (homoscedasticiteit): '), 'de spreiding rond de lijn is overal gelijk. Controle: residuplot zonder trechtervorm.'),
-        h('li', null, h('b', null, 'Normaliteit van de residuen: '), 'nodig voor t-toetsen, F-toets, BI en PI. Controle: normaal-kansplot of histogram van de residuen.'),
-      ),
-      note('De toetsen en intervallen (t, F, BI, PI) zijn pas geldig als deze veronderstellingen ongeveer kloppen. Kijk dus altijd eerst naar de residuen.', 'info'),
-    ),
-    card(
-      'Residuanalyse',
-      h(
-        'ul',
-        null,
-        h('li', null, 'Residu e_i = y_i - ŷ_i. Som van de residuen = 0 (kleinste kwadraten minimaliseert SS_E = Σ e_i²).'),
-        h('li', null, 'Residuplot (e tegen ŷ of tegen x): willekeurige wolk rond 0 = in orde; boog = kwadratische term ontbreekt; trechter = niet-constante variantie (transformatie, bv. log Y).'),
-        h('li', null, 'Uitschieters (|e/s| > 2 à 3) en invloedrijke punten (hoge leverage h_i, ver van x̄) apart bekijken.'),
-        h('li', null, 'R² = SS_R/SS_T = aandeel verklaarde variatie; bij enkelvoudige regressie R² = r². R²adj straft extra variabelen af en is beter om modellen met verschillend aantal X te vergelijken.'),
-      ),
-    ),
-    card(
-      'Correlatie is geen causaliteit',
-      h('p', null, 'Een significant verband (helling ≠ 0, hoge r) bewijst geen oorzaak-gevolg. Mogelijke verklaringen: een verborgen derde variabele (confounder), omgekeerde causaliteit, of toeval (bij veel geteste verbanden). Causaliteit aantonen vraagt een gecontroleerd experiment (DOE) waarin X actief ingesteld wordt (interventie, "doing" in plaats van "seeing").'),
-    ),
-    card(
-      'Extrapolatie en BI versus PI',
-      h(
-        'ul',
-        null,
-        h('li', null, 'Het model is enkel gevalideerd binnen het bereik van de waargenomen X-waarden. Voorspellen daarbuiten (extrapolatie) is riskant: het verband kan er anders zijn.'),
-        h('li', null, 'Het BI (confidence interval) voor de gemiddelde respons is het smalst bij x = x̄ en wordt breder naarmate x₀ verder van x̄ ligt.'),
-        h('li', null, 'Het PI (prediction interval) voor één nieuwe waarneming bevat een extra "1 +" onder de wortel en is daardoor altijd breder dan het BI; het wordt niet smaller dan ± t·s, ook niet bij grote n.'),
-      ),
-    ),
-  );
-}
-
 export const regressie: ModuleDef = {
   id: 'regressie',
   title: 'Regressie',
@@ -424,14 +405,11 @@ export const regressie: ModuleDef = {
   keywords: ['regressie', 'regression', 'lineaire regressie', 'kleinste kwadraten', 'least squares', 'R2', 'R²', 'determinatiecoëfficiënt', 'correlatie', 'helling', 'slope', 'intercept', 'voorspellingsinterval', 'prediction interval', 'betrouwbaarheidsinterval gemiddelde respons', 'residu', 'residuen', 'LINEST', 'meervoudige regressie', 'verband'],
   subs: [
     ['reg', 'Enkelvoudige en meervoudige regressie (kleinste kwadraten)', 'regressie helling intercept R2 voorspellingsinterval prediction interval LINEST kleinste kwadraten residu'],
-    ['theorie', 'Regressie: veronderstellingen, residuanalyse, causaliteit', 'veronderstellingen residuen extrapolatie correlatie causaliteit'],
+    ['theorie', 'Theorie regressie: SS_T, SS_R, SS_E, MS_E, R2, F, t, BI en PI', 'theorie SST SSR SSE MSE MSR Sxx Sxy Syy kleinste kwadraten R2 adj F t standaardfout helling veronderstellingen residuen extrapolatie causaliteit'],
   ],
   mount(el) {
-    moduleHead(el, 'Regressie (linear regression)', 'Enkelvoudige en meervoudige lineaire regressie met kleinste kwadraten, ANOVA-tabel, R², BI en PI.');
-    const t = tabs('regressie', [
-      { id: 'reg', label: 'Regressie', build: regTab },
-      { id: 'theorie', label: 'Theorie', build: theoryTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub === 'simple' || sub === 'multi' ? 'reg' : sub, params) };
+    moduleHead(el, 'Regressie (linear regression)', 'Op \u00e9\u00e9n pagina: 1. de theorie (alle grootheden zoals S_xx, b\u2081, SS_T, SS_R, SS_E, MS_E, R\u00b2, F, t, BI en PI uitgelegd), 2. de berekening met uitleg bij het resultaat.');
+    const pg = theoryPage(el, 'regressie', 'Theorie: regressie en de betekenis van alle grootheden', regTheorie.html, [{ id: 'reg', label: 'Regressie', build: regTab }]);
+    return { route: (sub, params) => pg.route(sub === 'simple' || sub === 'multi' ? 'reg' : sub, params) };
   },
 };
