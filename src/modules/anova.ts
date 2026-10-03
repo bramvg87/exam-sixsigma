@@ -10,7 +10,8 @@ import { fInvRt } from '../stats/dist.ts';
 import { sdS } from '../stats/desc.ts';
 import { live, need, moduleHead, prob } from './util.ts';
 import { theoryPage, type ModuleDef } from './types.ts';
-import { anovaTheorie } from '../generated/content.ts';
+import { anovaTheorie, anovaVoorbeelden } from '../generated/content.ts';
+import { store, renderMath } from '../ui/core.ts';
 import { exOneWay, exTwoWay } from './explain.ts';
 import G from '../../testdata/golden_values.json';
 
@@ -63,6 +64,42 @@ export function interactionPlot(cellM: number[][], aNames: string[], bNames: str
 const pDec = (p: number, a: number) => (p < a ? 'significant' : 'niet significant');
 
 // ---------- one-way ----------
+
+/**
+ * "Wat betekent dit voorbeeld?": explains the context, the layout of the numbers and the interpretation of each
+ * example. Follows the example that was loaded last (wrap the example data functions with guide.wrap).
+ */
+function exampleGuide(key: string, items: [string, string][], def: string) {
+  let cur = store.get<string>(`anova.ex.${key}`, def);
+  if (!items.some(([id]) => id === cur)) cur = def;
+  const body = h('div', { class: 'md' });
+  const btns = items.map(([id, label]) => {
+    const b = h('button', { type: 'button', class: 'seg-btn' }, label);
+    b.addEventListener('click', () => show(id));
+    return b;
+  });
+  const el = h('details', { class: 'card section' }, h('summary', null, 'Wat betekent dit voorbeeld? (context, getallen en interpretatie)'), h('div', { class: 'seg', style: { marginBottom: '8px', flexWrap: 'wrap' } }, btns), body) as HTMLDetailsElement;
+  el.open = true;
+  function show(id: string) {
+    cur = id;
+    store.set(`anova.ex.${key}`, id);
+    btns.forEach((b, i) => b.classList.toggle('on', items[i][0] === id));
+    body.innerHTML = anovaVoorbeelden[id] ?? '';
+    renderMath(body);
+  }
+  show(cur);
+  return {
+    el,
+    wrap<T>(id: string, f: () => T): () => T {
+      return () => {
+        show(id);
+        el.open = true;
+        return f();
+      };
+    },
+  };
+}
+
 function onewayTab(el: HTMLElement) {
   const out = h('div');
   let run = () => {};
@@ -70,13 +107,14 @@ function onewayTab(el: HTMLElement) {
   const alpha = f.num('alpha', 'α (significantieniveau)', 0.05);
   const g = (G as any).anova_oneway;
   const maxN = Math.max(...g.groups.map((x: number[]) => x.length));
+  const guide1 = exampleGuide('one', [['cotton', 'Katoen % (5 groepen)'], ['three', '3 leveranciers']], 'cotton');
   const grid = new DataGrid({
     key: 'an1',
     cols: 4,
-    examples: [{ label: 'Voorbeeld ANOVA-tool: katoen % (5 groepen)', data: TOOL_EX.cotton }, { label: 'Voorbeeld laden (3 groepen)', data: () => ({ headers: g.groups.map((_: any, i: number) => `Groep ${i + 1}`), rows: Array.from({ length: maxN }, (_, i) => g.groups.map((c: number[]) => c[i] ?? '')) }) }],
+    examples: [{ label: 'Voorbeeld ANOVA-tool: katoen % (5 groepen)', data: guide1.wrap('cotton', TOOL_EX.cotton) }, { label: 'Voorbeeld laden (3 groepen)', data: guide1.wrap('three', () => ({ headers: g.groups.map((_: any, i: number) => `Groep ${i + 1}`), rows: Array.from({ length: maxN }, (_, i) => g.groups.map((c: number[]) => c[i] ?? '')) })) }],
     onChange: () => run(),
   });
-  el.append(card('Eenweg-ANOVA (one-way ANOVA)', h('p', { class: 'muted' }, 'Elke kolom is een groep (niveau van de factor); de kolomkop is de groepsnaam. Groepen mogen verschillend groot zijn. H0: alle groepsgemiddelden zijn gelijk.'), grid.el, row(alpha.el)), out);
+  el.append(card('Eenweg-ANOVA (one-way ANOVA)', h('p', { class: 'muted' }, 'Elke kolom is een groep (niveau van de factor); de kolomkop is de groepsnaam. Groepen mogen verschillend groot zijn. H0: alle groepsgemiddelden zijn gelijk.'), grid.el, row(alpha.el)), guide1.el, out);
   run = live(out, () => {
     const a = prob(alpha.get(), 'α');
     const cols = grid.getFilledColumns();
@@ -180,11 +218,12 @@ function twowayTab(el: HTMLElement) {
   const f = new Form('an2', () => run());
   const mode = f.seg('mode', 'Ontwerp', [['norep', 'Zonder herhaling (1 waarneming per cel)'], ['rep', 'Met herhaling (lang formaat)']], 'rep');
   const alpha = f.num('alpha', 'α', 0.05);
-  const gN = new DataGrid({ key: 'an2n', cols: 4, examples: [{ label: 'Voorbeeld ANOVA-tool: machines x operatoren', data: TOOL_EX.machines }, { label: 'Voorbeeld laden (4 x 3)', data: () => NOREP_EX }], onChange: () => run() });
-  const gR = new DataGrid({ key: 'an2r', cols: 3, rows: 30, examples: [{ label: 'Voorbeeld ANOVA-tool: plantengroei (blokformaat)', data: TOOL_EX.plant }, { label: 'Voorbeeld lang formaat (2 x 3, 3 herhalingen)', data: REP_EX }], onChange: () => run() });
+  const guide2 = exampleGuide('two', [['plant', 'Plantengroei (met herhaling)'], ['rep', 'Temperatuur x druk (met herhaling)'], ['machines', 'Machines x operatoren (zonder herhaling)'], ['norep', '4 machines x 3 operatoren (zonder herhaling)']], 'plant');
+  const gN = new DataGrid({ key: 'an2n', cols: 4, examples: [{ label: 'Voorbeeld ANOVA-tool: machines x operatoren', data: guide2.wrap('machines', TOOL_EX.machines) }, { label: 'Voorbeeld laden (4 x 3)', data: guide2.wrap('norep', () => NOREP_EX) }], onChange: () => run() });
+  const gR = new DataGrid({ key: 'an2r', cols: 3, rows: 30, examples: [{ label: 'Voorbeeld ANOVA-tool: plantengroei (blokformaat)', data: guide2.wrap('plant', TOOL_EX.plant) }, { label: 'Voorbeeld lang formaat (2 x 3, 3 herhalingen)', data: guide2.wrap('rep', REP_EX) }], onChange: () => run() });
   const helpN = h('p', { class: 'muted' }, 'Zonder herhaling: elke rij = niveau van factor A (rij 1, 2, ...), elke kolom = niveau van factor B (kolomkop = naam). Eén waarneming per cel; geen lege cellen. De interactie kan hier niet getoetst worden (zit in de fout).');
   const helpR = h('p', { class: 'muted' }, 'Met herhaling, twee formaten: (1) Excel-blokformaat zoals in Excel "Anova: twee factoren met herhaling" en de ANOVA-tool: kopregel = niveaus van factor B, elk niveau van factor A begint op een rij met label in de eerste kolom, de volgende herhalingen staan op rijen met een lege eerste cel. (2) Lang formaat: kolom 1 = niveau A, kolom 2 = niveau B, kolom 3 = y. Elke combinatie A x B moet even veel herhalingen (r >= 2) hebben.');
-  el.append(card('Tweeweg-ANOVA (two-way ANOVA)', row(mode.el), helpN, gN.el, helpR, gR.el, row(alpha.el)), out);
+  el.append(card('Tweeweg-ANOVA (two-way ANOVA)', row(mode.el), helpN, gN.el, helpR, gR.el, row(alpha.el)), guide2.el, out);
   run = live(out, () => {
     const rep = mode.get() === 'rep';
     gN.el.hidden = rep;
