@@ -8,7 +8,8 @@ import { grrAnova, grrAvgRange, grrVerdict, cpObserved, cpActual, K1, K2, K3 } f
 import { biasStudy, linearityStudy, buildCells, uSum, uProd, type UTerm } from '../calc/msa_extra.ts';
 import { mean, sdS } from '../stats/desc.ts';
 import { live, need, moduleHead, pos, posInt, prob } from './util.ts';
-import { tabs, type ModuleDef } from './types.ts';
+import { theoryPage, type ModuleDef } from './types.ts';
+import { msaTheorie } from '../generated/content.ts';
 import { calc, anovaTable, parseLongRows, blockToLong, TOOL_EX } from './anova.ts';
 
 // ---------- example datasets ----------
@@ -129,6 +130,23 @@ function arTab(el: HTMLElement) {
         `PV: =${xl(g.Rp)}*${xl(g.K3)} ; TV: =SQRT(${xl(g.GRR)}^2+${xl(g.PV)}^2)`,
         `ndc: =FLOOR(1,41*${xl(g.PV)}/${xl(g.GRR)};1)`,
       ],
+      explain: {
+        question: ['Een Gauge R&R-studie splitst de gemeten variatie op in wat van het meetsysteem komt (GRR = herhaalbaarheid EV + reproduceerbaarheid AV) en wat echte verschillen tussen de stukken zijn (PV). Een goed meetsysteem heeft een kleine GRR t.o.v. de totale variatie TV.'],
+        formula: [
+          'EV (herhaalbaarheid): dezelfde operator meet hetzelfde stuk meerdere keren; de ranges van die herhalingen (gemiddeld R\u033f) zetten we met K\u2081 = 1/d\u2082 om naar een standaardafwijking. Typisch het INSTRUMENT.',
+          'AV (reproduceerbaarheid): het verschil tussen de operatorgemiddelden (X\u0304_diff, met K\u2082). Daar zit ook nog een stukje herhaalbaarheid in; dat trekken we af (EV\u00b2/(n\u00b7r)). Typisch de OPERATOREN (methode, opleiding).',
+          'PV (stukvariatie): het verschil tussen de stukgemiddelden (R_p, met K\u2083). Standaardafwijkingen tel je kwadratisch op: GRR = \u221a(EV\u00b2 + AV\u00b2), TV = \u221a(GRR\u00b2 + PV\u00b2).',
+        ],
+        substituted: [
+          `Herhalingen van eenzelfde stuk verschillen gemiddeld R\u033f = ${nl(g.Rbarbar)}, dus EV = ${nl(g.EV)}. Operatoren verschillen gemiddeld ${nl(g.Xdiff)}, dus AV = ${nl(g.AV)}. De stukken zelf verschillen R_p = ${nl(g.Rp)}, dus PV = ${nl(g.PV)}.`,
+          `${g.EV > g.AV ? 'EV > AV: de grootste meetfout zit in het instrument (herhaalbaarheid).' : 'AV > EV: de grootste meetfout zit bij de operatoren (reproduceerbaarheid).'}`,
+        ],
+        result: [
+          `%GRR = ${nl(g.pctGRR)}%: het meetsysteem neemt dat deel van de totale spreiding (in standaardafwijkingen) in. Criteria: \u2264 10% goed, 10 - 30% voorwaardelijk, > 30% onaanvaardbaar.`,
+          `ndc = ${g.ndc}: het meetsysteem kan de stukken in ongeveer ${g.ndc} betrouwbare klassen indelen; minstens 5 is nodig om procesvariatie zinvol te volgen.`,
+          `Verbeteren: ${g.EV > g.AV ? 'instrument (onderhoud, resolutie, opspanning, beter toestel)' : 'operatoren (opleiding, duidelijke meetprocedure, hulpmiddelen)'}.`,
+        ],
+      },
       answer:
         `Met de Average & Range methode (${p} stukken, ${o} operatoren, ${r} herhalingen) is EV = ${nl(g.EV)}, AV = ${nl(g.AV)} en GRR = ${nl(g.GRR)}, tegenover PV = ${nl(g.PV)} en TV = ${nl(g.TV)}. ` +
         `%GRR = ${nl(g.pctGRR)}% van de totale variatie${hasT ? ` en ${nl(g.pctTol)}% van de tolerantie` : ''}: het meetsysteem is ${grrVerdict(main)}. ` +
@@ -218,6 +236,15 @@ function anovaTab(el: HTMLElement) {
         `σ²_P: =MAX(0;(${xl(rows[0].MS)}-${xl(g.pooled || course ? msE : msI)})/(${o}*${r}))`,
         `%GRR: =100*SQRT(${xl(v.grr)})/SQRT(${xl(v.tv)}) ; ndc: =FLOOR(1,41*SQRT(${xl(v.part)})/SQRT(${xl(v.grr)});1)`,
       ],
+      explain: {
+        question: ['Dezelfde studie als Average & Range, maar geanalyseerd als tweeweg-ANOVA met herhaling (stuk x operator). De mean squares (MS) worden omgezet naar variantiecomponenten: hoeveel van de totale variantie komt van herhaalbaarheid, operatoren, (interactie) en stukken.'],
+        formula: [
+          'MS_E (binnen de cellen: zelfde stuk, zelfde operator) is zuivere herhaalbaarheid: \u03c3\u00b2_EV = MS_E. MS_operator bevat de herhaalbaarheid plus p\u00b7r keer de operatorvariantie, vandaar \u03c3\u00b2_AV = (MS_O - MS_E)/(p\u00b7r). Analoog \u03c3\u00b2_PV = (MS_P - MS_E)/(o\u00b7r).',
+          '% contributie = aandeel in de totale VARIANTIE (telt op tot 100%); % study variation = aandeel in de totale STANDAARDAFWIJKING (zelfde als %GRR bij Average & Range; telt niet op tot 100%).',
+        ],
+        substituted: [`\u03c3\u00b2_EV = ${nl(v.rep)}, \u03c3\u00b2_AV = ${nl(v.repro)}, \u03c3\u00b2_PV = ${nl(v.part)}; samen \u03c3\u00b2_TV = ${nl(v.tv)}.`],
+        result: [`GRR is ${nl(g.pctContribGRR)}% van de totale variantie (% contributie) en ${nl(g.pctGRR)}% in standaardafwijkingen (% study variation). Grenzen: 10% / 30% in study variation komt overeen met 1% / 9% in contributie. ndc = ${g.ndc}.`],
+      },
       answer:
         `Uit de ANOVA (${p} stukken, ${o} operatoren, ${r} herhalingen) volgt σ²_EV = ${nl(v.rep)}, σ²_AV = ${nl(v.repro)} en σ²_stuk = ${nl(v.part)}; ${course ? `volgens de cursusmethode (EV² = MS_E, interactie p = ${nl(g.interactionP)} niet apart)` : g.pooled ? `de interactie (p = ${nl(g.interactionP)}) werd gepoold met de fout` : `de interactie operator x stuk (p = ${nl(g.interactionP)}) werd apart geschat`}. ` +
         `De GRR bedraagt ${nl(g.pctContribGRR)}% van de totale variantie (% contributie) en ${nl(g.pctGRR)}% in standaardafwijkingen (% study variation)${hasT ? `, ${nl(g.pctTol)}% van de tolerantie` : ''}: het meetsysteem is ${grrVerdict(main)}. ` +
@@ -502,35 +529,6 @@ function uncTab(el: HTMLElement) {
   return { prefill: (v: any) => f.setValues(v) };
 }
 
-function theoryTab(el: HTMLElement) {
-  el.append(
-    card(
-      'Meetsysteemanalyse (MSA): begrippen',
-      h('ul', null,
-        h('li', null, 'SWIPE: bronnen van meetvariatie: Standard (referentie, kalibratie), Workpiece (stuk), Instrument, Person (operator, procedure), Environment (temperatuur, trillingen).'),
-        h('li', null, 'Bias (juistheid, accuracy): verschil tussen de gemiddelde meting en de referentiewaarde. Toets met t = (x̄ - ref)/(s/√n), df = n - 1.'),
-        h('li', null, 'Lineariteit (linearity): verandert de bias over het meetbereik? Regressie van bias op referentiewaarde; toets helling = 0 (en intercept = 0).'),
-        h('li', null, 'Stabiliteit (stability): bias en spreiding blijven constant in de tijd; regelkaart op een referentiestuk.'),
-        h('li', null, 'Herhaalbaarheid (repeatability, EV, equipment variation): spreiding bij herhaald meten van hetzelfde stuk door dezelfde operator met hetzelfde instrument.'),
-        h('li', null, 'Reproduceerbaarheid (reproducibility, AV, appraiser variation): verschil tussen operatoren (eventueel inclusief de interactie operator x stuk).'),
-        h('li', null, 'Precisie: σ²_GRR = σ²_EV + σ²_AV. Totale variatie: σ²_TV = σ²_GRR + σ²_PV.'),
-        h('li', null, 'Resolutie (discriminatie): het meetinstrument moet minstens 1/10 van de tolerantie of van de procesvariatie kunnen onderscheiden.'),
-      ),
-    ),
-    card(
-      'Aanvaardingscriteria',
-      table(['%GRR (t.o.v. TV of tolerantie)', '% contributie (varianties)', 'Oordeel'], [['<= 10%', '<= 1%', 'aanvaardbaar'], ['10% - 30%', '1% - 9%', 'voorwaardelijk aanvaardbaar, afhankelijk van toepassing en kost'], ['> 30%', '> 9%', 'onaanvaardbaar: meetsysteem verbeteren']]),
-      h('ul', null,
-        h('li', null, 'ndc = ⌊1,41·PV/GRR⌋ >= 5 vereist (aantal te onderscheiden categorieën).'),
-        h('li', null, '%GRR t.o.v. TV: geschikt voor procesbeheersing (SPC). %GRR t.o.v. tolerantie (6·GRR/TOL): geschikt voor productkeuring (goed/slecht).'),
-        h('li', null, 'Average & Range is eenvoudig maar schat de interactie operator x stuk niet; de ANOVA-methode is nauwkeuriger en kan met elk gebalanceerd ontwerp.'),
-        h('li', null, 'Waargenomen capabiliteit: 1/Cp_o² = 1/Cp_a² + %GRR² (tolerantie, als fractie): een slecht meetsysteem doet een goed proces er slecht uitzien.'),
-        h('li', null, 'Meetonzekerheid: U = k·u_c (k = 2 ≈ 95%). Conformiteit: aanvaard enkel als meetwaarde ± U binnen de specificatie ligt (guard band).'),
-      ),
-    ),
-  );
-}
-
 export const msa: ModuleDef = {
   id: 'msa',
   title: 'MSA / Gauge R&R',
@@ -543,19 +541,19 @@ export const msa: ModuleDef = {
     ['bias', 'Bias-studie (t-toets op bias)', 'bias juistheid accuracy referentie'],
     ['lineariteit', 'Lineariteit (regressie bias op referentie)', 'lineariteit linearity helling'],
     ['onzekerheid', 'Meetonzekerheid: propagatie en U = k u', 'meetonzekerheid uncertainty propagatie kwadratuur uitgebreide onzekerheid'],
-    ['theorie', 'Theorie MSA: SWIPE en criteria', 'swipe stabiliteit criteria ndc'],
+    ['theorie', 'Theorie MSA: SWIPE, bias, EV, AV, GRR, PV, TV, ndc, criteria', 'theorie swipe bias juistheid precisie herhaalbaarheid reproduceerbaarheid EV AV PV TV ndc K1 K2 K3 criteria stabiliteit meetonzekerheid'],
   ],
   mount(el) {
-    moduleHead(el, 'MSA / Gauge R&R (meetsysteemanalyse)', 'Herhaalbaarheid, reproduceerbaarheid, bias, lineariteit en meetonzekerheid.');
-    const t = tabs('msa', [
+    moduleHead(el, 'MSA / Gauge R&R (meetsysteemanalyse)', 'Op \u00e9\u00e9n pagina: 1. de theorie (SWIPE, bias, EV, AV, GRR, PV, TV, ndc, criteria, meetonzekerheid), 2. de berekeningen met uitleg bij elk resultaat.');
+    const pg = theoryPage(el, 'msa', 'Theorie: meetsysteemanalyse en Gauge R\u0026R', msaTheorie.html, [
       { id: 'ar', label: 'GRR Average & Range', build: arTab },
       { id: 'anova', label: 'GRR ANOVA', build: anovaTab },
       { id: 'cp', label: 'Cp waargenomen', build: cpTab },
       { id: 'bias', label: 'Bias', build: biasTab },
       { id: 'lineariteit', label: 'Lineariteit', build: linTab },
       { id: 'onzekerheid', label: 'Meetonzekerheid', build: uncTab },
-      { id: 'theorie', label: 'Theorie', build: theoryTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+
+    ]);
+    return { route: pg.route };
   },
 };

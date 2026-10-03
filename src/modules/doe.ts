@@ -8,7 +8,8 @@ import { runLabels, terms, termSign, factorial, halfFraction, type DoeOut } from
 import { normInv, tInvRt } from '../stats/dist.ts';
 import { median, sum } from '../stats/desc.ts';
 import { live, need, moduleHead, prob } from './util.ts';
-import { tabs, type ModuleDef } from './types.ts';
+import { theoryPage, type ModuleDef } from './types.ts';
+import { doeTheorie } from '../generated/content.ts';
 import G from '../../testdata/golden_values.json';
 
 const g = G as any;
@@ -273,7 +274,21 @@ function effectsOutput(o: {
       h('p', { class: 'muted' }, `Volle lijn: ${LET[fb]} laag (-), stippellijn: ${LET[fb]} hoog (+). Gemiddelden: ${LET[fb]}-: ${fmt(ip.m[0][0])} -> ${fmt(ip.m[0][1])}; ${LET[fb]}+: ${fmt(ip.m[1][0])} -> ${fmt(ip.m[1][1])}. Niet-evenwijdige lijnen wijzen op interactie.`),
     );
   }
-  return resultPanel({ title: o.title, question: o.question, formula, substituted, result: res, warnings, excel, answer, extra });
+  const top = eff.filter((e) => !e.pooled).sort((p, q) => Math.abs(q.effect) - Math.abs(p.effect))[0];
+  const topName = names[eff.indexOf(top)];
+  const explain = {
+    question: [`Een 2^${k}-proefopzet met ${n} herhaling(en): ${N} combinaties van ${k} factoren op een laag (-) en hoog (+) niveau, ${n * N} metingen in totaal. De vraag: welke factoren en interacties veranderen de respons meer dan toeval?`],
+    formula: [
+      'Contrast = som van de runtotalen met het teken uit de tekentabel (+ waar de factor of interactie hoog/positief is, - waar laag). Effect = contrast/(n\u00b72^(k-1)) = gemiddelde respons op + min gemiddelde op -. Een interactiekolom is het product van de factorkolommen.',
+      'SS = contrast\u00b2/(n\u00b72^k): de variatie die dat effect verklaart (1 vrijheidsgraad). Met herhalingen geeft de spreiding binnen de runs MS_E (zuivere ruis), en F = SS/MS_E toetst elk effect. Zonder herhalingen beoordeel je de effecten met het normaal-kansplot, de Pareto of door pooling.',
+    ],
+    substituted: [`Grootste effect: ${topName} = ${nl(top.effect)}. Als ${topName.length === 1 ? `factor ${topName}` : `de interactie ${topName}`} van - naar + gaat, verandert de respons gemiddeld met ${nl(top.effect)}${topName.length === 1 ? '' : ' (het effect van de ene factor hangt af van het niveau van de andere)'}.`],
+    result: [
+      hasErr ? `De ruis: MS_E = ${nl(out.MSE)} met ${out.dfE} df, dus se(effect) = ${nl(out.seEffect)}. Een effect is significant als het ongeveer meer dan 2 se (\u2248 ${nl(2 * out.seEffect)}) van 0 ligt, of als p < \u03b1.` : 'Zonder foutterm geen p-waarden: effecten die in het normaal-kansplot ver van de rechte lijn liggen (of hoog in de Pareto) zijn waarschijnlijk echt.',
+      'Lees eerst de interacties: is een interactie significant, interpreteer dan de betrokken factoren samen (interactieplot), niet afzonderlijk. Instelling kiezen: zet elke significante factor op het niveau dat de respons de gewenste kant op duwt.',
+    ],
+  };
+  return resultPanel({ title: o.title, question: o.question, formula, substituted, result: res, warnings, excel, answer, extra, explain });
 }
 
 // ---------- full factorial ----------
@@ -498,44 +513,6 @@ function halfTab(el: HTMLElement) {
   return { prefill: (v: any) => f.setValues(v) };
 }
 
-function theoryTab(el: HTMLElement) {
-  el.append(
-    card(
-      'Principes van proefopzet (design of experiments)',
-      h(
-        'ul',
-        null,
-        h('li', null, h('b', null, 'Randomisatie (randomization): '), 'voer de runs in willekeurige volgorde uit, zodat onbekende storende factoren (drift, temperatuur, operator) niet systematisch samenvallen met een factor. De standaardvolgorde (Yates) is enkel de notatievolgorde, niet de uitvoeringsvolgorde.'),
-        h('li', null, h('b', null, 'Herhaling (replication): '), 'elke run n keer onafhankelijk opnieuw uitvoeren (nieuwe instelling), niet enkel opnieuw meten. Geeft een schatting van de zuivere fout (MS_E met 2^k(n - 1) df) en dus F-toetsen en BI voor de effecten.'),
-        h('li', null, h('b', null, 'Blokken (blocking): '), 'groepeer runs in homogene blokken (bv. per dag of per batch grondstof) om een gekende storende factor te elimineren. Bij een 2^k-ontwerp wordt het blok meestal geconfundeerd met de hoogste-orde interactie (bv. ABC).'),
-      ),
-    ),
-    card(
-      'Effecten en interacties',
-      h(
-        'ul',
-        null,
-        h('li', null, 'Hoofdeffect A = gemiddelde respons bij A+ min gemiddelde bij A-  = contrast / (n·2^(k-1)).'),
-        h('li', null, 'Interactie AB: het effect van A hangt af van het niveau van B (niet-evenwijdige lijnen in het interactieplot). AB = halve verschil van het A-effect bij B+ en bij B-.'),
-        h('li', null, 'Regressiecoëfficiënt in gecodeerde eenheden (-1/+1) = effect / 2.'),
-        h('li', null, 'Zonder herhalingen: gebruik een normaal-kansplot of Pareto van de effecten, of pool hogere-orde interacties (sparsity of effects: de meeste hogere-orde interacties zijn verwaarloosbaar).'),
-      ),
-    ),
-    card(
-      'Fractionele ontwerpen, aliasing en resolutie',
-      h(
-        'ul',
-        null,
-        h('li', null, 'Een halve fractie 2^(k-1) gebruikt de helft van de runs. De generator (bv. C = AB) bepaalt de definiërende relatie I = ABC.'),
-        h('li', null, 'Confounding / aliasing: twee termen hebben in de fractie exact dezelfde tekenkolom en zijn dus niet te onderscheiden. Alias van een term = term x definiërend woord (A·ABC = A²BC = BC).'),
-        h('li', null, 'Resolutie = lengte van het kortste woord in de definiërende relatie. III: hoofdeffecten gealiast met 2-factor-interacties. IV: hoofdeffecten vrij van 2fi, 2fi onderling gealiast. V: hoofdeffecten en 2fi vrij van elkaar.'),
-        h('li', null, 'Kies een zo hoog mogelijke resolutie; voor een halve fractie met I = ABC..K is de resolutie gelijk aan k.'),
-      ),
-      note('Een fractioneel ontwerp is ideaal voor screening (veel factoren, weinig runs). Daarna kan de fractie aangevuld worden (fold-over, andere helft) om gealiaste effecten te scheiden.', 'info'),
-    ),
-  );
-}
-
 export const doe: ModuleDef = {
   id: 'doe',
   title: 'DOE 2^k',
@@ -544,15 +521,15 @@ export const doe: ModuleDef = {
   subs: [
     ['full', 'Volledig factorieel 2^k (effecten, ANOVA, Yates)', 'DOE factorieel effect interactie Yates contrast tekentabel pooling proefopzet'],
     ['half', 'Halve fractie 2^(k-1) (alias, resolutie)', 'fractioneel alias confounding resolutie generator definierende relatie'],
-    ['theorie', 'DOE theorie: randomisatie, blokken, herhaling', 'randomisatie blokken replicatie resolutie confounding proefopzet'],
+    ['theorie', 'Theorie DOE: tekentabel, contrast, effect, SS, interactie, fracties', 'theorie tekentabel contrast effect SS interactie yates randomisatie blokken replicatie resolutie alias confounding generator OFAT'],
   ],
   mount(el) {
-    moduleHead(el, 'DOE 2^k (factoriële proefopzet)', 'Volledig factoriële 2^k-ontwerpen en halve fracties: effecten, ANOVA, Pareto, normaal-kansplot, interacties en aliassen.');
-    const t = tabs('doe', [
+    moduleHead(el, 'DOE 2^k (factori\u00eble proefopzet)', 'Op \u00e9\u00e9n pagina: 1. de theorie (tekentabel, contrast, effect, SS, interactie, fracties en aliassen, met uitgewerkt voorbeeld), 2. de berekening met uitleg bij het resultaat.');
+    const pg = theoryPage(el, 'doe', 'Theorie: factori\u00eble proefopzet stap voor stap', doeTheorie.html, [
       { id: 'full', label: 'Volledig 2^k', build: fullTab },
       { id: 'half', label: 'Halve fractie 2^(k-1)', build: halfTab },
-      { id: 'theorie', label: 'Theorie', build: theoryTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+
+    ]);
+    return { route: pg.route };
   },
 };
