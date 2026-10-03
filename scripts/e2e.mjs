@@ -89,6 +89,25 @@ if (!activeTab.includes('F')) fails.push('selector: F tab not opened, active = '
 const fr = await p.textContent(`${M} .pane:not([hidden]) .result`);
 if (!fr.includes('1,239')) fails.push('selector: F result missing 1,239');
 if (!(await p.$(`${M} details.section .md table`))) fails.push('theory section missing');
+
+// confidence-interval tab: examples
+await p.goto(file + '#/hypothese/bi');
+await p.waitForTimeout(300);
+const BIP = '.module[data-module="hypothese"] .pane:not([hidden])';
+await p.click(`${BIP} .seg-btn:has-text("onbekend, t")`);
+await p.click(`${BIP} button:has-text("Ottoy: eenzijdige 98%-bovengrens")`);
+await p.waitForTimeout(300);
+const b1 = await p.textContent(`${BIP} .result`);
+if (!b1.includes('9,981')) fails.push('BI t: missing 9,981');
+await p.click(`${BIP} .seg-btn:has-text("2 varianties")`);
+await p.click(`${BIP} button:has-text("Examen vraag 2: eenzijdige")`);
+await p.waitForTimeout(300);
+const b2 = await p.textContent(`${BIP} .result`);
+if (!b2.includes('1,239')) fails.push('BI ratio: missing 1,239');
+// Excel block sits directly under "Ingevuld"
+const order = await p.$$eval(`${BIP} .result > .rblock`, (bs) => bs.map((b) => b.className));
+const iS = order.findIndex((c) => c.includes('rs'));
+if (!(iS >= 0 && order[iS + 1]?.includes('rx'))) fails.push('Excel block not directly under Ingevuld: ' + order.join(','));
 console.log(fails.length || errs.length ? 'E2E FAIL\n' + [...fails, ...errs].join('\n') : 'e2e ok');
 await b.close();
 process.exit(fails.length || errs.length ? 1 : 0);

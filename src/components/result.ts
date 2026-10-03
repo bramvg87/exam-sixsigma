@@ -46,6 +46,8 @@ export function resultPanel(r: ResultSpec): HTMLElement {
   if (f.length) blocks.push(blk('rf', 'Formule', [...f.map((s) => texEl(s)), explainBox(exs.formula)].filter(Boolean) as HTMLElement[], () => f.join('\n')));
   const sb = arr(r.substituted);
   if (sb.length) blocks.push(blk('rs', 'Ingevuld', [...sb.map((s) => texEl(s)), explainBox(exs.substituted)].filter(Boolean) as HTMLElement[], () => sb.join('\n')));
+  const ex = arr(r.excel).map(xlName);
+  if (ex.length) blocks.push(blk('rx', 'Excel (Nederlandse notatie)', ex.map((s) => h('code', { class: 'xl' }, s)), () => ex.join('\n')));
   const res: HTMLElement[] = r.result.map((l) => (Array.isArray(l) ? h('div', { class: 'kv' }, h('span', { class: 'k' }, inlineMath(l[0])), h('span', { class: 'v' }, l[1])) : h('div', null, inlineMath(l))));
   if (r.decision) res.push(h('div', { class: 'decision ' + r.decision.kind }, r.decision.text));
   const er = explainBox(exs.result);
@@ -57,8 +59,6 @@ export function resultPanel(r: ResultSpec): HTMLElement {
   );
   for (const w of r.warnings ?? []) blocks.push(h('div', { class: 'note warn' }, w));
   if (r.extra) blocks.push(...arr(r.extra));
-  const ex = arr(r.excel).map(xlName);
-  if (ex.length) blocks.push(blk('rx', 'Excel (Nederlandse notatie)', ex.map((s) => h('code', { class: 'xl' }, s)), () => ex.join('\n')));
   if (r.answer) {
     const a = noDash(r.answer);
     blocks.push(blk('ra', 'Examenantwoord', [h('p', null, a)], () => a));

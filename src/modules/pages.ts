@@ -124,6 +124,7 @@ const TREE: WNode = {
         ['fac', 'Effect van factoren in een experiment', { go: ['doe'], why: '2^k factorieel proefopzet: effecten, ANOVA.' }],
       ],
     }],
+    ['ci', 'Een betrouwbaarheidsinterval berekenen (schatten)', { go: ['hypothese', 'bi'], why: 'Tab Betrouwbaarheidsintervallen: CLT, μ (z of t), σ² en σ (χ²), verhouding van varianties (F); fractie in tab BI fractie.' }],
     ['dist', 'Een kans of verdeling (E[X], Var[X], P(X ≤ x))', { go: ['verdelingen', 'calc'], why: 'Verdelingscalculator; zie ook "Welke verdeling?".' }],
     ['cap', 'Capabiliteit / % uitval', { go: ['capabiliteit', 'cont'], why: 'Cp, Cpk, uitval via z-scores.' }],
     ['spc', 'Stabiliteit van een proces (regelkaart)', { go: ['spc'], why: 'X̄-R of X̄-s kaart met Western Electric-regels.' }],

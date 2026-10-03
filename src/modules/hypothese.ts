@@ -10,6 +10,7 @@ import { mean, sdS, varS } from '../stats/desc.ts';
 import { live, need, moduleHead, posInt, pos, prob, SIDES, relTex, relTxt, sideNl } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
 import { wizardWidget } from './pages.ts';
+import { biTab } from './bi.ts';
 import { toetsTheorie } from '../generated/content.ts';
 import { exMean, exChi, exF, exProp, exPropCi, exTwo, exPaired, exSampleSize } from './explain.ts';
 import type { Side } from '../calc/hypo.ts';
@@ -59,6 +60,36 @@ function statPlot(pdf: (x: number) => number, x0: number, x1: number, side: Side
   );
 }
 
+
+// ---------- Excel formulas for the confidence interval that goes with each test ----------
+const qOf = (a: number, sd: Side) => (sd === 'two' ? 1 - a / 2 : 1 - a);
+function ciXlGen(label: string, est: string, se: string, df: number, a: number, sd: Side): string[] {
+  const k = `T.INV(${xl(qOf(a, sd))};${df})`;
+  if (sd === 'two') return [`${label} onder: =${est}-${k}*${se}`, `${label} boven: =${est}+${k}*${se}`];
+  if (sd === 'left') return [`${label} bovengrens: =${est}+${k}*${se}`];
+  return [`${label} ondergrens: =${est}-${k}*${se}`];
+}
+function ciXlZ(xbar: number, sg: number, n: number, a: number, sd: Side): string[] {
+  const k = `NORM.S.INV(${xl(qOf(a, sd))})`;
+  const se = `${xl(sg)}/SQRT(${n})`;
+  const conf = `CONFIDENCE.NORM(${xl(sd === 'two' ? a : 2 * a)};${xl(sg)};${n})`;
+  if (sd === 'two') return [`BI onder: =${xl(xbar)}-${k}*${se}`, `BI boven: =${xl(xbar)}+${k}*${se}`, `marge in \u00e9\u00e9n keer: =${conf}`];
+  return sd === 'left' ? [`BI bovengrens: =${xl(xbar)}+${k}*${se}`, `marge: =${conf}`] : [`BI ondergrens: =${xl(xbar)}-${k}*${se}`, `marge: =${conf}`];
+}
+function ciXlT(xbar: number, s: number, n: number, a: number, sd: Side): string[] {
+  const k = `T.INV(${xl(qOf(a, sd))};${n - 1})`;
+  const se = `${xl(s)}/SQRT(${n})`;
+  const conf = `CONFIDENCE.T(${xl(sd === 'two' ? a : 2 * a)};${xl(s)};${n})`;
+  if (sd === 'two') return [`BI onder: =${xl(xbar)}-${k}*${se}`, `BI boven: =${xl(xbar)}+${k}*${se}`, `marge in \u00e9\u00e9n keer: =${conf}`];
+  return sd === 'left' ? [`BI bovengrens: =${xl(xbar)}+${k}*${se}`, `marge: =${conf}`] : [`BI ondergrens: =${xl(xbar)}-${k}*${se}`, `marge: =${conf}`];
+}
+function ciXlVar(s: number, n: number, a: number, sd: Side): string[] {
+  const ss = `${n - 1}*${xl(s)}^2`;
+  if (sd === 'two') return [`BI \u03c3\u00b2 onder: =${ss}/CHISQ.INV.RT(${xl(a / 2)};${n - 1})`, `BI \u03c3\u00b2 boven: =${ss}/CHISQ.INV(${xl(a / 2)};${n - 1})`, 'BI \u03c3: =SQRT(...) van beide grenzen'];
+  if (sd === 'right') return [`BI \u03c3\u00b2 ondergrens: =${ss}/CHISQ.INV.RT(${xl(a)};${n - 1})`, `BI \u03c3 ondergrens: =SQRT(${ss}/CHISQ.INV.RT(${xl(a)};${n - 1}))`];
+  return [`BI \u03c3\u00b2 bovengrens: =${ss}/CHISQ.INV(${xl(a)};${n - 1})`, `BI \u03c3 bovengrens: =SQRT(${ss}/CHISQ.INV(${xl(a)};${n - 1}))`];
+}
+
 // ---------- 1. Z test mean ----------
 function zTab(el: HTMLElement) {
   const out = h('div');
@@ -88,7 +119,7 @@ function zTab(el: HTMLElement) {
       result: [['z', fmt(r.stat)], ['kritieke waarde(n)', r.crit.map((v) => fmt(v)).join(' ; ')], ['p-waarde', pTxt(r.p)], [`${pctNl(1 - a)}-BI voor \u03bc`, ciTxt(r.ci)]],
       decision: decide(r.reject, a),
       warnings: d.note ? [d.note] : [],
-      excel: [`kritiek: ${critXl}`, `p: ${pXl}`, `z: =(${xl(d.xbar)}-${xl(m0)})/(${xl(sg)}/SQRT(${d.n}))`],
+      excel: [`z: =(${xl(d.xbar)}-${xl(m0)})/(${xl(sg)}/SQRT(${d.n}))`, `kritiek: ${critXl}`, `p: ${pXl}`, ...ciXlZ(d.xbar, sg, d.n, a, sd)],
       explain: exMean('z', { xbar: d.xbar, s: sg, n: d.n, m0, a, side: sd, stat: r.stat, crit: r.crit, p: r.p, reject: r.reject, ci: r.ci, se: sg / Math.sqrt(d.n) }),
       answer: `Toetsgrootheid z = ${nl(r.stat)} met p-waarde ${nl(r.p)}. ${r.reject ? `Omdat p < alpha = ${nl(a)} verwerpen we H0: het gemiddelde is significant ${sd === 'left' ? 'kleiner dan' : sd === 'right' ? 'groter dan' : 'verschillend van'} ${nl(m0)}.` : `Omdat p >= alpha = ${nl(a)} kunnen we H0 niet verwerpen: er is onvoldoende bewijs dat het gemiddelde ${sd === 'left' ? 'kleiner is dan' : sd === 'right' ? 'groter is dan' : 'verschilt van'} ${nl(m0)}.`} Het ${pctNl(1 - a)}-betrouwbaarheidsinterval ${ciTxt(r.ci)} ${r.reject ? 'bevat' : 'bevat wel'} ${r.reject ? 'de waarde ' + nl(m0) + ' niet' : 'de waarde ' + nl(m0)}, wat dezelfde conclusie geeft.`,
       extra: statPlot((x) => D.normPdf(x), -4.5, 4.5, sd, r.crit, r.stat),
@@ -132,7 +163,7 @@ function tTab(el: HTMLElement) {
       result: [['x\u0304', fmt(d.xbar)], ['s', fmt(d.s)], ['n ; df', `${d.n} ; ${df}`], ['t', fmt(r.stat)], ['kritieke waarde(n)', r.crit.map((v) => fmt(v)).join(' ; ')], ['p-waarde', pTxt(r.p)], [`${pctNl(1 - a)}-BI voor \u03bc`, ciTxt(r.ci)]],
       decision: decide(r.reject, a),
       warnings: [d.note ?? '', d.n < 30 ? 'Voorwaarde: X (ongeveer) normaal verdeeld; bij kleine n belangrijk (t-toets is wel robuust bij grote n).' : ''].filter(Boolean),
-      excel: [`t: =(AVERAGE(bereik)-${xl(m0)})/(STDEV.S(bereik)/SQRT(COUNT(bereik)))`, `kritiek: ${critXl}`, `p: ${pXl}`],
+      excel: [`t: =(${xl(d.xbar)}-${xl(m0)})/(${xl(d.s)}/SQRT(${d.n}))   (ruwe data: =(AVERAGE(bereik)-${xl(m0)})/(STDEV.S(bereik)/SQRT(COUNT(bereik))))`, `kritiek: ${critXl}`, `p: ${pXl}`, ...ciXlT(d.xbar, d.s, d.n, a, sd)],
       explain: exMean('t', { xbar: d.xbar, s: d.s, n: d.n, m0, a, side: sd, stat: r.stat, crit: r.crit, p: r.p, reject: r.reject, ci: r.ci, se: d.s / Math.sqrt(d.n) }),
       answer: `De toetsgrootheid is t = ${nl(r.stat)} (df = ${df}), de p-waarde is ${nl(r.p)} (${pctNl(r.p)}). ${r.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: het gemiddelde is significant ${sd === 'left' ? 'kleiner dan' : sd === 'right' ? 'groter dan' : 'verschillend van'} ${nl(m0)}.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet.`} Het ${sideNl(sd) === 'tweezijdig' ? '' : 'eenzijdige '}${pctNl(1 - a)}-betrouwbaarheidsinterval is ${ciTxt(r.ci)}; ${nl(m0)} ligt daar ${inCI ? 'binnen' : 'buiten'}, wat de conclusie bevestigt.`,
       extra: statPlot((x) => D.tPdf(x, df), -lim, lim, sd, r.crit, r.stat),
@@ -172,7 +203,7 @@ function chiTab(el: HTMLElement) {
       result: [['s', fmt(d.s)], ['s\u00b2', fmt(d.s * d.s)], ['\u03c7\u00b2', fmt(r.stat)], ['df', String(df)], ['kritieke waarde(n)', r.crit.map((v) => fmt(v)).join(' ; ')], ['p-waarde', pTxt(r.p)], [`${pctNl(1 - a)}-BI voor \u03c3\u00b2`, ciTxt(r.ci)], [`${pctNl(1 - a)}-BI voor \u03c3`, ciTxt(ciS)]],
       decision: decide(r.reject, a),
       warnings: ['Voorwaarde: X normaal verdeeld. De \u03c7\u00b2-toets voor \u03c3 is NIET robuust tegen afwijkingen van normaliteit.', d.note ?? ''].filter(Boolean),
-      excel: [...critXl.map((c) => 'kritiek: ' + c), `p: ${pXl}`, `\u03c7\u00b2: =(COUNT(bereik)-1)*VAR.S(bereik)/${xl(sg0)}^2`],
+      excel: [`\u03c7\u00b2: =${df}*${xl(d.s)}^2/${xl(sg0)}^2`, ...critXl.map((c) => 'kritiek: ' + c), `p: ${pXl}`, ...ciXlVar(d.s, d.n, a, sd)],
       explain: exChi({ s: d.s, n: d.n, s0: sg0, a, side: sd, stat: r.stat, crit: r.crit, p: r.p, reject: r.reject, ciS }),
       answer: `Met s = ${nl(d.s)} is chi2 = ${nl(r.stat)} (df = ${df}) en p = ${nl(r.p)}. ${r.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: de standaardafwijking is significant ${sd === 'right' ? 'groter dan' : sd === 'left' ? 'kleiner dan' : 'verschillend van'} ${nl(sg0)}.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet: er is onvoldoende bewijs dat sigma ${sd === 'right' ? 'groter is dan' : sd === 'left' ? 'kleiner is dan' : 'verschilt van'} ${nl(sg0)}.`} Het ${pctNl(1 - a)}-betrouwbaarheidsinterval voor sigma is ${ciTxt(ciS)}.`,
       extra: statPlot((x) => D.chi2Pdf(x, df), 0, Math.max(D.chi2InvRt(0.001, df), r.stat * 1.1), sd, r.crit, r.stat),
@@ -462,7 +493,7 @@ function twoTab(el: HTMLElement) {
         Ft.p < 0.05 ? `F-voortoets: varianties verschillen significant (p = ${fmt(Ft.p)}); de pooled t-toets veronderstelt gelijke varianties, gebruik bij voorkeur Welch.` : `F-voortoets: geen significant verschil in varianties (p = ${fmt(Ft.p)}); pooled t is verdedigbaar.`,
         'Let op (cursus): de F-toets is niet robuust tegen niet-normaliteit, dus als voortoets met voorzichtigheid gebruiken.',
       ],
-      excel: [`pooled p: =T.TEST(bereik1;bereik2;${tt};2)`, `Welch p: =T.TEST(bereik1;bereik2;${tt};3)`, `t pooled kritiek: =T.INV(${xl(sd === 'two' ? 1 - a / 2 : 1 - a)};${P.df})`],
+      excel: [`pooled p: =T.TEST(bereik1;bereik2;${tt};2)`, `Welch p: =T.TEST(bereik1;bereik2;${tt};3)`, `t pooled kritiek: =T.INV(${xl(sd === 'two' ? 1 - a / 2 : 1 - a)};${P.df})`, `s_p: =SQRT((${N1 - 1}*${xl(S1)}^2+${N2 - 1}*${xl(S2)}^2)/${P.df})`, ...ciXlGen('BI \u03bc' + '\u2081-\u03bc\u2082 (pooled)', xl(X1 - X2), `${xl(P.sp)}*SQRT(1/${N1}+1/${N2})`, P.df, a, sd)],
       explain: exTwo({ pooled: P, welch: W, fp: Ft.p, a, side: sd }),
       answer: `Met de pooled t-toets (gelijke varianties verondersteld, df = ${P.df}) is t = ${nl(P.t)} en p = ${nl(P.p)}. ${P.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: de gemiddelden verschillen significant.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet: geen significant verschil tussen de gemiddelden.`} De Welch-toets (zonder aanname van gelijke varianties) geeft p = ${nl(W.p)}${W.reject === P.reject ? ', dezelfde conclusie' : ', een andere conclusie: vermeld dit'}.`,
     });
@@ -497,7 +528,7 @@ function pairedTab(el: HTMLElement) {
       result: [['v\u0304', fmt(r.vbar)], ['s\u1d65', fmt(r.sv)], ['n ; df', `${r.n} ; ${r.n - 1}`], ['t', fmt(r.stat)], ['p-waarde', pTxt(r.p)], [`${pctNl(1 - a)}-BI voor \u03bc\u1d65`, ciTxt(r.ci)]],
       decision: decide(r.reject, a),
       extra: table(['paar', 'x\u2081', 'x\u2082', 'v = x\u2081 - x\u2082'], m.map((x, i) => [String(i + 1), fmt(x[0]), fmt(x[1]), fmt(r.diffs[i])])),
-      excel: [`p: =T.TEST(bereik1;bereik2;${tt};1)`, `of: verschillenkolom v, dan t = AVERAGE(v)/(STDEV.S(v)/SQRT(COUNT(v)))`],
+      excel: [`p: =T.TEST(bereik1;bereik2;${tt};1)`, `of: verschillenkolom v, dan t = AVERAGE(v)/(STDEV.S(v)/SQRT(COUNT(v)))`, ...ciXlGen('BI \u03bc\u1d65', xl(r.vbar), `${xl(r.sv)}/SQRT(${r.n})`, r.n - 1, a, sd)],
       explain: exPaired({ n: r.n, vbar: r.vbar, sv: r.sv, stat: r.stat, p: r.p, a, side: sd }),
       answer: `Voor de ${r.n} paren is het gemiddelde verschil ${nl(r.vbar)} met s_v = ${nl(r.sv)}, dus t = ${nl(r.stat)} (df = ${r.n - 1}) en p = ${nl(r.p)}. ${r.reject ? `Omdat p < alpha = ${pctNl(a)} verwerpen we H0: er is een significant verschil.` : `Omdat p >= alpha = ${pctNl(a)} verwerpen we H0 niet.`} Een gepaarde toets is hier correct omdat de metingen per paar afhankelijk zijn.`,
     });
@@ -586,6 +617,7 @@ export const hypothese: ModuleDef = {
   subs: [
     ['theorie', 'Theorie: beslissingskader, toetsprocedure, variabelen', 'beslissingskader toetsprocedure 7 stappen alfa beta power variabelen'],
     ['kiezer', 'Welke toets? (toetsenkiezer)', 'welke toets wizard keuze'],
+    ['bi', 'Betrouwbaarheidsintervallen (CLT, μ, σ², verhouding varianties)', 'betrouwbaarheidsinterval confidence interval BI CLT centrale limietstelling standaardfout wortel n'],
     ['z', 'Z-toets gemiddelde (\u03c3 gekend)', 'z toets sigma bekend'],
     ['t', 't-toets gemiddelde', 't toets student gemiddelde'],
     ['chi2', '\u03c7\u00b2-toets variantie / standaardafwijking', 'chi kwadraat variantie spreiding sigma'],
@@ -628,6 +660,7 @@ export const hypothese: ModuleDef = {
     const testBox = h('div');
     el.append(theory, selector, testHead, pickInfo, testBox);
     t = tabs('hypothese', [
+      { id: 'bi', label: 'Betrouwbaarheidsintervallen', build: (e) => biTab(e, (id) => t.show(id)) },
       { id: 'z', label: 'Z-toets \u03bc', build: zTab },
       { id: 't', label: 't-toets \u03bc', build: tTab },
       { id: 'chi2', label: '\u03c7\u00b2 \u03c3', build: chiTab },
