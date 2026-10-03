@@ -7,7 +7,8 @@ import { lineChart, densityPlot, chartBox } from '../components/charts.ts';
 import { binomPmf, nctCdf, normInv } from '../stats/dist.ts';
 import { pAccept, singlePlan, ocCurve, designPlan, doublePlan, variablesK, lotDefects, stratification, type OcModel } from '../calc/sampling.ts';
 import { live, need, moduleHead, posInt, prob, pos } from './util.ts';
-import { tabs, type ModuleDef } from './types.ts';
+import { theoryPage, type ModuleDef } from './types.ts';
+import { stkTheorie } from '../generated/content.ts';
 import { exSingle, exDesign, exDouble, exVariables, exLot, exStrat } from './explain_sampling.ts';
 import G from '../../testdata/golden_values.json';
 
@@ -409,47 +410,6 @@ function stratTab(el: HTMLElement) {
 }
 
 // ---------- 7. Theory ----------
-function theoryTab(el: HTMLElement) {
-  el.append(
-    card(
-      'Steekproefmethoden (sampling methods)',
-      table(
-        ['Methode', 'Werkwijze', 'Voordeel', 'Nadeel'],
-        [
-          ['Enkelvoudig aselect (simple random sampling, SRS)', 'elke eenheid even veel kans, met random nummers', 'eenvoudig, onvertekend', 'lijst van alle eenheden nodig; strata soms toevallig ondervertegenwoordigd'],
-          ['Gestratificeerd (stratified)', 'populatie in homogene groepen (strata) verdelen, uit elk stratum aselect trekken (proportioneel of Neyman)', 'kleinere variantie als strata verschillen; resultaten per stratum', 'stratumindeling en gewichten nodig'],
-          ['Cluster (cluster sampling)', 'aselect enkele groepen (dozen, paletten, dagen) kiezen en die volledig onderzoeken', 'goedkoop en praktisch', 'grotere variantie als clusters onderling verschillen'],
-          ['Systematisch (systematic)', 'elke k-de eenheid na een random start', 'eenvoudig op een productielijn', 'vertekend als het proces een periodiciteit heeft met periode k'],
-        ],
-      ),
-    ),
-    card(
-      'Non-respons en vertekening (non-response bias)',
-      h('ul', null,
-        h('li', null, 'Non-respons: wie niet antwoordt verschilt vaak systematisch van wie wel antwoordt; een grotere steekproef lost dit niet op.'),
-        h('li', null, 'Remedies: herinneringen, opvolgen van een deelsteekproef van non-respondenten, weging naar gekende kenmerken.'),
-        h('li', null, 'Selectiebias: steekproefkader dekt de populatie niet (bv. enkel de bovenste laag van een palet).'),
-      ),
-    ),
-    card(
-      'Aanvaardingssteekproeven (acceptance sampling): begrippen',
-      table(
-        ['Begrip', 'Betekenis'],
-        [
-          ['AQL (acceptable quality level)', 'kwaliteitsniveau (fractie defect) dat nog als goed beschouwd wordt; zo een lot moet met grote kans (1 - α) aanvaard worden'],
-          ['LQL / LTPD / RQL (limiting quality)', 'slecht kwaliteitsniveau; zo een lot moet met grote kans (1 - β) afgekeurd worden'],
-          ['α = producentenrisico (producer\'s risk)', 'kans dat een goed lot (op AQL) afgekeurd wordt: 1 - P_acc(AQL)'],
-          ['β = consumentenrisico (consumer\'s risk)', 'kans dat een slecht lot (op LQL) aanvaard wordt: P_acc(LQL)'],
-          ['OC-curve (operating characteristic)', 'P_acc als functie van de fractie defect π; steiler = beter onderscheidend (groter n)'],
-          ['ASN (average sample number)', 'gemiddeld aantal gekeurde stuks per lot (dubbel/sequentieel plan < enkelvoudig)'],
-          ['Model', 'binomiaal bij groot lot (N > 10n), hypergeometrisch bij klein lot, Poisson bij kleine π en grote n'],
-        ],
-      ),
-      note('Aanvaardingssteekproeven controleren de kwaliteit niet in het product; ze beschermen enkel tegen slechte loten. Procesbeheersing (SPC) is beter.', 'info'),
-    ),
-  );
-}
-
 export const steekproeven: ModuleDef = {
   id: 'steekproeven',
   title: 'Aanvaardingssteekproeven',
@@ -462,19 +422,18 @@ export const steekproeven: ModuleDef = {
     ['variables', 'Variabelenplan (n, k)', 'variabelenplan variables plan k Natrella niet-centrale t'],
     ['lot', 'Defecten in een lot bij gekende Cpk', 'lot defecten Cpk binomiaal'],
     ['strat', 'Stratificatie: proportioneel, SRS, Neyman', 'stratificatie stratified Neyman allocatie'],
-    ['theorie', 'Steekproefmethoden en begrippen', 'steekproefmethode cluster systematisch non-respons'],
+    ['theorie', 'Theorie aanvaardingssteekproeven: AQL, LQL, alfa, beta, OC-curve, uitgewerkte voorbeelden', 'theorie AQL LQL LTPD producentenrisico consumentenrisico OC-curve aanvaardingsgetal binomiaal hypergeometrisch dubbel plan ASN variabelenplan steekproefmethode cluster systematisch non-respons'],
   ],
   mount(el) {
     moduleHead(el, 'Aanvaardingssteekproeven (acceptance sampling) en steekproefmethoden', 'Enkelvoudig en dubbel plan, OC-curve, AQL/LQL, variabelenplan, defecten in een lot en stratificatie.');
-    const t = tabs('steekproeven', [
+    const pg = theoryPage(el, 'steekproeven', 'Theorie: aanvaardingssteekproeven stap voor stap', stkTheorie.html, [
       { id: 'single', label: 'Enkelvoudig plan', build: singleTab },
       { id: 'design', label: 'Plan ontwerpen', build: designTab },
       { id: 'double', label: 'Dubbel plan / ASN', build: doubleTab },
       { id: 'variables', label: 'Variabelenplan', build: variablesTab },
       { id: 'lot', label: 'Defecten in lot', build: lotTab },
       { id: 'strat', label: 'Stratificatie', build: stratTab },
-      { id: 'theorie', label: 'Theorie', build: theoryTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+    ]);
+    return { route: pg.route };
   },
 };

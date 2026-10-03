@@ -1,5 +1,6 @@
 // Study explanations for the acceptance sampling module (Aanvaardingssteekproeven). Dutch, numbers via nl().
 import { nl, pctNl } from '../ui/core.ts';
+import { binomPmf, poisPmf, hyperPmf } from '../stats/dist.ts';
 
 type Ex = { question?: string[]; formula?: string[]; substituted?: string[]; result?: string[] };
 
@@ -22,6 +23,11 @@ export function exSingle(d: { n: number; c: number; A: number; L: number; Pa: nu
       'De OC-curve (operating characteristic) is P_acc als functie van de ware fractie defect \\(\\pi\\). Een perfecte keuring zou een verticale stap zijn: alles onder een grens aanvaarden, alles erboven afkeuren. Een steekproef geeft een glooiende curve; hoe groter n, hoe steiler en hoe beter het plan goed en slecht onderscheidt.',
     ],
     substituted: [
+      ...(d.c <= 12 ? [d.A, d.L].map((pi) => {
+        const pmf = (k: number) => (d.model === 'pois' ? poisPmf(k, d.n * pi) : d.model === 'hyper' ? hyperPmf(k, d.N!, Math.round(pi * d.N!), d.n) : binomPmf(k, d.n, pi));
+        const terms = Array.from({ length: d.c + 1 }, (_, k) => pmf(k));
+        return `P_acc(${pctNl(pi)}) = ${terms.map((t, k) => `P(d=${k})`).join(' + ')} = ${terms.map((t) => nl(t)).join(' + ')} = ${nl(terms.reduce((a, b) => a + b, 0))}: de kans op 0, 1, ..., ${d.c} defecten in de steekproef (telkens aanvaarden).`;
+      }) : []),
       `Bij AQL = ${pctNl(d.A)}: verwacht aantal defecten in de steekproef n·AQL = ${nl(d.n * d.A)}; het plan aanvaardt tot c = ${d.c}, dus meestal aanvaard (P_acc = ${nl(d.Pa)}).`,
       `Bij LQL = ${pctNl(d.L)}: verwacht n·LQL = ${nl(d.n * d.L)} defecten, ruim boven c = ${d.c}, dus meestal afgekeurd (P_acc = ${nl(d.beta)}).`,
     ],
