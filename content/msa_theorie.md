@@ -40,6 +40,18 @@ Typisch: **10 stukken** (die de procesvariatie dekken), **2 of 3 operatoren**, e
 | **%GRR** | aandeel van het meetsysteem in de totale variatie | $100\cdot GRR/TV$ |
 | **ndc** | aantal te onderscheiden categorieën (hoeveel "klassen" van stukken het systeem betrouwbaar uit elkaar houdt) | $\lfloor1{,}41\cdot PV/GRR\rfloor$ |
 
+**Tabel van de constanten (AIAG, 1$\sigma$-waarden):**
+
+| Constante | Gebruikt voor | Hangt af van | Waarden ($K$) | Bijhorende $d_2$ of $d_2^*$ $=1/K$ |
+|---|---|---|---|---|
+| $K_1$ | EV $=\bar{\bar R}\cdot K_1$ | aantal herhalingen $r$ | $r=2$: **0,8862** ; $r=3$: **0,5908** | 1,128 ; 1,693 |
+| $K_2$ | AV, uit $\bar X_{diff}$ | aantal operatoren $o$ | $o=2$: **0,7071** ; $o=3$: **0,5231** | 1,414 ; 1,912 |
+| $K_3$ | PV $=R_p\cdot K_3$ | aantal stukken $p$ | 2: 0,7071 ; 3: 0,5231 ; 4: 0,4467 ; 5: 0,4030 ; 6: 0,3742 ; 7: 0,3534 ; 8: 0,3375 ; 9: 0,3249 ; **10: 0,3146** | 1,414 ; 1,912 ; 2,239 ; 2,481 ; 2,672 ; 2,830 ; 2,963 ; 3,078 ; 3,179 |
+
+**Waarom $K=1/d_2$?** Een range van $m$ normale waarden is gemiddeld $d_2\cdot\sigma$ (zie SPC: $\hat\sigma=\bar R/d_2$), dus $\sigma=\text{range}\cdot\frac{1}{d_2}=\text{range}\cdot K$. Bij $K_1$ middel je veel ranges (elk stuk bij elke operator), daarom de gewone $d_2$ van de regelkaarttabel ($d_2=1{,}128$ bij 2 herhalingen, 1,693 bij 3). Bij $K_2$ en $K_3$ heb je maar **één** range (van de operatorgemiddelden of de stukgemiddelden); daarvoor geldt een licht andere constante $d_2^*$ (bv. 1,414 in plaats van 1,128 bij 2 waarden). Daarom zijn $K_2$ en $K_3$ niet gewoon $1/d_2$ uit de SPC-tabel.
+
+**Voorbeeld (10 stukken, 3 operatoren, 3 herhalingen):** $K_1=0{,}5908$ ($r=3$), $K_2=0{,}5231$ ($o=3$), $K_3=0{,}3146$ ($p=10$). Oudere bronnen gebruiken 5,15$\sigma$-waarden ($K_1=4{,}56$ bij 2 en $3{,}05$ bij 3 herhalingen); de percentages t.o.v. TV blijven dan gelijk.
+
 De K-constanten zetten een range om naar een standaardafwijking ($K=1/d_2$), zoals bij een regelkaart ($\hat\sigma=\bar R/d_2$). De percentages zijn verhoudingen van **standaardafwijkingen** en tellen dus niet op tot 100% (de varianties wel: % contributie).
 
 **ANOVA-methode:** dezelfde gegevens als tweeweg-ANOVA met herhaling (stuk x operator). De mean squares geven variantiecomponenten: $\sigma^2_{EV}=MS_E$, $\sigma^2_{AV}=(MS_O-MS_E)/(p\,r)$, $\sigma^2_{PV}=(MS_P-MS_E)/(o\,r)$ (cursusmethode). Voordelen: nauwkeuriger, werkt met elk gebalanceerd ontwerp, en kan de **interactie** stuk x operator schatten (AIAG-variant).
