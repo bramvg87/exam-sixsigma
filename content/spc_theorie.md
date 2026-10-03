@@ -72,7 +72,21 @@ Voorbeeld: $UCL_R=2{,}114\cdot0{,}480=1{,}015$, $LCL_R=0$. Voor de s-kaart analo
 | s | $\bar s$ | $B_4\bar s$ | $B_3\bar s$ | |
 | I (individueel) | $\bar x$ | $\bar x+2{,}66\,\overline{MR}$ | $\bar x-2{,}66\,\overline{MR}$ | $\overline{MR}/1{,}128$ |
 
-Constanten voor $n=5$: $A_2=0{,}577$, $A_3=1{,}427$, $d_2=2{,}326$, $D_3=0$, $D_4=2{,}114$, $B_3=0$, $B_4=2{,}089$, $c_4=0{,}940$ (volledige tabel in de tab Constanten).
+**Controlekaart-constanten** (standaardtabel, zoals in het formularium; kies de rij met je subgroepgrootte $n$):
+
+| $n$ | $A_2$ | $A_3$ | $d_2$ | $D_3$ | $D_4$ | $B_3$ | $B_4$ | $c_4$ |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| 2 | 1,880 | 2,659 | 1,128 | 0 | 3,267 | 0 | 3,267 | 0,7979 |
+| 3 | 1,023 | 1,954 | 1,693 | 0 | 2,574 | 0 | 2,568 | 0,8862 |
+| 4 | 0,729 | 1,628 | 2,059 | 0 | 2,282 | 0 | 2,266 | 0,9213 |
+| **5** | **0,577** | **1,427** | **2,326** | **0** | **2,114** | **0** | **2,089** | **0,9400** |
+| 6 | 0,483 | 1,287 | 2,534 | 0 | 2,004 | 0,030 | 1,970 | 0,9515 |
+| 7 | 0,419 | 1,182 | 2,704 | 0,076 | 1,924 | 0,118 | 1,882 | 0,9594 |
+| 8 | 0,373 | 1,099 | 2,847 | 0,136 | 1,864 | 0,185 | 1,815 | 0,9650 |
+| 9 | 0,337 | 1,032 | 2,970 | 0,184 | 1,816 | 0,239 | 1,761 | 0,9693 |
+| 10 | 0,308 | 0,975 | 3,078 | 0,223 | 1,777 | 0,284 | 1,716 | 0,9727 |
+
+**Hoe gebruik je de tabel?** Zoek de rij van je subgroepgrootte $n$ (aantal metingen per subgroep, niet het aantal subgroepen). Met R: $A_2$ voor de $\bar X$-kaart, $D_3$ en $D_4$ voor de R-kaart, $d_2$ voor $\hat\sigma=\bar R/d_2$. Met s: $A_3$, $B_3$, $B_4$ en $c_4$. Bv. $n=5$ (vetgedrukt): $UCL_{\bar X}=\bar{\bar X}+0{,}577\,\bar R$, $UCL_R=2{,}114\,\bar R$, $\hat\sigma=\bar R/2{,}326$. Verbanden: $A_2=\frac{3}{d_2\sqrt n}$, $A_3=\frac{3}{c_4\sqrt n}$. $D_3=0$ en $B_3=0$ voor kleine $n$ betekent: geen ondergrens voor de spreiding. Voor $n$ van 11 tot 25: zie de tab Constanten.
 
 **R of s?** R is eenvoudig en voor kleine subgroepen ($n\le$ ongeveer 8 - 10) bijna even goed als s. Voor grotere subgroepen gooit R te veel informatie weg (het gebruikt enkel het hoogste en laagste punt): gebruik dan s.
 
