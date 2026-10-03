@@ -6,7 +6,8 @@ import { barChart, densityPlot, chartBox } from '../components/charts.ts';
 import { normInv, poisCdf, poisPmf, poisSf, expSf } from '../stats/dist.ts';
 import { mm1, mm1k } from '../calc/misc.ts';
 import { live, need, moduleHead, posInt, pos, prob } from './util.ts';
-import { tabs, type ModuleDef } from './types.ts';
+import { theoryPage, type ModuleDef } from './types.ts';
+import { simTheorie } from '../generated/content.ts';
 import G from '../../testdata/golden_values.json';
 
 const exBtn = (label: string, fn: () => void) => h('button', { type: 'button', class: 'btn btn-sm', onclick: fn }, label);
@@ -47,6 +48,12 @@ function mm1Tab(el: HTMLElement) {
         [`P(N > ${J})`, fmt(r.rho ** (J + 1))],
       ],
       excel: [`ρ: =${xl(L)}/${xl(M)}`, `E[L]: =${xl(r.rho)}/(1-${xl(r.rho)})`, `E[W]: =1/(${xl(M)}-${xl(L)})`, `P(N=j): =(1-${xl(r.rho)})*${xl(r.rho)}^j`],
+      explain: {
+        question: ['M/M/1 = Poisson-aankomsten (M), exponenti\u00eble bedieningstijden (M), \u00e9\u00e9n bediende (1), onbeperkte rij. \u03bb = aantal aankomsten per tijdseenheid, \u03bc = aantal klanten dat de bediende per tijdseenheid kan helpen (gemiddelde bedieningstijd 1/\u03bc).'],
+        formula: ['\u03c1 = \u03bb/\u03bc is de bezettingsgraad: de fractie van de tijd dat de bediende bezig is (en P\u2080 = 1 - \u03c1 dat het systeem leeg is). Enkel als \u03c1 < 1 is het systeem stabiel.', 'L = \u03c1/(1 - \u03c1): door de noemer 1 - \u03c1 explodeert de rij als \u03c1 naar 1 gaat. W en W_q volgen uit de wet van Little: W = L/\u03bb, W_q = L_q/\u03bb.'],
+        substituted: [`De bediende is ${pctNl(r.rho)} bezig. Gemiddelde bedieningstijd 1/\u03bc = ${nl(1 / M)}, maar een klant is gemiddeld W = ${nl(r.EW)} in het systeem, waarvan W_q = ${nl(r.EWq)} wachten: ${nl(r.EWq / (1 / M))} keer de bedieningstijd.`],
+        result: [`Wat als de bezetting stijgt? Bij \u03c1 = 0,9 zou L = 9 zijn, bij 0,95 al 19. Capaciteit 100% plannen geeft eindeloze rijen: variatie vraagt buffercapaciteit.`, `Controle met Little: L = \u03bb\u00b7W = ${nl(L)}\u00b7${nl(r.EW)} = ${nl(L * r.EW)}.`],
+      },
       answer: `De bezettingsgraad is rho = lambda/mu = ${nl(r.rho)}, dus de bediende is ${pctNl(r.rho)} van de tijd bezig en het systeem is ${pctNl(r.P0)} van de tijd leeg. Gemiddeld zijn er E[L] = ${nl(r.EL)} klanten in het systeem (${nl(r.ELq)} in de rij); de gemiddelde verblijftijd is E[W] = ${nl(r.EW)} en de wachttijd E[Wq] = ${nl(r.EWq)} tijdseenheden (Little: L = lambda W). Naarmate rho naar 1 gaat, stijgen L en W explosief.`,
       extra: [card('P(N = j)', table(['j', 'P(N = j)', 'P(N ≤ j)'], pj.map((p, j) => [String(j), fmt(p), fmt(1 - r.rho ** (j + 1))]))), chartBox(barChart(pj.map((_, j) => String(j)), pj, { ylabel: 'P(N = j)' }))],
     });
@@ -90,6 +97,12 @@ function mm1kTab(el: HTMLElement) {
       ],
       warnings: ['Little met verliescorrectie: deel door λ_eff (de klanten die effectief binnenkomen), niet door λ.'],
       excel: [one ? `π_j: =1/(${k}+1)` : `π_j: =(1-${xl(r.rho)})*${xl(r.rho)}^j/(1-${xl(r.rho)}^(${k}+1))`, 'E[L]: =SUMPRODUCT(j;pi_j)', `E[W]: =${xl(r.EL)}/(${xl(L)}*(1-${xl(r.pi[k])}))`],
+      explain: {
+        question: ['M/M/1/K: zoals M/M/1, maar er passen hoogstens K klanten in het systeem (inclusief degene die bediend wordt). Wie aankomt als het vol is, gaat verloren (blocking). Daardoor is het systeem altijd stabiel, ook als \u03c1 \u2265 1.'],
+        formula: ['\u03c0_j = kans op j klanten in het systeem (steady state); de geometrische vorm \u03c1^j wordt genormeerd zodat de kansen 0..K samen 1 zijn. \u03c0_K = verlieskans.', 'In de wet van Little gebruik je de EFFECTIEVE doorvoer \u03bb_eff = \u03bb(1 - \u03c0_K): verloren klanten komen nooit binnen en tellen dus niet mee in W.'],
+        substituted: [`${pctNl(r.pLoss)} van de klanten vindt het systeem vol en gaat verloren; effectieve doorvoer ${nl(r.lamEff)} in plaats van ${nl(L)}.`],
+        result: ['Afweging: een grotere K verlaagt het verlies maar verlengt de wachttijd (meer klanten in de rij). Meer capaciteit (\u03bc) verlaagt beide.'],
+      },
       answer: `Met rho = ${nl(r.rho)} en capaciteit K = ${k} is het systeem ${pctNl(r.pi[0])} van de tijd leeg en ${pctNl(r.pLoss)} van de tijd vol: zoveel aankomsten gaan verloren. Gemiddeld zijn er E[L] = ${nl(r.EL)} klanten in het systeem. Volgens Little met verliescorrectie is de effectieve aankomstintensiteit lambda_eff = ${nl(r.lamEff)}, dus de gemiddelde verblijftijd E[W] = ${nl(r.EL)}/${nl(r.lamEff)} = ${nl(r.EW)}.`,
       extra: [card('Toestandskansen π_j', table(['j', 'π_j', 'cumulatief'], r.pi.map((p, j) => [String(j), fmt(p), fmt(r.pi.slice(0, j + 1).reduce((a, b) => a + b, 0))]))), chartBox(barChart(r.pi.map((_, j) => String(j)), r.pi, { ylabel: 'π_j', highlight: r.pi.map((_, j) => j === k) }))],
     });
@@ -136,6 +149,12 @@ function poissonTab(el: HTMLElement) {
         ['Gemiddelde tussenaankomsttijd 1/λ', fmt(1 / lam)],
       ],
       excel: [`=POISSON.DIST(${K};${xl(m)};ONWAAR)`, `=POISSON.DIST(${K};${xl(m)};WAAR)`, `P(≥ ${K}): =1-POISSON.DIST(${K - 1};${xl(m)};WAAR)`, `P(T > t): =1-EXPON.DIST(${xl(T)};${xl(lam)};WAAR)`],
+      explain: {
+        question: ['Een Poisson-proces beschrijft gebeurtenissen die onafhankelijk van elkaar en met een constante gemiddelde intensiteit \u03bb optreden (aankomsten, storingen, bestellingen).'],
+        formula: ['Het AANTAL in een interval t is Poisson(\u03bbt); de TIJD tussen twee gebeurtenissen is exponentieel met gemiddelde 1/\u03bb (en P(T > t) = e^(-\u03bbt) = P(geen gebeurtenis in t)). Superpositie: stromen optellen geeft \u03bb\u2081 + \u03bb\u2082. Thinning: enkel een fractie p meetellen geeft \u03bbp.'],
+        substituted: [`Gecombineerde intensiteit \u03bb = (${nl(L1)} + ${nl(L2)})\u00b7${nl(P)} = ${nl(lam)}; verwacht aantal in t = ${nl(T)}: \u03bbt = ${nl(m)}.`],
+        result: ['Vuistregel: Poisson heeft gemiddelde = variantie; telgegevens met een veel grotere variantie zijn niet Poisson (clustering, seizoenen).'],
+      },
       answer: `Het aantal gebeurtenissen in een interval van ${nl(T)} is Poisson-verdeeld met gemiddelde lambda t = ${nl(m)}${L2 > 0 ? ' (superpositie: de intensiteiten worden opgeteld)' : ''}${P < 1 ? ` (thinning: intensiteit maal p = ${nl(P)})` : ''}. Dan is P(N = ${K}) = ${nl(pe)}, P(N <= ${K}) = ${nl(pc)} en P(N >= ${K}) = ${nl(pg)}. De kans op geen enkele gebeurtenis (tussenaankomsttijd langer dan ${nl(T)}) is e^(-${nl(m)}) = ${nl(pT)}.`,
       extra: chartBox(densityPlot({ pdf: (x) => poisPmf(x, m), x0: -0.5, x1: k1 + 0.5, discrete: { k0: 0, k1, shadeK: (x) => x === K }, xlabel: 'k (aantal in interval t)' })),
     });
@@ -177,6 +196,11 @@ function mcTab(el: HTMLElement) {
       substituted: [`${tx(M)}\\pm ${tx(z)}\\cdot\\frac{${tx(S)}}{\\sqrt{${N}}}=${tx(M)}\\pm ${tx(marg)}`].concat(e !== undefined ? [`n\\ge\\left(\\frac{${tx(z)}\\cdot ${tx(S)}}{${tx(e)}}\\right)^2=${tx((z * S / e) ** 2)}\\Rightarrow ${nNeed}`] : []),
       result: res,
       excel: [`marge: =NORM.S.INV(${xl(1 - (1 - C) / 2)})*${xl(S)}/SQRT(${N})`].concat(e !== undefined ? [`runs: =ROUNDUP((NORM.S.INV(${xl(1 - (1 - C) / 2)})*${xl(S)}/${xl(e)})^2;0)`] : []),
+      explain: {
+        question: ['Een simulatie geeft per run een toevallige uitkomst. Het gemiddelde over n runs is een schatting van de echte verwachte waarde, met een toevalsfout: daarom een betrouwbaarheidsinterval.'],
+        formula: ['Zelfde recept als elk BI voor een gemiddelde: schatting \u00b1 z \u00b7 s/\u221an. s = spreiding tussen de runs; s/\u221an = standaardfout van het gemiddelde. Omkeren geeft het aantal runs voor een gewenste marge E.'],
+        result: [`Marge ${nl(marg)} bij ${N} runs; ${nl(4 * N)} runs zou de marge halveren tot ${nl(marg / 2)}. Runs moeten onafhankelijk zijn (andere toevalsgetallen) en na de opwarmperiode gemeten worden.`],
+      },
       answer: `Uit ${N} simulatieruns is het gemiddelde ${nl(M)} met s = ${nl(S)}; het ${pctNl(C)}-betrouwbaarheidsinterval is ${nl(M)} +/- ${nl(marg)} = [${nl(M - marg)} ; ${nl(M + marg)}].${e !== undefined ? ` Voor een foutmarge van hoogstens ${nl(e)} zijn minstens ${nNeed} runs nodig.` : ''} De foutmarge daalt met de wortel van het aantal runs.`,
     });
   });
@@ -288,6 +312,11 @@ function littleTab(el: HTMLElement) {
       substituted: [sub],
       result: [['L (WIP)', fmt(l)], ['λ (doorvoer)', fmt(la)], ['W (doorlooptijd)', fmt(w)]],
       excel: [s === 'L' ? `=${xl(la)}*${xl(w)}` : s === 'lam' ? `=${xl(l)}/${xl(w)}` : `=${xl(l)}/${xl(la)}`],
+      explain: {
+        question: ['De wet van Little verbindt drie gemiddelden van elk stabiel systeem op lange termijn (fabriek, afdeling, wachtrij): L = onderhanden werk (WIP), \u03bb = doorvoer (throughput), W = doorlooptijd (lead time).'],
+        formula: ['Waarom klopt dit? Als er per tijdseenheid \u03bb items binnenkomen en elk item W tijd blijft, dan zijn er op elk moment gemiddeld \u03bb\u00b7W items in het systeem. Het geldt voor elke verdeling, zolang het systeem stabiel is en dezelfde tijdseenheid gebruikt wordt.'],
+        result: ['Lean-gevolg: bij dezelfde doorvoer verkort minder WIP rechtstreeks de doorlooptijd (pull, WIP-limieten). Met verlies (M/M/1/K) gebruik je de effectieve doorvoer.'],
+      },
       answer: `Volgens de wet van Little is L = lambda * W. Met ${s !== 'L' ? `L = ${nl(l)}` : `lambda = ${nl(la)}`} en ${s === 'W' ? `lambda = ${nl(la)}` : `W = ${nl(w)}`} volgt ${nm === 'λ' ? 'lambda' : nm} = ${nl(val)}. Minder onderhanden werk (WIP) bij gelijke doorvoer verkort dus rechtstreeks de doorlooptijd.`,
     });
   });
@@ -317,6 +346,7 @@ export const wachtrij: ModuleDef = {
   group: 'Extra',
   keywords: ['wachtrij', 'queue', 'queueing', 'M/M/1', 'M/M/1/K', 'Little', 'Poisson-proces', 'Poisson proces', 'superpositie', 'thinning', 'exponentieel', 'Monte Carlo', 'simulatie', 'flow efficiency', 'doorlooptijd', 'WIP', 'lead time'],
   subs: [
+    ['theorie', 'Theorie simulatie en wachtrijen', 'theorie wachtrij kendall bezettingsgraad rho poisson exponentieel geheugenloos little monte carlo des warm-up'],
     ['mm1', 'M/M/1-wachtrij', 'wachtrij M/M/1 queue bezettingsgraad rho'],
     ['mm1k', 'M/M/1/K (beperkte capaciteit, verlies)', 'M/M/1/K wachtrij verlies blocking Little'],
     ['poisson', 'Poisson-proces (superpositie, thinning)', 'Poisson-proces superpositie thinning exponentieel tussenaankomsttijd'],
@@ -324,15 +354,15 @@ export const wachtrij: ModuleDef = {
     ['little', 'Wet van Little en flow efficiency', 'Little L = lambda W flow efficiency doorlooptijd WIP'],
   ],
   mount(el) {
-    moduleHead(el, 'Simulatie & wachtrijen', 'M/M/1, M/M/1/K, Poisson-proces, Monte Carlo-interval, wet van Little en flow efficiency.');
-    const t = tabs('wachtrij', [
+    moduleHead(el, 'Simulatie & wachtrijen', 'Op \u00e9\u00e9n pagina: 1. de theorie (Poisson-proces, wachtrijen, Little, Monte Carlo), 2. de berekeningen met uitleg bij elk resultaat.');
+    const pg = theoryPage(el, 'wachtrij', 'Theorie: Poisson-proces, wachtrijen, Little en simulatie', simTheorie.html, [
       { id: 'mm1', label: 'M/M/1', build: mm1Tab },
       { id: 'mm1k', label: 'M/M/1/K', build: mm1kTab },
       { id: 'poisson', label: 'Poisson-proces', build: poissonTab },
       { id: 'mc', label: 'Monte Carlo', build: mcTab },
-      { id: 'serie', label: 'Lampen in serie / π', build: serieTab },
+      { id: 'serie', label: 'Lampen in serie / \u03c0', build: serieTab },
       { id: 'little', label: 'Little / flow', build: littleTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+    ]);
+    return { route: pg.route };
   },
 };

@@ -9,7 +9,8 @@ import { buildCells } from '../calc/msa_extra.ts';
 import { fInvRt } from '../stats/dist.ts';
 import { sdS } from '../stats/desc.ts';
 import { live, need, moduleHead, prob } from './util.ts';
-import { tabs, type ModuleDef } from './types.ts';
+import { theoryPage, type ModuleDef } from './types.ts';
+import { anovaTheorie } from '../generated/content.ts';
 import { exOneWay, exTwoWay } from './explain.ts';
 import G from '../../testdata/golden_values.json';
 
@@ -266,24 +267,6 @@ function twowayTab(el: HTMLElement) {
   return { prefill: (v: any) => f.setValues(v) };
 }
 
-function theoryTab(el: HTMLElement) {
-  el.append(
-    card(
-      'Variantieanalyse (ANOVA): de logica',
-      h('ul', null,
-        h('li', null, 'Doel: toetsen of de gemiddelden van k groepen (niveaus van een factor) gelijk zijn. Meerdere t-toetsen zouden de totale α-fout opblazen (1 - (1-α)^m).'),
-        h('li', null, 'Opsplitsing van de totale variatie: SS_T = SS_B (tussen groepen, verklaard door de factor) + SS_W (binnen groepen, ruis). Vrijheidsgraden: N-1 = (k-1) + (N-k).'),
-        h('li', null, 'F = MS_B / MS_W. Onder H0 schatten beide MS dezelfde σ², dus F ≈ 1. Een grote F (rechtszijdig) wijst op verschillen tussen de gemiddelden. p = F.DIST.RT(F; k-1; N-k).'),
-        h('li', null, 'Aannames: onafhankelijke waarnemingen, normaal verdeelde residuen, gelijke varianties. Controle: residuplots, s per groep (vuistregel max/min < 2), Levene/Bartlett.'),
-        h('li', null, 'Na een significante F: post-hoc vergelijkingen (Tukey, Bonferroni) om te weten welke groepen verschillen.'),
-        h('li', null, 'Tweeweg-ANOVA: twee factoren A en B. Met herhaling kan de interactie A x B getoetst worden: het effect van A hangt af van het niveau van B (niet-parallelle lijnen in het interactieplot). Zonder herhaling zit de interactie in de fout.'),
-        h('li', null, 'Link met DOE: een 2^k-proefopzet wordt geanalyseerd met ANOVA; elk effect en elke interactie heeft 1 vrijheidsgraad, SS = contrast²/(n·2^k), F = MS_effect/MS_E. Gauge R&R via ANOVA is een tweeweg-ANOVA met herhaling (stuk x operator).'),
-        h('li', null, 'R² = SS_B/SS_T: aandeel van de variatie verklaard door de factor.'),
-      ),
-    ),
-  );
-}
-
 export const anova: ModuleDef = {
   id: 'anova',
   title: 'ANOVA',
@@ -292,15 +275,14 @@ export const anova: ModuleDef = {
   subs: [
     ['oneway', 'Eenweg-ANOVA (one-way)', 'eenweg groepen gemiddelden vergelijken F p'],
     ['twoway', 'Tweeweg-ANOVA met en zonder herhaling', 'tweeweg interactie herhaling interactieplot'],
-    ['theorie', 'Theorie ANOVA: SST = SSB + SSW', 'theorie variantieanalyse F logica doe'],
+    ['theorie', 'Theorie ANOVA: SS opsplitsen, MS, F, tweeweg, interactie', 'theorie variantieanalyse SST SSB SSW MS F logica df post-hoc interactie tweeweg aannames'],
   ],
   mount(el) {
-    moduleHead(el, 'ANOVA (variantieanalyse)', 'Eenweg- en tweeweg-ANOVA met F-toets, p-waarde, kritieke waarde en effectenplot.');
-    const t = tabs('anova', [
+    moduleHead(el, 'ANOVA (variantieanalyse)', 'Op \u00e9\u00e9n pagina: 1. de theorie (waarom ANOVA, SS opsplitsen, MS en F, tabel lezen, tweeweg en interactie), 2. de berekening met uitleg bij elk resultaat.');
+    const pg = theoryPage(el, 'anova', 'Theorie: variantieanalyse stap voor stap', anovaTheorie.html, [
       { id: 'oneway', label: 'Eenweg', build: onewayTab },
       { id: 'twoway', label: 'Tweeweg', build: twowayTab },
-      { id: 'theorie', label: 'Theorie', build: theoryTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+    ]);
+    return { route: pg.route };
   },
 };

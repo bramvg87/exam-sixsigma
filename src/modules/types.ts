@@ -1,4 +1,4 @@
-import { h, store } from '../ui/core.ts';
+import { h, store, settings, onSettings, renderMath } from '../ui/core.ts';
 
 export const REPO_URL = 'https://github.com/bramvg87/exam-sixsigma';
 export const DOWNLOAD_URL = 'https://github.com/bramvg87/exam-sixsigma/raw/main/release/sixsigma-toolkit.html';
@@ -61,4 +61,33 @@ export function tabs(key: string, defs: TabDef[], root: HTMLElement) {
   root.append(bar, panes);
   show(active);
   return { show, get active() { return active; } };
+}
+
+/**
+ * Page layout used by the study-oriented modules: section 1 = theory (pre-rendered Markdown, open when
+ * "Uitleg" is on), section 2 = the calculators in tabs. Sub 'theorie' opens and scrolls to the theory.
+ */
+export function theoryPage(el: HTMLElement, key: string, theoryTitle: string, html: string, defs: TabDef[]) {
+  const body = h('div', { class: 'md', html });
+  renderMath(body);
+  const theory = h('details', { class: 'card section' }, h('summary', null, h('span', { class: 'secnum' }, '1'), theoryTitle), body) as HTMLDetailsElement;
+  theory.open = settings.explain;
+  let last = settings.explain;
+  onSettings(() => {
+    if (settings.explain !== last) theory.open = last = settings.explain;
+  });
+  const head = h('h3', { class: 'sechead' }, h('span', { class: 'secnum' }, '2'), 'Berekenen');
+  const box = h('div');
+  el.append(theory, head, box);
+  const t = tabs(key, defs, box);
+  return {
+    t,
+    theory,
+    route(sub: string | undefined, params?: any) {
+      if (sub === 'theorie') {
+        theory.open = true;
+        theory.scrollIntoView();
+      } else if (sub) t.show(sub, params);
+    },
+  };
 }
