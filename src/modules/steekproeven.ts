@@ -8,6 +8,7 @@ import { binomPmf, nctCdf, normInv } from '../stats/dist.ts';
 import { pAccept, singlePlan, ocCurve, designPlan, doublePlan, variablesK, lotDefects, stratification, type OcModel } from '../calc/sampling.ts';
 import { live, need, moduleHead, posInt, prob, pos } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
+import { exSingle, exDesign, exDouble, exVariables, exLot, exStrat } from './explain_sampling.ts';
 import G from '../../testdata/golden_values.json';
 
 const exBtn = (label: string, fn: () => void) => h('button', { type: 'button', class: 'btn btn-sm', onclick: fn }, label);
@@ -39,12 +40,12 @@ function singleTab(el: HTMLElement) {
   const out = h('div');
   let run = () => {};
   const f = new Form('ss1', () => run());
-  const n = f.num('n', 'n (steekproefgrootte)', 100);
-  const c = f.num('c', 'c (aanvaardingsgetal)', 4);
-  const aql = f.num('aql', 'AQL (fractie, bv. 0,02)', 0.02);
-  const lql = f.num('lql', 'LQL / LTPD (fractie)', 0.08);
+  const n = f.num('n', 'n (steekproefgrootte)', 100, { hint: 'aantal stuks dat je keurt' });
+  const c = f.num('c', 'c (aanvaardingsgetal)', 4, { hint: 'aanvaard als defecten d ≤ c' });
+  const aql = f.num('aql', 'AQL (fractie, bv. 0,02)', 0.02, { hint: 'goede kwaliteit: wil je aanvaarden' });
+  const lql = f.num('lql', 'LQL / LTPD (fractie)', 0.08, { hint: 'slechte kwaliteit: wil je afkeuren' });
   const model = f.seg('model', 'Model', MODELS, 'binom');
-  const N = f.num('N', 'Lotgrootte N', 10000);
+  const N = f.num('N', 'Lotgrootte N', 10000, { hint: 'aantal stuks in het hele lot' });
   const dObs = f.optNum('d', 'Waargenomen defecten d (optioneel)', '');
   el.append(
     card(
@@ -112,6 +113,7 @@ function singleTab(el: HTMLElement) {
       decision: dRes ? { text: dRes, kind: d! <= cc ? 'accept' : 'reject' } : undefined,
       warnings: m === 'pois' && L > 0.1 ? ['Poisson is een benadering, goed voor kleine π en grote n.'] : [],
       excel: [`P_acc(AQL): ${xlAcc(m, cc, nn, A, NN)}`, `α: =1-${xlAcc(m, cc, nn, A, NN).slice(1)}`, `β: ${xlAcc(m, cc, nn, L, NN)}`, 'algemeen: =BINOM.DIST(c;n;pi;WAAR)'].concat(d !== undefined && d > 0 ? [`p-waarde: =1-${xlAcc(m, d - 1, nn, A, NN).slice(1)}`] : []),
+      explain: exSingle({ n: nn, c: cc, A, L, Pa: r.PaAQL, alpha: r.alpha, beta: r.beta, model: m, N: NN }),
       answer: `Bij het plan (n = ${nn}, c = ${cc}) is de aanvaardingskans bij AQL = ${pctNl(A)} gelijk aan ${nl(r.PaAQL)}, dus het producentenrisico is alfa = ${pctNl(r.alpha)}. Bij LQL = ${pctNl(L)} wordt een lot nog met kans beta = ${pctNl(r.beta)} aanvaard (consumentenrisico). ${r.alpha <= 0.05 && r.beta <= 0.1 ? 'Beide risico\'s zijn klein, het plan onderscheidt goede en slechte loten goed.' : 'Minstens een van beide risico\'s is groot; een groter n (met aangepaste c) maakt de OC-curve steiler.'}${pvTxt}`,
       extra: [
         chartBox(lineChart({ series: [{ pts: curve }], vlines: [{ x: 100 * A, label: 'AQL', cls: 'mean' }, { x: 100 * L, label: 'LQL', cls: 'spec' }], hlines: [{ y: r.PaAQL, label: '1-α ' + fmt(r.PaAQL, 3), cls: 'cl' }, { y: r.beta, label: 'β ' + fmt(r.beta, 3), cls: 'ucl' }], xlabel: 'π (% defect in lot)', ylabel: 'P_acc', x0: 0, x1: 100 * pmax, y0: 0, y1: 1.02 })),
@@ -131,8 +133,8 @@ function designTab(el: HTMLElement) {
   const f = new Form('ss2', () => run());
   const aql = f.num('aql', 'AQL (fractie)', 0.02);
   const lql = f.num('lql', 'LQL (fractie)', 0.08);
-  const a = f.num('a', 'max. α (producentenrisico)', 0.05);
-  const b = f.num('b', 'max. β (consumentenrisico)', 0.05);
+  const a = f.num('a', 'max. α (producentenrisico)', 0.05, { hint: 'kans goed lot afgekeurd' });
+  const b = f.num('b', 'max. β (consumentenrisico)', 0.05, { hint: 'kans slecht lot aanvaard' });
   el.append(card('Plan ontwerpen (plan designer): kleinste n en c', h('p', { class: 'muted' }, 'Zoekt het kleinste n (en bijhorende c) met α ≤ doel bij AQL en β ≤ doel bij LQL (binomiaal). Cursus: AQL 2%, LQL 8%, α = β = 5% geeft (129, 5); het cursusplan (130, 5) ligt er vlak naast (α 4,7%, β 4,7%).'), row(aql.el, lql.el, a.el, b.el)), out);
   run = live(out, () => {
     const A = prob(aql.get(), 'AQL');
@@ -151,6 +153,7 @@ function designTab(el: HTMLElement) {
       substituted: [`1-P(d\\le ${r!.c}\\mid ${r!.n}, ${tx(A)}) = ${tx(r!.alpha)},\\qquad P(d\\le ${r!.c}\\mid ${r!.n}, ${tx(L)}) = ${tx(r!.beta)}`],
       result: [['Plan (n, c)', `(${r!.n}, ${r!.c})`], ['α werkelijk', `${fmt(r!.alpha)} (${pct(r!.alpha)})`], ['β werkelijk', `${fmt(r!.beta)} (${pct(r!.beta)})`]],
       excel: [`α: =1-BINOM.DIST(${r!.c};${r!.n};${xl(A)};WAAR)`, `β: =BINOM.DIST(${r!.c};${r!.n};${xl(L)};WAAR)`],
+      explain: exDesign({ A, L, am, bm, n: r!.n, c: r!.c, alpha: r!.alpha, beta: r!.beta }),
       answer: `Het kleinste enkelvoudige plan dat aan beide eisen voldoet is n = ${r!.n} met aanvaardingsgetal c = ${r!.c}: het lot wordt aanvaard als er hoogstens ${r!.c} defecten in de steekproef van ${r!.n} zitten. Dan is alfa = ${pctNl(r!.alpha)} bij AQL = ${pctNl(A)} en beta = ${pctNl(r!.beta)} bij LQL = ${pctNl(L)}.`,
       extra: chartBox(lineChart({ series: [{ pts: curve }], vlines: [{ x: 100 * A, label: 'AQL', cls: 'mean' }, { x: 100 * L, label: 'LQL', cls: 'spec' }], hlines: [{ y: 1 - am, label: '1-α', cls: 'cl' }, { y: bm, label: 'β', cls: 'ucl' }], xlabel: 'π (% defect)', ylabel: 'P_acc', x0: 0, x1: 100 * pmax, y0: 0, y1: 1.02 })),
     });
@@ -231,6 +234,7 @@ function doubleTab(el: HTMLElement) {
         `ASN: =${N1}+${N2}*(${xd(C2 - 1, N1, A, true)}-${xd(C1, N1, A, true)})`,
         `enkelvoudig α: =1-${asnTxt === 'BINOM.DIST' ? `BINOM.DIST(${CS};${NS};${xl(A)};WAAR)` : `POISSON.DIST(${CS};${xl(NS * A)};WAAR)`}`,
       ],
+      explain: exDouble({ N1, C1, C2, N2, C3, NS, CS, A, L, PaA: dA.Pacc, PaL: dL.Pacc, asnA: dA.ASN, asnL: dL.ASN, pSecA: dA.pSecond, sA: sp(A), sL: sp(L) }),
       answer: `Het dubbele plan (${N1}, ${C1}, ${C2}) + (${N2}, ${C3}) heeft bij AQL = ${pctNl(A)} een aanvaardingskans ${nl(dA.Pacc)} (alfa = ${pctNl(1 - dA.Pacc)}) en bij LQL = ${pctNl(L)} beta = ${pctNl(dL.Pacc)}, vergelijkbaar met het enkelvoudige plan (${NS}, ${CS}) (alfa = ${pctNl(1 - sp(A))}, beta = ${pctNl(sp(L))}). Het gemiddeld aantal gekeurde stuks (ASN) is maar ${nl(dA.ASN)} bij AQL en ${nl(dL.ASN)} bij LQL, tegenover altijd ${NS} bij het enkelvoudige plan: een dubbel plan bespaart gemiddeld inspectie, ten koste van een complexere procedure en een variabele werklast.`,
       extra: [
         chartBox(lineChart({ series: [{ pts: ocD, label: 'dubbel' }, { pts: ocS, cls: 'alt', label: 'enkelvoudig' }], vlines: [{ x: 100 * A, label: 'AQL', cls: 'mean' }, { x: 100 * L, label: 'LQL', cls: 'spec' }], xlabel: 'π (% defect)  -  blauw: dubbel, groen: enkelvoudig', ylabel: 'P_acc', x0: 0, x1: 100 * pmax, y0: 0, y1: 1.02 })),
@@ -296,6 +300,7 @@ function variablesTab(el: HTMLElement) {
       result: res,
       decision: dec,
       excel: [`z_p: =NORM.S.INV(1-${xl(p)})`, `z_α: =NORM.S.INV(1-${xl(a)})`, `a: =1-NORM.S.INV(1-${xl(a)})^2/(2*(${nn}-1))`, `k Natrella: =(${xl(r.zp)}+SQRT(${xl(r.zp)}^2-${xl(r.a)}*${xl(r.b)}))/${xl(r.a)}`, 'k exact: niet-centrale t zit niet in Excel (gebruik deze tool of tabellen)'],
+      explain: exVariables({ n: nn, p0: p, a, k: r.exact, kn: r.natrella, zp: r.zp, za: r.za }),
       answer: `Voor n = ${nn}, p0 = ${pctNl(p)} en alfa = ${pctNl(a)} is de aanvaardingsconstante k = ${nl(r.exact)} (exact, niet-centrale t-verdeling); de Natrella-benadering geeft k = ${nl(r.natrella)}. Het lot wordt aanvaard als (x-gemiddelde - grens)/s >= k.${decTxt}`,
       extra: [chartBox(lineChart({ series: [{ pts: oc }], vlines: [{ x: 100 * p, label: 'p₀', cls: 'spec' }], hlines: [{ y: a, label: 'α', cls: 'ucl' }], xlabel: 'p (% buiten grens)', ylabel: 'P_acc', x0: 0, x1: 100 * pm, y0: 0, y1: 1.02 })), note('Voordeel variabelenplan: veel kleinere n dan een attributenplan voor dezelfde OC-curve. Nadeel: veronderstelt normaliteit en per kenmerk een apart plan.', 'info')],
     });
@@ -339,6 +344,7 @@ function lotTab(el: HTMLElement) {
         [`P(X ≥ ${y})`, fmt(pGe)],
       ],
       excel: [`π: =${tw ? '2*' : ''}(1-NORM.S.DIST(3*${xl(C)};WAAR))`, `P(X ≤ ${x}): =BINOM.DIST(${x};${NN};${xl(r.pi)};WAAR)`, `P(X ≥ ${y}): =1-BINOM.DIST(${y - 1};${NN};${xl(r.pi)};WAAR)`],
+      explain: exLot({ C, N: NN, pi: r.pi, E: r.E, sd: r.sd, lo: r.lo, hi: r.hi }),
       answer: `Bij Cpk = ${nl(C)} is de fractie defect pi = ${pctNl(r.pi)}, dus in een lot van ${NN} stuks verwachten we ${nl(r.E)} defecten (binomiaal, sigma = ${nl(r.sd)}); praktisch tussen ${r.lo} en ${r.hi}. P(X <= ${x}) = ${nl(pLe)} en P(X >= ${y}) = ${nl(pGe)}. Een lot met veel meer defecten (bv. 100 bij Cpk 1, kans ${nl(r.sf(99))}) is zo onwaarschijnlijk dat het proces veranderd moet zijn.`,
       extra: [chartBox(densityPlot({ pdf: (k) => binomPmf(k, NN, r.pi), x0: k0 - 0.5, x1: k1 + 0.5, discrete: { k0, k1, shadeK: (k) => k <= x || k >= y }, xlabel: 'aantal defecten in het lot' })), note(`Een lot met 100 defecten bij Cpk 1 is zo onwaarschijnlijk (P(X ≥ 100) = ${fmt(r.sf(99))}) dat het proces veranderd moet zijn: zoek een speciale oorzaak.`, 'warn')],
     });
@@ -352,10 +358,10 @@ function stratTab(el: HTMLElement) {
   const out = h('div');
   let run = () => {};
   const f = new Form('ss6', () => run());
-  const n = f.num('n', 'n (totale steekproef)', 100);
+  const n = f.num('n', 'n (totale steekproef)', 100, { hint: 'te verdelen over de strata' });
   const g = (G as any).stratification;
   const grid = new DataGrid({ key: 'ss-strat', cols: 3, rows: 8, headers: ['stratum', 'W_h (gewicht of N_h)', 'π_h'], example: () => ({ headers: ['stratum', 'W_h (gewicht of N_h)', 'π_h'], rows: [['A', g.WA, g.piA], ['B', g.WB, g.piB]] }), onChange: () => run(), height: '220px' });
-  el.append(card('Gestratificeerde steekproef (stratified sampling) van een fractie', h('p', { class: 'muted' }, 'Eén rij per stratum: naam, gewicht W_h (of aantal N_h, wordt genormeerd) en fractie π_h. Vergelijkt proportionele allocatie, enkelvoudige aselecte steekproef (SRS) en Neyman-allocatie.'), grid.el, row(n.el)), out);
+  el.append(card('Gestratificeerde steekproef (stratified sampling) van een fractie', h('p', { class: 'muted' }, 'Eén rij per stratum (een groep die intern gelijkaardig is, bv. lijn, ploeg of leverancier): naam, gewicht W_h = aandeel in de populatie (of het aantal N_h, wordt genormeerd) en π_h = fractie defect in dat stratum. Vergelijkt een gewone aselecte steekproef (SRS) met proportionele allocatie (n_h volgens grootte) en Neyman-allocatie (n_h volgens grootte x spreiding).'), grid.el, row(n.el)), out);
   run = live(out, () => {
     const raw = grid.getRaw();
     const rowsP = raw.map((r) => [r[1], r[2]].map((v) => parseNum(v ?? '') ?? NaN));
@@ -394,6 +400,7 @@ function stratTab(el: HTMLElement) {
         ['Winst Neyman t.o.v. SRS (variantie)', pct(1 - r.varNeyman / r.varSrs)],
       ],
       excel: [`Var prop: =SUMPRODUCT(W;pi;1-pi)/${nn}`, `Var SRS: =${xl(r.piTot)}*(1-${xl(r.piTot)})/${nn}`, `Neyman n_h: =${nn}*W_h*SQRT(pi_h*(1-pi_h))/SUMPRODUCT(W;SQRT(pi*(1-pi)))`],
+      explain: exStrat({ k: okRows.length, n: nn, piTot: r.piTot, varProp: r.varProp, varSrs: r.varSrs, varNey: r.varNeyman, gainProp: 1 - r.varProp / r.varSrs, gainNey: 1 - r.varNeyman / r.varSrs, bigS: okRows[S.indexOf(Math.max(...S))].name }),
       answer: `De totale fractie is pi = ${nl(r.piTot)}. Met proportionele allocatie is de variantie van de schatter ${nl(r.varProp)}, met een enkelvoudige aselecte steekproef ${nl(r.varSrs)}; stratificatie wint dus ${r.varProp < r.varSrs ? 'een beetje' : 'niets'}, omdat de strata ${Math.abs(pi[0] - pi[pi.length - 1]) > 0.05 ? 'sterk' : 'weinig'} verschillen in fractie. De Neyman-allocatie (n_h evenredig met W_h * S_h) geeft ${okRows.map((x, i) => `${x.name} ${nl(r.neyman[i])}`).join(', ')} met variantie ${nl(r.varNeyman)}: meer steekproef in het stratum met de grootste spreiding.`,
       extra: card('Allocatie per stratum', tbl),
     });
