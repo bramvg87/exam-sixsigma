@@ -40,13 +40,27 @@ Typisch: **10 stukken** (die de procesvariatie dekken), **2 of 3 operatoren**, e
 | **%GRR** | aandeel van het meetsysteem in de totale variatie | $100\cdot GRR/TV$ |
 | **ndc** | aantal te onderscheiden categorieën (hoeveel "klassen" van stukken het systeem betrouwbaar uit elkaar houdt) | $\lfloor1{,}41\cdot PV/GRR\rfloor$ |
 
-**Tabel van de constanten (AIAG, 1$\sigma$-waarden):**
+**Tabel van de constanten (AIAG, 1$\sigma$-waarden).** Lees de rij van het aantal dat bij de constante hoort: voor $K_1$ het aantal **herhalingen** $r$, voor $K_2$ het aantal **operatoren** $o$, voor $K_3$ het aantal **stukken** $p$.
 
-| Constante | Gebruikt voor | Hangt af van | Waarden ($K$) | Bijhorende $d_2$ of $d_2^*$ $=1/K$ |
-|---|---|---|---|---|
-| $K_1$ | EV $=\bar{\bar R}\cdot K_1$ | aantal herhalingen $r$ | $r=2$: **0,8862** ; $r=3$: **0,5908** | 1,128 ; 1,693 |
-| $K_2$ | AV, uit $\bar X_{diff}$ | aantal operatoren $o$ | $o=2$: **0,7071** ; $o=3$: **0,5231** | 1,414 ; 1,912 |
-| $K_3$ | PV $=R_p\cdot K_3$ | aantal stukken $p$ | 2: 0,7071 ; 3: 0,5231 ; 4: 0,4467 ; 5: 0,4030 ; 6: 0,3742 ; 7: 0,3534 ; 8: 0,3375 ; 9: 0,3249 ; **10: 0,3146** | 1,414 ; 1,912 ; 2,239 ; 2,481 ; 2,672 ; 2,830 ; 2,963 ; 3,078 ; 3,179 |
+| aantal $m$ | $K_1$ (herhalingen $r=m$) | $K_2$ (operatoren $o=m$) | $K_3$ (stukken $p=m$) | $d_2$ (SPC-tabel) $=1/K_1$ | $d_2^*$ (één range) $=1/K_2=1/K_3$ |
+|---|---|---|---|---|---|
+| **2** | 0,8862 | 0,7071 | 0,7071 | 1,128 | 1,414 |
+| **3** | 0,5908 | 0,5231 | 0,5231 | 1,693 | 1,912 |
+| **4** | - | - | 0,4467 | 2,059 | 2,239 |
+| **5** | - | - | 0,4030 | 2,326 | 2,481 |
+| **6** | - | - | 0,3742 | 2,534 | 2,672 |
+| **7** | - | - | 0,3534 | 2,704 | 2,830 |
+| **8** | - | - | 0,3375 | 2,847 | 2,963 |
+| **9** | - | - | 0,3249 | 2,970 | 3,078 |
+| **10** | - | - | 0,3146 | 3,078 | 3,179 |
+
+**Gebruik in de formules:** $EV=\bar{\bar R}\cdot K_1$, $AV=\sqrt{(\bar X_{diff}K_2)^2-EV^2/(n\,r)}$, $PV=R_p\cdot K_3$. Voorbeeld 10 stukken, 3 operatoren, 3 herhalingen: $K_1=0{,}5908$ (rij 3), $K_2=0{,}5231$ (rij 3), $K_3=0{,}3146$ (rij 10).
+
+**Wat valt op?**
+- $K_2$ en $K_3$ zijn bij hetzelfde aantal **gelijk** (bv. 3: 0,5231): beide zetten **één** range van $m$ gemiddelden om naar een standaardafwijking, dus $K_2=K_3=1/d_2^*$.
+- $K_1$ is $1/d_2$ met de **gewone** $d_2$ uit de SPC-tabel (2: $1/1{,}128=0{,}8862$; 3: $1/1{,}693=0{,}5908$), omdat EV uit het gemiddelde van **veel** ranges komt.
+- $d_2^*$ is groter dan $d_2$ bij kleine aantallen (2: 1,414 tegenover 1,128) en nadert $d_2$ bij grotere aantallen (10: 3,179 tegenover 3,078).
+- $K_1$ en $K_2$ zijn enkel gegeven voor 2 of 3 (gebruikelijke studies); voor meer herhalingen of operatoren: ANOVA-methode.
 
 **Waarom $K=1/d_2$?** Een range van $m$ normale waarden is gemiddeld $d_2\cdot\sigma$ (zie SPC: $\hat\sigma=\bar R/d_2$), dus $\sigma=\text{range}\cdot\frac{1}{d_2}=\text{range}\cdot K$. Bij $K_1$ middel je veel ranges (elk stuk bij elke operator), daarom de gewone $d_2$ van de regelkaarttabel ($d_2=1{,}128$ bij 2 herhalingen, 1,693 bij 3). Bij $K_2$ en $K_3$ heb je maar **één** range (van de operatorgemiddelden of de stukgemiddelden); daarvoor geldt een licht andere constante $d_2^*$ (bv. 1,414 in plaats van 1,128 bij 2 waarden). Daarom zijn $K_2$ en $K_3$ niet gewoon $1/d_2$ uit de SPC-tabel.
 
