@@ -78,7 +78,11 @@ const ctx: Ctx = {
 let pendingParams: any = undefined;
 
 function route() {
-  const [, id = 'start', sub] = location.hash.split('/');
+  let [, id = 'start', sub] = location.hash.split('/');
+  if (id === 'welketoets') {
+    id = 'hypothese';
+    sub = 'kiezer';
+  }
   const def = MODULES.find((m) => m.id === id) ?? MODULES[0];
   let entry = mounted.get(def.id);
   if (!entry) {

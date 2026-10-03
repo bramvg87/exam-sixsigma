@@ -23,9 +23,8 @@ export const start: ModuleDef = {
     };
     el.append(
       card('Snel naar', h('div', { class: 'tiles' },
-        tile('welketoets', 'Welke toets?', 'Wizard: van vraag naar de juiste calculator'),
+        tile('hypothese', 'Welke toets? + Toetsen & BI', 'theorie, toetsenkiezer en alle toetsen op \u00e9\u00e9n plaats'),
         tile('verdelingen', 'Verdelingen', 'Normaal, t, χ², F, binomiaal, Poisson, ...'),
-        tile('hypothese', 'Toetsen & BI', 'Z, t, χ², F, fractie, 2 steekproeven, gepaard, n'),
         tile('capabiliteit', 'Capabiliteit', 'Cp, Cpk, Pp, Ppk, uitval, DPMO'),
         tile('spc', 'SPC regelkaarten', 'X̄-R, X̄-s, Western Electric'),
         tile('msa', 'MSA / Gauge R&R', 'Average & Range, ANOVA, bias, linearity'),
@@ -133,54 +132,45 @@ const TREE: WNode = {
   ],
 };
 
-export const wizard: ModuleDef = {
-  id: 'welketoets',
-  title: 'Welke toets?',
-  group: 'Start',
-  keywords: ['welke toets', 'wizard', 'keuze', 'beslisboom', 'welke test'],
-  mount(el, ctx: Ctx) {
-    moduleHead(el, 'Welke toets? (wizard)', 'Beantwoord enkele vragen; de juiste calculator opent met de richting al ingevuld.');
-    const box = h('div', { class: 'card wizard' });
-    el.appendChild(box);
-    const path: string[] = [];
-    function render(node: WNode) {
-      box.replaceChildren(
-        path.length ? h('p', { class: 'muted' }, path.join('  >  ')) : '',
-        h('h3', null, node.q),
-        ...node.opts.map(([, label, nxt]) => {
-          const b = h('button', { class: 'btn opt', type: 'button' }, label);
-          b.addEventListener('click', () => {
-            path.push(label);
-            if ('go' in nxt) {
-              box.replaceChildren(
-                h('p', { class: 'muted' }, path.join('  >  ')),
-                h('h3', null, 'Aanbevolen'),
-                note(nxt.why, 'ok'),
-                h('div', { class: 'row' },
-                  h('button', { class: 'btn btn-primary', type: 'button', onclick: () => ctx.go(nxt.go[0], nxt.go[1], nxt.go[2]) }, 'Open de calculator'),
-                  h('button', { class: 'btn', type: 'button', onclick: () => { path.length = 0; render(TREE); } }, 'Opnieuw'),
-                ),
-              );
-            } else render(nxt);
-          });
-          return b;
-        }),
-        path.length ? h('button', { class: 'btn btn-sm', type: 'button', onclick: () => { path.length = 0; render(TREE); } }, 'Opnieuw beginnen') : '',
-      );
-    }
+/**
+ * "Welke toets?" decision tree as an embeddable widget. onPick receives the target [module, sub, params]
+ * and the reason; it is called as soon as a leaf is reached.
+ */
+export function wizardWidget(onPick: (go: [string, string?, any?], why: string, path: string[]) => void): HTMLElement {
+  const box = h('div', { class: 'wizard' });
+  const path: string[] = [];
+  const restart = () => {
+    path.length = 0;
     render(TREE);
-    el.append(
-      card('Beslistabel betrouwbaarheidsintervallen', table(['Parameter', 'Interval', 'Excel'], [
-        ['μ, σ gekend', 'x̄ ± z₁₋α/₂ σ/√n', 'NORM.S.INV'],
-        ['μ, σ onbekend', 'x̄ ± t₁₋α/₂;n-1 s/√n', 'T.INV'],
-        ['σ²', '[(n-1)s²/χ²₁₋α/₂ ; (n-1)s²/χ²α/₂]', 'CHISQ.INV'],
-        ['σ₂²/σ₁²', '(s₂²/s₁²)·[Fα/₂(n₁-1;n₂-1) ; F₁₋α/₂(n₁-1;n₂-1)]', 'F.INV'],
-        ['π (fractie)', 'exact: BETA.INV; Wald enkel bij ≥ 5 defecten', 'BETA.INV'],
-        ['μ₁-μ₂', 'x̄₁-x̄₂ ± t sₚ√(1/n₁+1/n₂)', 'T.INV'],
-      ])),
+  };
+  function render(node: WNode) {
+    box.replaceChildren(
+      path.length ? h('p', { class: 'muted' }, path.join('  >  ')) : '',
+      h('h4', null, node.q),
+      ...node.opts.map(([, label, nxt]) => {
+        const b = h('button', { class: 'btn opt', type: 'button' }, label);
+        b.addEventListener('click', () => {
+          path.push(label);
+          if ('go' in nxt) {
+            box.replaceChildren(
+              h('p', { class: 'muted' }, path.join('  >  ')),
+              note('Aanbevolen: ' + nxt.why, 'ok'),
+              h('div', { class: 'row' },
+                h('button', { class: 'btn btn-primary', type: 'button', onclick: () => onPick(nxt.go, nxt.why, [...path]) }, 'Toon deze toets'),
+                h('button', { class: 'btn', type: 'button', onclick: restart }, 'Opnieuw'),
+              ),
+            );
+            onPick(nxt.go, nxt.why, [...path]);
+          } else render(nxt);
+        });
+        return b;
+      }),
+      path.length ? h('button', { class: 'btn btn-sm', type: 'button', onclick: restart }, 'Opnieuw beginnen') : '',
     );
-  },
-};
+  }
+  render(TREE);
+  return box;
+}
 
 // ---------- Formularium ----------
 function mdPage(el: HTMLElement, content: { html: string; toc: { depth: number; id: string; text: string }[] }, withSearch: boolean) {

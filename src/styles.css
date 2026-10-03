@@ -189,6 +189,15 @@ svg.chart .axlabel { fill: var(--text); font-size: 12px; }
 .explain-tag { display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
 .rr .rbody .explain { font-size: 14px; }
 .settings .btn.on { border-color: var(--accent); }
+.secnum { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 14px; font-weight: 700; margin-right: 8px; flex-shrink: 0; }
+details.section > summary { cursor: pointer; font-size: 17px; font-weight: 700; display: flex; align-items: center; list-style: none; }
+details.section > summary::-webkit-details-marker { display: none; }
+details.section > summary::after { content: '\25B8'; margin-left: 8px; color: var(--muted); }
+details.section[open] > summary::after { content: '\25BE'; }
+details.section[open] > summary { margin-bottom: 8px; }
+section.section h3, h3.sechead { display: flex; align-items: center; }
+h3.sechead { font-size: 18px; margin: 20px 0 10px; }
+.wizard h4 { margin: 6px 0; }
 details.sol { border: 1px solid var(--line); border-radius: 7px; padding: 6px 12px; background: var(--panel); margin: 8px 0; }
 details.sol summary { cursor: pointer; font-weight: 600; }
 .wizard .opt { display: block; width: 100%; text-align: left; margin: 5px 0; padding: 10px 12px; }

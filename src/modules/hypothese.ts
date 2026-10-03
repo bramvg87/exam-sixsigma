@@ -1,5 +1,5 @@
 // M2 Hypothesetoetsen & betrouwbaarheidsintervallen.
-import { h, fmt, tx, xl, nl, pctNl, pct } from '../ui/core.ts';
+import { h, fmt, tx, xl, nl, pctNl, pct, settings, onSettings, renderMath } from '../ui/core.ts';
 import { Form, row, card, note, exampleRow, type Field } from '../ui/form.ts';
 import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
@@ -9,6 +9,8 @@ import * as H from '../calc/hypo.ts';
 import { mean, sdS, varS } from '../stats/desc.ts';
 import { live, need, moduleHead, posInt, pos, prob, SIDES, relTex, relTxt, sideNl } from './util.ts';
 import { tabs, type ModuleDef } from './types.ts';
+import { wizardWidget } from './pages.ts';
+import { toetsTheorie } from '../generated/content.ts';
 import { exMean, exChi, exF, exProp, exPropCi, exTwo, exPaired, exSampleSize } from './explain.ts';
 import type { Side } from '../calc/hypo.ts';
 import G from '../../testdata/golden_values.json';
@@ -22,9 +24,9 @@ const pTxt = (p: number) => `${fmt(p)} (${pct(p)})`;
 /** Summary vs raw-data input for one sample. */
 function oneSampleInput(f: Form, key: string, onChange: () => void, defaults: { xbar: number; s: number; n: number }, example: { headers: string[]; rows: number[][] }, sigmaKnown = false) {
   const mode = f.seg('mode', 'Invoer', [['sum', 'Samenvatting'], ['raw', 'Ruwe data (grid)']], 'sum');
-  const xbar = f.num('xbar', 'x\u0304 (gemiddelde)', defaults.xbar);
-  const s = sigmaKnown ? null : f.num('s', 's (steekproef-standaardafwijking)', defaults.s);
-  const n = f.num('n', 'n', defaults.n);
+  const xbar = f.num('xbar', 'x\u0304 (gemiddelde)', defaults.xbar, { hint: 'steekproefgemiddelde, =AVERAGE(data)' });
+  const s = sigmaKnown ? null : f.num('s', 's (steekproef-standaardafwijking)', defaults.s, { hint: '=STDEV.S(data), deelt door n-1' });
+  const n = f.num('n', 'n', defaults.n, { hint: 'aantal metingen, =COUNT(data)' });
   const grid = new DataGrid({ key, cols: 3, example: () => example, onChange });
   const sumRow = row(xbar.el, s?.el ?? null, n.el);
   return {
@@ -63,9 +65,9 @@ function zTab(el: HTMLElement) {
   let run = () => {};
   const f = new Form('hz', () => run());
   const inp = oneSampleInput(f, 'hz', () => run(), { xbar: 9.928, s: 0.1, n: 20 }, { headers: ['meting'], rows: (G as any).t_test_mean.data.map((v: number) => [v]) }, true);
-  const sigma = f.num('sigma', '\u03c3 (gekend)', 0.1);
-  const mu0 = f.num('mu0', '\u03bc\u2080', 10);
-  const alpha = f.num('alpha', '\u03b1', 0.02);
+  const sigma = f.num('sigma', '\u03c3 (gekend)', 0.1, { hint: 'uit historische data, niet uit deze steekproef' });
+  const mu0 = f.num('mu0', '\u03bc\u2080', 10, { hint: 'waarde volgens H\u2080 (norm)' });
+  const alpha = f.num('alpha', '\u03b1', 0.02, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090', SIDES, 'left');
   el.append(card('Z-toets voor het gemiddelde (\u03c3 gekend)', exampleRow(f, [['Voorbeeld Hypothesetester (x\u0304 10,1; \u03c3 0,3; n 36)', { mode: 'sum', xbar: 10.1, sigma: 0.3, n: 36, mu0: 10, alpha: 0.05, side: 'two' }]]), ...inp.els, row(sigma.el, mu0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
@@ -103,8 +105,8 @@ function tTab(el: HTMLElement) {
   const f = new Form('ht', () => run());
   const g = (G as any).t_test_mean;
   const inp = oneSampleInput(f, 'ht', () => run(), { xbar: 9.928, s: 0.1079, n: 20 }, { headers: ['meting'], rows: g.data.map((v: number) => [v]) });
-  const mu0 = f.num('mu0', '\u03bc\u2080', 10);
-  const alpha = f.num('alpha', '\u03b1', 0.02);
+  const mu0 = f.num('mu0', '\u03bc\u2080', 10, { hint: 'waarde volgens H\u2080 (norm)' });
+  const alpha = f.num('alpha', '\u03b1', 0.02, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090', SIDES, 'left');
   el.append(card('t-toets voor het gemiddelde (\u03c3 onbekend)', h('p', { class: 'muted' }, 'Voorbeeld (Ottoy): 20 stukken, H\u2080: \u03bc = 10 tegen H\u2090: \u03bc < 10, \u03b1 = 2%. Kies "Ruwe data" en klik "Voorbeeld laden".'), exampleRow(f, [['Voorbeeld slide / Hypothesetester (x\u0304 9,928; s 0,109; n 20)', { mode: 'sum', xbar: 9.928, s: 0.109, n: 20, mu0: 10, alpha: 0.02, side: 'left' }]]), ...inp.els, row(mu0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
@@ -147,8 +149,8 @@ function chiTab(el: HTMLElement) {
   const f = new Form('hc', () => run());
   const g = (G as any).chi2_test_sigma;
   const inp = oneSampleInput(f, 'hc', () => run(), { xbar: 10, s: 0.011654, n: 20 }, { headers: ['meting'], rows: g.data.map((v: number) => [v]) });
-  const s0 = f.num('sigma0', '\u03c3\u2080', 0.01);
-  const alpha = f.num('alpha', '\u03b1', 0.02);
+  const s0 = f.num('sigma0', '\u03c3\u2080', 0.01, { hint: 'standaardafwijking volgens H\u2080' });
+  const alpha = f.num('alpha', '\u03b1', 0.02, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090 (voor \u03c3)', SIDES, 'right');
   el.append(card('\u03c7\u00b2-toets voor de variantie / standaardafwijking', h('p', { class: 'muted' }, 'Voorbeeld (Ottoy): 20 stukken, H\u2080: \u03c3 = 0,01 tegen H\u2090: \u03c3 > 0,01, \u03b1 = 2%. Gemiddelde x\u0304 wordt niet gebruikt.'), exampleRow(f, [['Voorbeeld Hypothesetester (s 0,13; \u03c3\u2080 0,10; n 25)', { mode: 'sum', s: 0.13, n: 25, sigma0: 0.1, alpha: 0.05, side: 'right' }]]), ...inp.els, row(s0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
@@ -190,10 +192,10 @@ function fTab(el: HTMLElement) {
   const nm1 = f.text('nm1', 'naam groep 1', 'M1');
   const nm2 = f.text('nm2', 'naam groep 2', 'M2');
   const v1 = f.num('v1', 'steekproef 1 (bv. M1)', 0.004);
-  const n1 = f.num('n1', 'n\u2081', 10);
+  const n1 = f.num('n1', 'n\u2081', 10, { hint: 'df teller = n\u2081 - 1' });
   const v2 = f.num('v2', 'steekproef 2 (bv. M2)', 0.015);
-  const n2 = f.num('n2', 'n\u2082', 15);
-  const alpha = f.num('alpha', '\u03b1', 0.05);
+  const n2 = f.num('n2', 'n\u2082', 15, { hint: 'df noemer = n\u2082 - 1' });
+  const alpha = f.num('alpha', '\u03b1', 0.05, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090', [['left', '\u03c3\u2081 < \u03c3\u2082 (1 nauwkeuriger)'], ['two', '\u03c3\u2081 \u2260 \u03c3\u2082'], ['right', '\u03c3\u2081 > \u03c3\u2082 (2 nauwkeuriger)']], 'left');
   const grid = new DataGrid({ key: 'hf', cols: 2, headers: ['M1', 'M2'], onChange: () => run(), example: () => ({ headers: ['A', 'B'], rows: (G as any).two_sample.B.map((b: number, i: number) => [(G as any).two_sample.A[i] ?? '', b]) }) });
   const sumRow = h('div', null, row(nm1.el, nm2.el), row(kind.el, v1.el, n1.el, v2.el, n2.el));
@@ -307,10 +309,10 @@ function propTab(el: HTMLElement) {
   const out = h('div');
   let run = () => {};
   const f = new Form('hp', () => run());
-  const d = f.num('d', 'd (aantal defecten / successen)', 8);
+  const d = f.num('d', 'd (aantal defecten / successen)', 8, { hint: 'waargenomen fractie p = d/n' });
   const n = f.num('n', 'n', 200);
-  const pi0 = f.num('pi0', '\u03c0\u2080', 0.02);
-  const alpha = f.num('alpha', '\u03b1', 0.05);
+  const pi0 = f.num('pi0', '\u03c0\u2080', 0.02, { hint: 'fractie volgens H\u2080 (norm)' });
+  const alpha = f.num('alpha', '\u03b1', 0.05, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090', SIDES, 'right');
   const cc = f.check('cc', 'Continu\u00efteitscorrectie \u00b11/(2n) (Ottoy-recept)', true);
   el.append(card('Z-toets voor een fractie (proportie) + exacte binomiale toets', exampleRow(f, [['Voorbeeld Hypothesetester (p 0,08 = 16/200; \u03c0\u2080 0,05)', { d: 16, n: 200, pi0: 0.05, alpha: 0.05, side: 'right' }]]), row(d.el, n.el, pi0.el, alpha.el), row(side.el, cc.el)), out);
@@ -338,6 +340,7 @@ function propTab(el: HTMLElement) {
     });
   });
   run();
+  return { prefill: (v: any) => f.setValues(v) };
 }
 
 // ---------- 6. CI for a proportion ----------
@@ -347,7 +350,7 @@ function propCiTab(el: HTMLElement) {
   const f = new Form('hpci', () => run());
   const d = f.num('d', 'd (aantal defecten)', 4);
   const n = f.num('n', 'n (steekproef)', 100);
-  const conf = f.num('conf', 'betrouwbaarheid 1-\u03b1', 0.95);
+  const conf = f.num('conf', 'betrouwbaarheid 1-\u03b1', 0.95, { hint: 'bv. 0,95 voor een 95%-BI' });
   const kind = f.seg('kind', 'Interval', [['two', 'tweezijdig'], ['upper', 'eenzijdig bovengrens'], ['lower', 'eenzijdig ondergrens']], 'two');
   const N = f.optNum('N', 'lotgrootte N (optioneel, eindige populatie)', '');
   el.append(card('Betrouwbaarheidsinterval voor een fractie: exact, Wilson en normaal', h('p', { class: 'muted' }, 'Cursusvoorbeeld: n = 100, d = 4 -> 95%-BI [1,1% ; 9,9%] (exact).'), row(d.el, n.el, conf.el, N.el), row(kind.el)), out);
@@ -394,6 +397,7 @@ function propCiTab(el: HTMLElement) {
     });
   });
   run();
+  return { prefill: (v: any) => f.setValues(v) };
 }
 
 // ---------- 7. Two independent samples ----------
@@ -410,8 +414,8 @@ function twoTab(el: HTMLElement) {
   const x2 = f.num('x2', 'x\u0304\u2082', 10.4);
   const s2 = f.num('s2', 's\u2082', 0.5);
   const n2 = f.num('n2', 'n\u2082', 15);
-  const d0 = f.num('d0', 'verschil onder H\u2080 (d)', 0);
-  const alpha = f.num('alpha', '\u03b1', 0.05);
+  const d0 = f.num('d0', 'verschil onder H\u2080 (d)', 0, { hint: 'meestal 0: geen verschil' });
+  const alpha = f.num('alpha', '\u03b1', 0.05, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090 (\u03bc\u2081 - \u03bc\u2082 ... d)', SIDES, 'two');
   const sumRow = h('div', null, row(x1.el, s1.el, n1.el), row(x2.el, s2.el, n2.el));
   el.append(card('Twee onafhankelijke steekproeven: pooled t (cursus) en Welch t', row(mode.el), grid.el, sumRow, row(d0.el, alpha.el), row(side.el)), out);
@@ -464,6 +468,7 @@ function twoTab(el: HTMLElement) {
     });
   });
   run();
+  return { prefill: (v: any) => f.setValues(v) };
 }
 
 // ---------- 8. Paired ----------
@@ -473,8 +478,8 @@ function pairedTab(el: HTMLElement) {
   const f = new Form('hpair', () => run());
   const g = (G as any).two_sample;
   const grid = new DataGrid({ key: 'hpair', cols: 2, headers: ['voor', 'na'], onChange: () => run(), example: () => ({ headers: ['x1', 'x2'], rows: g.paired_x1.map((v: number, i: number) => [v, g.paired_x2[i]]) }) });
-  const d0 = f.num('d0', 'verschil onder H\u2080 (d)', 0);
-  const alpha = f.num('alpha', '\u03b1', 0.05);
+  const d0 = f.num('d0', 'verschil onder H\u2080 (d)', 0, { hint: 'meestal 0: geen verschil' });
+  const alpha = f.num('alpha', '\u03b1', 0.05, { hint: 'kans op vals alarm, vooraf gekozen' });
   const side = f.seg('side', 'H\u2090 (\u03bc\u1d65 = \u03bc\u2081 - \u03bc\u2082 ... d)', SIDES, 'two');
   el.append(card('Gepaarde t-toets (verschillen v = x\u2081 - x\u2082)', h('p', { class: 'muted' }, 'Twee kolommen, elke rij = \u00e9\u00e9n paar (zelfde stuk, zelfde persoon...). Geen voorwaarde \u03c3\u2081 = \u03c3\u2082.'), grid.el, row(d0.el, alpha.el), row(side.el)), out);
   run = live(out, () => {
@@ -498,6 +503,7 @@ function pairedTab(el: HTMLElement) {
     });
   });
   run();
+  return { prefill: (v: any) => f.setValues(v) };
 }
 
 // ---------- 9. Sample size and power ----------
@@ -507,13 +513,13 @@ function nTab(el: HTMLElement) {
   const f = new Form('hn', () => run());
   const what = f.select('what', 'Wat wil je?', [['meanE', 'Gemiddelde: foutenmarge E'], ['meanD', 'Gemiddelde: verschuiving \u03b4 detecteren (\u03b1 en \u03b2)'], ['propE', 'Fractie: foutenmarge E'], ['propD', 'Fractie: \u03c0\u2080 -> \u03c0\u2081 detecteren (\u03b1 en \u03b2)'], ['power', 'Power / \u03b2 bij gegeven n (gemiddelde)']], 'meanE');
   const sigma = f.num('sigma', '\u03c3', 2);
-  const E = f.num('E', 'foutenmarge E', 0.5);
-  const delta = f.num('delta', 'verschuiving \u03b4', 1);
+  const E = f.num('E', 'foutenmarge E', 0.5, { hint: 'halve breedte van het BI' });
+  const delta = f.num('delta', 'verschuiving \u03b4', 1, { hint: 'kleinste effect dat je wil zien' });
   const p = f.num('p', 'p (verwacht; worst case 0,5)', 0.5);
   const pi0 = f.num('pi0', '\u03c0\u2080', 0.02);
   const pi1 = f.num('pi1', '\u03c0\u2081', 0.05);
-  const alpha = f.num('alpha', '\u03b1', 0.05);
-  const beta = f.num('beta', '\u03b2', 0.1);
+  const alpha = f.num('alpha', '\u03b1', 0.05, { hint: 'kans op vals alarm, vooraf gekozen' });
+  const beta = f.num('beta', '\u03b2', 0.1, { hint: 'kans op een gemist effect; power = 1 - \u03b2' });
   const n = f.num('n', 'n', 25);
   const two = f.check('two', 'tweezijdig', false);
   el.append(card('Steekproefgrootte en onderscheidingsvermogen (power)', row(what.el), row(sigma.el, E.el, delta.el, p.el, pi0.el, pi1.el), row(alpha.el, beta.el, n.el, two.el)), out);
@@ -549,6 +555,7 @@ function nTab(el: HTMLElement) {
     return resultPanel({ explain: exSampleSize, question: `Power en \\(\\beta\\) van een Z-toets bij \\(n=${nn}\\) voor een verschuiving \\(\\delta=${tx(delta.get())}\\)`, formula: [two.get() ? `\\beta=\\Phi\\left(z_{1-\\alpha/2}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)-\\Phi\\left(-z_{1-\\alpha/2}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)` : `\\beta=\\Phi\\left(z_{1-\\alpha}-\\frac{\\delta\\sqrt{n}}{\\sigma}\\right)`], substituted: [`\\beta=${tx(r.beta)}`], result: [['\u03b2', `${fmt(r.beta)} (${pct(r.beta)})`], ['power 1-\u03b2', `${fmt(r.power)} (${pct(r.power)})`]], excel: [`=NORM.S.DIST(NORM.S.INV(${xl(two.get() ? 1 - a / 2 : 1 - a)})-${xl(delta.get())}*SQRT(${nn})/${xl(sigma.get())};WAAR)`], answer: `Bij n = ${nn} is de kans op een fout van de tweede soort beta = ${pctNl(r.beta)}, de power is ${pctNl(r.power)}.` });
   });
   run();
+  return { prefill: (v: any) => f.setValues(v) };
 }
 
 // ---------- 10. Duality ----------
@@ -573,10 +580,12 @@ function dualTab(el: HTMLElement) {
 
 export const hypothese: ModuleDef = {
   id: 'hypothese',
-  title: 'Toetsen & BI',
+  title: 'Welke toets? + Toetsen & BI',
   group: 'Fase 1',
-  keywords: ['hypothese', 'toets', 'test', 'betrouwbaarheidsinterval', 'confidence interval', 'p-waarde', 'alpha', 'significant', 'verwerpen'],
+  keywords: ['welke toets', 'wizard', 'toetsenkiezer', 'beslisboom', 'beslissingskader', 'toetsprocedure', 'hypothese', 'toets', 'test', 'betrouwbaarheidsinterval', 'confidence interval', 'p-waarde', 'alpha', 'significant', 'verwerpen'],
   subs: [
+    ['theorie', 'Theorie: beslissingskader, toetsprocedure, variabelen', 'beslissingskader toetsprocedure 7 stappen alfa beta power variabelen'],
+    ['kiezer', 'Welke toets? (toetsenkiezer)', 'welke toets wizard keuze'],
     ['z', 'Z-toets gemiddelde (\u03c3 gekend)', 'z toets sigma bekend'],
     ['t', 't-toets gemiddelde', 't toets student gemiddelde'],
     ['chi2', '\u03c7\u00b2-toets variantie / standaardafwijking', 'chi kwadraat variantie spreiding sigma'],
@@ -588,9 +597,37 @@ export const hypothese: ModuleDef = {
     ['n', 'Steekproefgrootte en power', 'steekproefgrootte sample size power beta onderscheidingsvermogen'],
     ['dual', 'Dualiteit BI en toets', 'dualiteit eenzijdig tweezijdig'],
   ],
-  mount(el) {
-    moduleHead(el, 'Hypothesetoetsen & betrouwbaarheidsintervallen (confidence intervals)', 'Invoer als samenvatting of als ruwe data (plakken uit Excel). Elke toets: links-, rechts- of tweezijdig, met p-waarde, kritieke waarde, BI en examenantwoord.');
-    const t = tabs('hypothese', [
+  mount(el, ctx) {
+    moduleHead(el, 'Welke toets? + Hypothesetoetsen & betrouwbaarheidsintervallen', 'Alles op \u00e9\u00e9n plaats, van boven naar onder: 1. de theorie, 2. welke toets je nodig hebt, 3. de toets zelf met formule, uitleg en examenantwoord.');
+    // 1. Theory (open when "Uitleg" is on)
+    const thBody = h('div', { class: 'md', html: toetsTheorie.html });
+    renderMath(thBody);
+    const theory = h('details', { class: 'card section' }, h('summary', null, h('span', { class: 'secnum' }, '1'), 'Theorie: beslissingskader, toetsprocedure en variabelen'), thBody) as HTMLDetailsElement;
+    theory.open = settings.explain;
+    let lastExplain = settings.explain;
+    onSettings(() => {
+      if (settings.explain !== lastExplain) theory.open = lastExplain = settings.explain;
+    });
+    // 2. Test selector
+    const testHead = h('h3', { class: 'sechead' }, h('span', { class: 'secnum' }, '3'), 'De toets');
+    const pickInfo = h('div');
+    let t!: { show(id: string, params?: any): void };
+    const wiz = wizardWidget((go, why) => {
+      if (go[0] === 'hypothese') {
+        t.show(go[1] ?? 'z', go[2]);
+        pickInfo.replaceChildren(note(`Gekozen via "Welke toets?": ${why}`, 'ok'));
+        testHead.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else ctx.go(go[0], go[1], go[2]);
+    });
+    const selector = h('section', { class: 'card section' },
+      h('h3', null, h('span', { class: 'secnum' }, '2'), 'Welke toets? (toetsenkiezer)'),
+      h('p', { class: 'muted' }, 'Beantwoord enkele vragen over je probleem. De juiste toets opent hieronder in sectie 3, met de richting (links-, rechts- of tweezijdig) al ingevuld. Weet je het al, kies dan rechtstreeks een tab in sectie 3.'),
+      wiz,
+    );
+    // 3. The tests
+    const testBox = h('div');
+    el.append(theory, selector, testHead, pickInfo, testBox);
+    t = tabs('hypothese', [
       { id: 'z', label: 'Z-toets \u03bc', build: zTab },
       { id: 't', label: 't-toets \u03bc', build: tTab },
       { id: 'chi2', label: '\u03c7\u00b2 \u03c3', build: chiTab },
@@ -601,7 +638,18 @@ export const hypothese: ModuleDef = {
       { id: 'paired', label: 'Gepaard', build: pairedTab },
       { id: 'n', label: 'Steekproefgrootte', build: nTab },
       { id: 'dual', label: 'Dualiteit', build: dualTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+    ], testBox);
+    return {
+      route: (sub, params) => {
+        if (sub === 'theorie') {
+          theory.open = true;
+          theory.scrollIntoView();
+        } else if (sub === 'kiezer') selector.scrollIntoView();
+        else if (sub) {
+          t.show(sub, params);
+          setTimeout(() => testHead.scrollIntoView(), 30);
+        }
+      },
+    };
   },
 };

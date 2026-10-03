@@ -75,6 +75,20 @@ await p.click('.module[data-module="onafhankelijkheid"] .pane:not([hidden]) butt
 await p.waitForTimeout(300);
 const oa = await p.textContent('.module[data-module="onafhankelijkheid"] .pane:not([hidden]) .result');
 for (const e of ['11,8', '0,002745', 'Rejected']) if (!oa.includes(e)) fails.push(`independence: missing ${e}`);
+
+// merged module: test selector opens the F-test below, old #/welketoets link redirects
+await p.goto(file + '#/welketoets');
+await p.waitForTimeout(300);
+const M = '.module[data-module="hypothese"]';
+await p.click(`${M} .wizard button:has-text("spreiding")`);
+await p.click(`${M} .wizard button:has-text("Twee vergelijken")`);
+await p.click(`${M} .wizard button:has-text("Groep 1 nauwkeuriger")`);
+await p.waitForTimeout(400);
+const activeTab = await p.textContent(`${M} .tab.on`);
+if (!activeTab.includes('F')) fails.push('selector: F tab not opened, active = ' + activeTab);
+const fr = await p.textContent(`${M} .pane:not([hidden]) .result`);
+if (!fr.includes('1,239')) fails.push('selector: F result missing 1,239');
+if (!(await p.$(`${M} details.section .md table`))) fails.push('theory section missing');
 console.log(fails.length || errs.length ? 'E2E FAIL\n' + [...fails, ...errs].join('\n') : 'e2e ok');
 await b.close();
 process.exit(fails.length || errs.length ? 1 : 0);

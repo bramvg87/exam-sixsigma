@@ -1,5 +1,5 @@
 import type { ModuleDef } from './types.ts';
-import { start, wizard, formulariumMod, examen, selftest } from './pages.ts';
+import { start, formulariumMod, examen, selftest } from './pages.ts';
 import { verdelingen } from './verdelingen.ts';
 import { hypothese } from './hypothese.ts';
 import { capabiliteit } from './capabiliteit.ts';
@@ -15,7 +15,7 @@ import { nonparam } from './nonparam.ts';
 import { wachtrij } from './wachtrij.ts';
 
 export const MODULES: ModuleDef[] = [
-  start, wizard, selftest,
+  start, selftest,
   verdelingen, hypothese, capabiliteit, formulariumMod, examen,
   spc, anova, msa, regressie, doe, steekproeven, onafhankelijkheid, ml,
   nonparam, wachtrij,
