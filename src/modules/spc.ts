@@ -1,5 +1,6 @@
 // M6 SPC regelkaarten: Xbar-R / Xbar-s, Western Electric, herziene grenzen, andere n, constanten, I-MR, theorie.
-import { h, fmt, tx, xl, nl, pctNl } from '../ui/core.ts';
+import { h, fmt, tx, xl, nl, pctNl, settings, onSettings, renderMath } from '../ui/core.ts';
+import { spcTheorie } from '../generated/content.ts';
 import { Form, row, card, note } from '../ui/form.ts';
 import { resultPanel, table } from '../components/result.ts';
 import { DataGrid } from '../components/grid.ts';
@@ -203,6 +204,25 @@ function xbarTab(el: HTMLElement) {
     const answer = `Voor de X̄-${kd} kaart (n = ${n}, ${k - ex.size} subgroepen${ex.size ? `, subgroep(en) ${formatSubgroupList(ex)} uitgesloten` : ''}) is X̿ = ${nl(X)} en ${Dn} = ${nl(D)}. De grenzen van de X̄-kaart zijn UCL = ${nl(ch.xLim.UCL)} en LCL = ${nl(ch.xLim.LCL)} (${At.replace('_', '')} = ${nl(A)}); de ${kd}-kaart heeft UCL = ${nl(ch.dLim.UCL)} en LCL = ${nl(ch.dLim.LCL)}. ${inCtrl ? `Geen enkel punt valt buiten de grenzen en ${rules.get() ? 'geen enkele Western Electric regel (1-4) geeft een signaal' : 'regel 1 geeft geen signaal'}: het proces is onder statistische controle (enkel gewone oorzaken, common causes), dus het is zinvol de capabiliteit te berekenen met σ̂ = ${Dn}/${Ct.replace('_', '')} = ${nl(ch.sigmaHat)}.` : `Er zijn signalen bij ${sigList}: het proces is niet onder statistische controle. Zoek de speciale oorzaak (assignable cause), neem ze weg en herbereken de grenzen zonder die subgroep(en).`}`;
 
     const panel = resultPanel({
+      explain: {
+        question: [
+          `Een X̄-${kd} kaart bewaakt twee dingen tegelijk: de LIGGING van het proces (X̄-kaart: gemiddelde per subgroep) en de SPREIDING binnen het proces (${kd}-kaart: ${kd === 'R' ? 'bereik' : 'standaardafwijking'} per subgroep). Doel: speciale oorzaken signaleren en enkel dan ingrijpen.`,
+        ],
+        formula: [
+          `X̄ (x-bar) = gemiddelde van één subgroep van ${n} stuks. ${kd === 'R' ? 'R = bereik van die subgroep (grootste min kleinste waarde).' : 's = standaardafwijking van die subgroep.'} Per subgroep krijg je dus één punt op elke kaart.`,
+          `X̿ (x-double-bar) = gemiddelde van alle X̄'s = centrale lijn van de X̄-kaart. ${kd === 'R' ? 'R̄ (R-bar) = gemiddeld bereik = centrale lijn van de R-kaart' : 's̄ = gemiddelde standaardafwijking = centrale lijn van de s-kaart'} en de basis om σ te schatten.`,
+          `Grenzen = centrale lijn ± 3 standaardafwijkingen van wat je plot. Gemiddelden van ${n} stuks hebben standaardafwijking σ/√n, en σ schat je als ${kd === 'R' ? 'R̄/d₂' : 's̄/c₄'}. Samen: X̿ ± 3·(${kd === 'R' ? 'R̄/d₂' : 's̄/c₄'})/√n = X̿ ± ${kd === 'R' ? 'A₂·R̄ met A₂ = 3/(d₂√n)' : 'A₃·s̄ met A₃ = 3/(c₄√n)'}.`,
+          `${kd === 'R' ? 'D₃ en D₄ = 1 ∓ 3·d₃/d₂: de R-waarden schommelen zelf met standaardafwijking d₃·σ. Een negatieve ondergrens wordt 0 (D₃ = 0 voor n ≤ 6).' : 'B₃ en B₄ doen hetzelfde voor de s-kaart.'}`,
+        ],
+        substituted: [
+          `Subgroep 1: X̄₁ = ${nl(xbars[0])} en ${kd}₁ = ${nl(disp[0])}. Over ${k - ex.size} subgroepen: X̿ = ${nl(X)} en ${kd === 'R' ? 'R̄' : 's̄'} = ${nl(D)}.`,
+          `σ̂ = ${nl(D)}/${nl(Dc)} = ${nl(ch.sigmaHat)} (spreiding van individuele stuks, korte termijn). Gemiddelden van ${n} stuks schommelen met σ̂/√${n} = ${nl(ch.sigmaHat / Math.sqrt(n))}; 3 daarvan = ${nl(3 * ch.sigmaHat / Math.sqrt(n))} = ${kd === 'R' ? 'A₂' : 'A₃'}·${kd === 'R' ? 'R̄' : 's̄'} = ${nl(A)}·${nl(D)}.`,
+        ],
+        result: [
+          `Lees eerst de ${kd}-kaart (is de spreiding stabiel?), dan de X̄-kaart (is de ligging stabiel?). ${inCtrl ? 'Hier geen signalen: het proces is stabiel, er zijn enkel gewone oorzaken. Niet bijsturen (tampering vermijden).' : 'Er zijn signalen: zoek de speciale oorzaak, neem ze weg en herbereken de grenzen zonder die subgroepen (herziene grenzen).'}`,
+          'Regelgrenzen (stem van het proces) zijn geen specificatiegrenzen (stem van de klant). Of het proces capabel is, volgt pas uit Cp/Cpk hieronder met dezelfde σ̂.',
+        ],
+      },
       question: [`Is het proces onder statistische controle (in control)? X̄-${kd} kaart met k = ${k} subgroepen van n = ${n}${ex.size ? `, ${ex.size} uitgesloten (herziene grenzen)` : ''}.`],
       formula: [
         `\\bar{\\bar{x}}=\\frac{1}{k}\\sum_i \\bar{x}_i,\\qquad ${Dt}=\\frac{1}{k}\\sum_i ${kd === 'R' ? 'R_i' : 's_i'}`,
@@ -461,52 +481,6 @@ function imrTab(el: HTMLElement) {
 }
 
 // ---------- 5. Theorie ----------
-function theorieTab(el: HTMLElement) {
-  const li = (...t: (string | HTMLElement)[]) => h('li', null, ...t);
-  const b = (t: string) => h('b', null, t);
-  el.append(
-    card(
-      'Waarom regelkaarten? Gewone versus speciale oorzaken',
-      h('ul', null,
-        li(b('Gewone oorzaken (common causes, toevallige variatie): '), 'altijd aanwezig, veel kleine bronnen, deel van het systeem. Een proces met enkel gewone oorzaken is stabiel, onder statistische controle (in control). Verminderen vraagt een systeemverandering (management).'),
-        li(b('Speciale oorzaken (special / assignable causes): '), 'sporadisch, aanwijsbaar (nieuwe grondstof, versleten gereedschap, andere operator, instelfout). Een regelkaart is bedoeld om deze te detecteren: punt buiten de grenzen of een niet-toevallig patroon.'),
-        li(b('Doel: '), 'onderscheid maken tussen beide, zodat men enkel ingrijpt bij een speciale oorzaak. Regelgrenzen (UCL/LCL = CL ± 3σ van de statistiek) zijn de stem van het proces, NIET de specificatiegrenzen (stem van de klant).'),
-        li(b('Tampering (overcorrectie): '), 'ingrijpen op een stabiel proces bij elke afwijking (gewone variatie) vergroot de spreiding (Deming funnel experiment). Niet bijsturen zolang er geen signaal is.'),
-      ),
-    ),
-    card(
-      'Waarom subgroepgemiddelden (normaliteit)?',
-      h('ul', null,
-        li('Door de centrale limietstelling (CLT) zijn subgroepgemiddelden x̄ bij benadering normaal verdeeld, ook als de individuele waarden dat niet zijn. Daardoor geldt de 3-sigma logica: P(punt buiten de grenzen | in controle) = 0,27%, ARL₀ = 370.'),
-        li('σ van x̄ = σ/√n: de X̄-kaart is gevoeliger voor verschuivingen van het gemiddelde dan een kaart van individuele waarden.'),
-        li('Rationele subgroepen: metingen binnen een subgroep onder gelijke omstandigheden (kort na elkaar), zodat de variatie binnen = gewone variatie en verschillen tussen subgroepen speciale oorzaken tonen.'),
-        li('σ̂ binnen subgroepen = R̄/d₂ (of s̄/c₄): schatting van de korte termijn spreiding. R is de beste (eenvoudige en bijna even efficiënte) schatter bij kleine subgroepen (n < 10, typisch 4-5); bij grotere n is s beter.'),
-        li('Eerst de R- (of s-) kaart beoordelen: de grenzen van de X̄-kaart hangen af van R̄; als de spreiding niet stabiel is, zijn de X̄-grenzen niet zinvol.'),
-      ),
-    ),
-    card(
-      'Western Electric regels (1-4)',
-      h('p', { class: 'muted' }, 'Zones: A = tussen 2 en 3 sigma, B = tussen 1 en 2 sigma, C = binnen 1 sigma van de centrale lijn (sigma van de geplotte statistiek, σ_x̄ = (UCL-CL)/3).'),
-      h('ol', null,
-        li(b('Regel 1: '), '1 punt buiten de 3-sigma grenzen (boven UCL of onder LCL).'),
-        li(b('Regel 2: '), '2 van 3 opeenvolgende punten voorbij 2 sigma (zone A of verder), aan dezelfde kant.'),
-        li(b('Regel 3: '), '4 van 5 opeenvolgende punten voorbij 1 sigma (zone B of verder), aan dezelfde kant.'),
-        li(b('Regel 4: '), '8 opeenvolgende punten aan dezelfde kant van de centrale lijn (run).'),
-      ),
-      h('p', null, 'Meer regels = snellere detectie van kleine verschuivingen, maar ook meer valse alarmen.'),
-    ),
-    card(
-      'Stabiliteit versus capabiliteit',
-      h('ul', null,
-        li(b('Stabiel (onder controle): '), 'enkel gewone oorzaken, voorspelbaar. Zegt niets over de specificaties.'),
-        li(b('Capabel: '), 'de spreiding past binnen de specificaties (Cp, Cpk ≥ 1,33). Capabiliteit is pas zinvol voor een stabiel proces.'),
-        li('Een proces kan stabiel en niet capabel zijn (systeem verbeteren) of capabel maar niet stabiel (speciale oorzaken wegwerken).'),
-        li('Herziene grenzen (revised limits, oefening 3): punten met een gevonden en weggewerkte speciale oorzaak uitsluiten en de grenzen herberekenen; herhaal tot er geen signalen meer zijn. Een punt net binnen de grenzen (bv. 35,0 bij UCL 35,02) is formeel geen signaal, maar verdient aandacht.'),
-      ),
-    ),
-  );
-}
-
 export const spc: ModuleDef = {
   id: 'spc',
   title: 'SPC regelkaarten',
@@ -517,17 +491,34 @@ export const spc: ModuleDef = {
     ['newn', 'Andere subgroepgrootte en detectiekans (ARL)', 'oefening 4 nieuwe n detectie verschuiving shift beta arl'],
     ['const', 'Constantentabel A2 A3 d2 D3 D4 B3 B4 c4', 'constanten tabel a2 d2 d4 c4'],
     ['imr', 'I-MR kaart (individuele waarden)', 'individuals moving range imr'],
-    ['theorie', 'Theorie: oorzaken, CLT, regels, stabiliteit vs capabiliteit', 'common special causes tampering clt normaliteit'],
+    ['theorie', 'Theorie regelkaarten: X-bar, R-bar, A2, D4, d2, grenzen, regels', 'theorie xbar rbar x-bar r-bar a2 d2 d3 d4 c4 a3 b4 grenzen common special causes tampering clt fase i fase ii'],
   ],
   mount(el) {
-    moduleHead(el, 'SPC regelkaarten (control charts)', 'X̄-R en X̄-s kaarten, Western Electric regels, herziene grenzen, andere subgroepgrootte en detectiekans.');
+    moduleHead(el, 'SPC regelkaarten (control charts)', 'Op \u00e9\u00e9n pagina: 1. de volledige theorie (X\u0304, R\u0304, waar A\u2082, D\u2084 en d\u2082 vandaan komen, regels), 2. de berekening.');
+    const thBody = h('div', { class: 'md', html: spcTheorie.html });
+    renderMath(thBody);
+    const theory = h('details', { class: 'card section' }, h('summary', null, h('span', { class: 'secnum' }, '1'), 'Theorie: regelkaarten, X\u0304 en R\u0304, grenzen en constanten'), thBody) as HTMLDetailsElement;
+    theory.open = settings.explain;
+    let last = settings.explain;
+    onSettings(() => {
+      if (settings.explain !== last) theory.open = last = settings.explain;
+    });
+    const head = h('h3', { class: 'sechead' }, h('span', { class: 'secnum' }, '2'), 'Berekenen');
+    const box = h('div');
+    el.append(theory, head, box);
     const t = tabs('spc', [
       { id: 'xbar', label: 'X̄-R / X̄-s', build: xbarTab },
       { id: 'newn', label: 'Andere n / detectie', build: newnTab },
       { id: 'const', label: 'Constanten', build: constTab },
       { id: 'imr', label: 'I-MR', build: imrTab },
-      { id: 'theorie', label: 'Theorie', build: theorieTab },
-    ], el);
-    return { route: (sub, params) => sub && t.show(sub, params) };
+    ], box);
+    return {
+      route: (sub, params) => {
+        if (sub === 'theorie') {
+          theory.open = true;
+          theory.scrollIntoView();
+        } else if (sub) t.show(sub, params);
+      },
+    };
   },
 };
