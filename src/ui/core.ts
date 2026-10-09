@@ -123,9 +123,41 @@ export function xl(x: number): string {
 export function tex(src: string, display = true): string {
   return katex.renderToString(src, { displayMode: display, throwOnError: false, strict: 'ignore' });
 }
+/** Split a TeX string at top-level `,\quad` / `,\qquad` separators (outside braces and \left..\right). */
+export function splitTexQuad(src: string): string[] {
+  const parts: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === '\\') {
+      if (/^\\left(?![a-zA-Z])/.test(src.slice(i, i + 6))) depth++;
+      else if (/^\\right(?![a-zA-Z])/.test(src.slice(i, i + 7))) depth--;
+      else if (depth === 0) {
+        const m = /^\\q?quad(?![a-zA-Z])/.exec(src.slice(i));
+        if (m) {
+          const piece = src.slice(start, i).trim();
+          if (piece) parts.push(piece);
+          i += m[0].length - 1;
+          start = i + 1;
+          continue;
+        }
+      }
+      i++; // skip escaped char
+    } else if (c === '{') depth++;
+    else if (c === '}') depth--;
+  }
+  const last = src.slice(start).trim();
+  if (last) parts.push(last);
+  return parts;
+}
 export function texEl(src: string, display = true): HTMLElement {
   const d = h('div', { class: display ? 'tex-block' : 'tex-inline' });
-  d.innerHTML = tex(src, display);
+  const parts = display ? splitTexQuad(src) : [src];
+  if (parts.length > 1) {
+    // Separate pieces so long formula rows wrap on narrow screens instead of overflowing.
+    d.classList.add('tex-wrap');
+    d.innerHTML = parts.map((p) => `<span class="tex-part">${tex(p, true)}</span>`).join('');
+  } else d.innerHTML = tex(src, display);
   return d;
 }
 

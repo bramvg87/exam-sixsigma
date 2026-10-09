@@ -207,13 +207,13 @@ function anovaTab(el: HTMLElement) {
     );
     if ([v.op, v.part].concat(g.pooled ? [] : [v.int]).some((x) => x === 0)) warnings.push('Een negatieve variantieschatting werd op 0 gezet.');
     const formula = course
-      ? [`\hat\sigma^2_{EV}=MS_E,\quad \hat\sigma^2_{AV}=\frac{MS_O-MS_E}{p\,r},\quad \hat\sigma^2_{PV}=\frac{MS_P-MS_E}{o\,r}`]
+      ? [`\\hat\\sigma^2_{EV}=MS_E,\\quad \\hat\\sigma^2_{AV}=\\frac{MS_O-MS_E}{p\\,r},\\quad \\hat\\sigma^2_{PV}=\\frac{MS_P-MS_E}{o\\,r}`]
       : g.pooled
       ? [`\\hat\\sigma^2_{EV}=MS_{E,pool},\\quad \\hat\\sigma^2_{O}=\\frac{MS_O-MS_{E,pool}}{p\\,r},\\quad \\hat\\sigma^2_{P}=\\frac{MS_P-MS_{E,pool}}{o\\,r}`]
       : [`\\hat\\sigma^2_{EV}=MS_E,\\quad \\hat\\sigma^2_{O\\times P}=\\frac{MS_{OP}-MS_E}{r},\\quad \\hat\\sigma^2_{O}=\\frac{MS_O-MS_{OP}}{p\\,r},\\quad \\hat\\sigma^2_{P}=\\frac{MS_P-MS_{OP}}{o\\,r}`];
     formula.push(`\\sigma^2_{GRR}=\\sigma^2_{EV}+\\sigma^2_{O}+\\sigma^2_{O\\times P},\\quad \\sigma^2_{TV}=\\sigma^2_{GRR}+\\sigma^2_P,\\quad \\%GRR=100\\frac{\\sigma_{GRR}}{\\sigma_{TV}},\\quad ndc=\\left\\lfloor1{,}41\\frac{\\sigma_P}{\\sigma_{GRR}}\\right\\rfloor`);
     const sub = course
-      ? [`\hat\sigma^2_{EV}=${tx(msE)},\quad \hat\sigma^2_{AV}=\frac{${tx(rows[1].MS)}-${tx(msE)}}{${p}\cdot ${r}}=${tx(v.op)},\quad \hat\sigma^2_{PV}=\frac{${tx(rows[0].MS)}-${tx(msE)}}{${o}\cdot ${r}}=${tx(v.part)}`]
+      ? [`\\hat\\sigma^2_{EV}=${tx(msE)},\\quad \\hat\\sigma^2_{AV}=\\frac{${tx(rows[1].MS)}-${tx(msE)}}{${p}\\cdot ${r}}=${tx(v.op)},\\quad \\hat\\sigma^2_{PV}=\\frac{${tx(rows[0].MS)}-${tx(msE)}}{${o}\\cdot ${r}}=${tx(v.part)}`]
       : g.pooled
       ? [`\\hat\\sigma^2_{EV}=${tx(msE)},\\quad \\hat\\sigma^2_{O}=\\frac{${tx(rows[1].MS)}-${tx(msE)}}{${p}\\cdot ${r}}=${tx(v.op)},\\quad \\hat\\sigma^2_{P}=\\frac{${tx(rows[0].MS)}-${tx(msE)}}{${o}\\cdot ${r}}=${tx(v.part)}`]
       : [`\\hat\\sigma^2_{EV}=${tx(msE)},\\quad \\hat\\sigma^2_{O\\times P}=\\frac{${tx(msI)}-${tx(msE)}}{${r}}=${tx(v.int)},\\quad \\hat\\sigma^2_{O}=\\frac{${tx(rows[1].MS)}-${tx(msI)}}{${p}\\cdot ${r}}=${tx(v.op)},\\quad \\hat\\sigma^2_{P}=\\frac{${tx(rows[0].MS)}-${tx(msI)}}{${o}\\cdot ${r}}=${tx(v.part)}`];
