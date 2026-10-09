@@ -108,6 +108,8 @@ code.xl { display: block; font-family: var(--mono); padding: 2px 0; white-space:
 .tex-block { margin: 2px 0; overflow-x: auto; overflow-y: hidden; }
 .tex-block .katex-display { margin: 4px 0; text-align: left; }
 .tex-block .katex-display > .katex { text-align: left; }
+.tex-block.tex-wrap { display: flex; flex-wrap: wrap; column-gap: 2em; align-items: baseline; }
+.tex-wrap .tex-part { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .tex-inline { display: inline; }
 /* tables */
 .tablewrap { overflow-x: auto; margin: 6px 0 10px; }
